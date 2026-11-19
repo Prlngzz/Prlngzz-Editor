@@ -25,6 +25,18 @@ $main = Replace-Once $main "mod packs;" "" "Game Library module declaration"
 Save-Source $mainPath $main
 Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE ".github/patches/obj.rs") -Destination (Join-Path $Project "src/obj.rs") -Force
 
+# Retain the compiler fixes needed by the uploaded source snapshot.
+$studioPath = Join-Path $Project "src/studio.rs"
+$studioSource = [IO.File]::ReadAllText($studioPath)
+$studioSource = $studioSource.Replace("let children =", "let children: Vec<Value> =")
+foreach ($field in @("asset_id", "path", "url", "type")) {
+    $old = '.pointer("/action/' + $field + '")'
+    $new = '.get("action").and_then(Value::as_object).and_then(|action| action.get("' + $field + '"))'
+    $studioSource = $studioSource.Replace($old, $new)
+}
+Save-Source $studioPath $studioSource
+
+
 # Fit personal OBJ files to a Roblox FileMesh target instead of writing OBJ text into the cache.
 $configPath = Join-Path $Project "src/config.rs"
 $config = [IO.File]::ReadAllText($configPath)
@@ -137,6 +149,17 @@ $newWatchBlock = @'
             watch::merge(&mut self.entries, change);
 '@
 $gui = Replace-Once $gui $oldWatchBlock $newWatchBlock "same-size replacement watcher retry"
+$lookupLabel = 'ui.weak("These IDs need local cache fingerprints before they can be applied.");'
+if ([regex]::Matches($gui, [regex]::Escape($lookupLabel)).Count -eq 1) {
+    $lookupUi = $lookupLabel + [char]10 +
+        '                        if ui.button("Look up IDs").on_hover_text("Try to fetch these unresolved IDs from Roblox").clicked() {' + [char]10 +
+        '                            actions.push(Action::LookupFor(i));' + [char]10 +
+        '                        }'
+    $gui = $gui.Replace($lookupLabel, $lookupUi)
+} elseif (!$gui.Contains('actions.push(Action::LookupFor(i));')) {
+    throw "The unresolved-ID config card could not be wired to its LookupFor action"
+}
+
 Save-Source $guiPath $gui
 
 # Remove the Game Library, its bundled/remote catalog and its non-RIVALS fingerprints.
