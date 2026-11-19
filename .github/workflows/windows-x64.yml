@@ -55,12 +55,12 @@ jobs:
           }
           $oldActionValidation = 'Some(other) => report.errors.push(format!("Rule {} has an incomplete or unknown action ''{other}''", object.get("name").and_then(Value::as_str).unwrap_or("(unnamed)"))),' 
           $newActionValidation = @'
-Some(other) => {
-    let name = object.get("name").and_then(Value::as_str).unwrap_or("(unnamed)");
-    report.errors.push(format!("Rule {name} has an incomplete or unknown action '{other}'"));
-    report.warnings.push(format!("Rule {name} uses an unrecognized action and will not be applied until corrected"));
-}
-'@
+          Some(other) => {
+              let name = object.get("name").and_then(Value::as_str).unwrap_or("(unnamed)");
+              report.errors.push(format!("Rule {name} has an incomplete or unknown action '{other}'"));
+              report.warnings.push(format!("Rule {name} uses an unrecognized action and will not be applied until corrected"));
+          }
+          '@
           if (!$studioSource.Contains($oldActionValidation)) {
             throw "Expected unknown-action validation branch was not found in src/studio.rs"
           }
