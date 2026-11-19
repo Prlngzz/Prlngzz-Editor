@@ -28,7 +28,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Restore and patch source archive
-        shell: pwsh
+        shell: powershell
         run: |
           $PSNativeCommandUseErrorActionPreference = $false
           $ErrorActionPreference = "Continue"
