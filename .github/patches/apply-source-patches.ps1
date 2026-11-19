@@ -465,7 +465,7 @@ $oldChips = @'
 '@
 $newChips = @'
     fn browse_chips(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
-        let tagged = self.rivals_entries.iter().filter(|id| self.index.contains_key(*id)).count();
+        let tagged = rivals_asset_ids().len();
         let chips = [
             (Tab::All, "RIVALS assets", Some(tagged), theme::ACCENT),
             (Tab::Live, "Discover", Some(self.arrivals.len()), theme::OK),
@@ -783,20 +783,6 @@ $gui = Replace-Once $gui @'
             ui.label(egui::RichText::new("LOCAL FILE REPLACEMENT").strong());
 '@ "Config Studio card fade transition"
 
-$gui = Replace-Once $gui @'
-        self.chips(ui, &chips, actions);
-    }
-'@ @'
-        let tab_fade = ui.ctx().animate_value_with_time(
-            egui::Id::new(("rivals-library-tab", self.tab == Tab::All)),
-            1.0,
-            0.16,
-        );
-        ui.add_space((1.0 - tab_fade) * 3.0);
-        self.chips(ui, &chips, actions);
-    }
-'@ "RIVALS library tab transition"
-
 # Explain that one local-file action applies to every target ID entered in the same rule.
 $gui = $gui.Replace("Select an asset and choose “Use in Config”, or enter its Roblox asset ID / cache entry ID in Target IDs above.",
                     "Select an asset and choose “Use in Config”, or paste one or more RIVALS target IDs above. One click adds the chosen file to every target.")
@@ -837,6 +823,8 @@ $oldEmpty = @'
 '@
 $newLibrary = @'
         if self.tab == Tab::All {
+            let tab_fade = ui.ctx().animate_value_with_time(egui::Id::new("rivals-library-enter"), 1.0, 0.18);
+            ui.add_space((1.0 - tab_fade) * 4.0);
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new("RIVALS ASSET CATALOGUE").strong());
                 ui.add_space(8.0);
