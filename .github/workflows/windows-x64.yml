@@ -65,6 +65,28 @@ jobs:
             throw "Expected unknown-action validation branch was not found in src/studio.rs"
           }
           $studioSource = $studioSource.Replace($oldActionValidation, $newActionValidation.Trim())
+          $guiFile = Join-Path $project "src/gui.rs"
+          $guiSource = [IO.File]::ReadAllText($guiFile)
+          $emptyLayoutPattern = 'ui\.with_layout\(egui::Layout::right_to_left\(egui::Align::Center\), \|ui\| \{\s*\}\);'
+          if ([regex]::Matches($guiSource, $emptyLayoutPattern).Count -ne 1) {
+            throw "Expected one empty layout closure in src/gui.rs"
+          }
+          $guiSource = [regex]::Replace($guiSource, $emptyLayoutPattern, '')
+          $lookupLabel = 'ui.weak("These IDs need local cache fingerprints before they can be applied.");'
+          if ([regex]::Matches($guiSource, [regex]::Escape($lookupLabel)).Count -ne 1) {
+            throw "Expected one unresolved-ID explanation in src/gui.rs"
+          }
+          $lookupUi = $lookupLabel + "`n" +
+            '                        if ui.button("Look up IDs").on_hover_text("Try to fetch these unresolved IDs from Roblox").clicked() {' + "`n" +
+            '                            actions.push(Action::LookupFor(i));' + "`n" +
+            '                        }'
+          $guiSource = $guiSource.Replace($lookupLabel, $lookupUi)
+          $oldColor = 'alpha(if selected { theme::TEXT } else { theme::TEXT }, t)'
+          if (!$guiSource.Contains($oldColor)) {
+            throw "Expected redundant text-color conditional was not found in src/gui.rs"
+          }
+          $guiSource = $guiSource.Replace($oldColor, 'alpha(theme::TEXT, t)')
+          [IO.File]::WriteAllText($guiFile, $guiSource, [Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText($studioFile, $studioSource, [Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText($packsFile, $packsSource, [Text.UTF8Encoding]::new($false))
           Push-Location $project
