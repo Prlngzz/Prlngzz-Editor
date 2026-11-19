@@ -47,6 +47,13 @@ jobs:
           $packsSource = $packsSource.Replace(".contains('%2e')", '.contains("%2e")')
           $packsSource = $packsSource.Replace(".contains('%2f')", '.contains("%2f")')
           $packsSource = $packsSource.Replace(".contains('%5c')", '.contains("%5c")')
+          $studioFile = Join-Path $project "src/studio.rs"
+          $studioSource = [IO.File]::ReadAllText($studioFile)
+          $studioSource = $studioSource.Replace("let children =", "let children: Vec<Value> =")
+          foreach ($field in @("asset_id", "path", "url", "type")) {
+            $studioSource = $studioSource.Replace('.pointer("/action/' + $field + '")', '.get("action").and_then(Value::as_object).and_then(|action| action.get("' + $field + '"))')
+          }
+          [IO.File]::WriteAllText($studioFile, $studioSource, [Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText($packsFile, $packsSource, [Text.UTF8Encoding]::new($false))
           Push-Location $project
           cargo fmt --all
