@@ -41,57 +41,42 @@ jobs:
           if (!(Test-Path (Join-Path $project "Cargo.toml"))) {
             throw "The archive did not contain Prlngzz-Editor/Cargo.toml"
           }
-          # Repair malformed percent-escape character literals in the uploaded source snapshot.
-          $packsFile = Join-Path $project "src/packs.rs"
-          $packsSource = [IO.File]::ReadAllText($packsFile)
-          $packsSource = $packsSource.Replace(".contains('%2e')", '.contains("%2e")')
-          $packsSource = $packsSource.Replace(".contains('%2f')", '.contains("%2f")')
-          $packsSource = $packsSource.Replace(".contains('%5c')", '.contains("%5c")')
-          $studioFile = Join-Path $project "src/studio.rs"
-          $studioSource = [IO.File]::ReadAllText($studioFile)
-          $studioSource = $studioSource.Replace("let children =", "let children: Vec<Value> =")
-          foreach ($field in @("asset_id", "path", "url", "type")) {
-            $studioSource = $studioSource.Replace('.pointer("/action/' + $field + '")', '.get("action").and_then(Value::as_object).and_then(|action| action.get("' + $field + '"))')
+
+          # Apply the checked-in source patch to the uploaded source snapshot.
+          $patchParts = @(
+            ".github/patches/prlngzz-feature-01.b64",
+            ".github/patches/prlngzz-feature-02.b64",
+            ".github/patches/prlngzz-feature-03.b64",
+            ".github/patches/prlngzz-feature-04.b64"
+          )
+          $encoded = ""
+          foreach ($part in $patchParts) {
+            $partPath = Join-Path $env:GITHUB_WORKSPACE $part
+            if (!(Test-Path $partPath)) { throw "Missing feature patch segment: $part" }
+            $encoded += ([IO.File]::ReadAllText($partPath)).Trim()
           }
-          $oldActionValidation = 'Some(other) => report.errors.push(format!("Rule {} has an incomplete or unknown action ''{other}''", object.get("name").and_then(Value::as_str).unwrap_or("(unnamed)"))),' 
-          $newActionValidation = @'
-          Some(other) => {
-              let name = object.get("name").and_then(Value::as_str).unwrap_or("(unnamed)");
-              report.errors.push(format!("Rule {name} has an incomplete or unknown action '{other}'"));
-              report.warnings.push(format!("Rule {name} uses an unrecognized action and will not be applied until corrected"));
+          $compressed = [Convert]::FromBase64String($encoded)
+          $inputStream = [IO.MemoryStream]::new($compressed)
+          $gzip = [IO.Compression.GzipStream]::new($inputStream, [IO.Compression.CompressionMode]::Decompress)
+          $outputStream = [IO.MemoryStream]::new()
+          try {
+            $gzip.CopyTo($outputStream)
+          } finally {
+            $gzip.Dispose()
+            $inputStream.Dispose()
           }
-          '@
-          if (!$studioSource.Contains($oldActionValidation)) {
-            throw "Expected unknown-action validation branch was not found in src/studio.rs"
-          }
-          $studioSource = $studioSource.Replace($oldActionValidation, $newActionValidation.Trim())
-          $guiFile = Join-Path $project "src/gui.rs"
-          $guiSource = [IO.File]::ReadAllText($guiFile)
-          $emptyLayoutPattern = 'ui\.with_layout\(egui::Layout::right_to_left\(egui::Align::Center\), \|ui\| \{\s*\}\);'
-          if ([regex]::Matches($guiSource, $emptyLayoutPattern).Count -ne 1) {
-            throw "Expected one empty layout closure in src/gui.rs"
-          }
-          $guiSource = [regex]::Replace($guiSource, $emptyLayoutPattern, '')
-          $lookupLabel = 'ui.weak("These IDs need local cache fingerprints before they can be applied.");'
-          if ([regex]::Matches($guiSource, [regex]::Escape($lookupLabel)).Count -ne 1) {
-            throw "Expected one unresolved-ID explanation in src/gui.rs"
-          }
-          $lookupUi = $lookupLabel + "`n" +
-            '                        if ui.button("Look up IDs").on_hover_text("Try to fetch these unresolved IDs from Roblox").clicked() {' + "`n" +
-            '                            actions.push(Action::LookupFor(i));' + "`n" +
-            '                        }'
-          $guiSource = $guiSource.Replace($lookupLabel, $lookupUi)
-          $oldColor = 'alpha(if selected { theme::TEXT } else { theme::TEXT }, t)'
-          if (!$guiSource.Contains($oldColor)) {
-            throw "Expected redundant text-color conditional was not found in src/gui.rs"
-          }
-          $guiSource = $guiSource.Replace($oldColor, 'alpha(theme::TEXT, t)')
-          [IO.File]::WriteAllText($guiFile, $guiSource, [Text.UTF8Encoding]::new($false))
-          [IO.File]::WriteAllText($studioFile, $studioSource, [Text.UTF8Encoding]::new($false))
-          [IO.File]::WriteAllText($packsFile, $packsSource, [Text.UTF8Encoding]::new($false))
+          $patchPath = Join-Path $env:RUNNER_TEMP "prlngzz-feature.patch"
+          [IO.File]::WriteAllBytes($patchPath, $outputStream.ToArray())
+          $outputStream.Dispose()
+
+          Push-Location $destination
+          git apply --unsafe-paths $patchPath
+          if ($LASTEXITCODE -ne 0) { throw "Applying the Prlngzz Editor feature patch failed" }
+          Pop-Location
+
           Push-Location $project
           cargo fmt --all
-          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after source repair" }
+          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after source patch" }
           Pop-Location
           "PRLNGZZ_PROJECT=$project" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
