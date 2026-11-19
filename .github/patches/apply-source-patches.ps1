@@ -62,6 +62,17 @@ foreach ($field in @("asset_id", "path", "url", "type")) {
     $new = '.get("action").and_then(Value::as_object).and_then(|action| action.get("' + $field + '"))'
     $studioSource = $studioSource.Replace($old, $new)
 }
+$oldUnknownAction = @'
+            Some(other) => report.errors.push(format!("Rule {} has an incomplete or unknown action '{other}'", object.get("name").and_then(Value::as_str).unwrap_or("(unnamed)"))),
+'@
+$newUnknownAction = @'
+            Some(other) => {
+                let message = format!("Rule {} has an incomplete or unknown action '{other}'", object.get("name").and_then(Value::as_str).unwrap_or("(unnamed)"));
+                report.warnings.push(message.clone());
+                report.errors.push(message);
+            }
+'@
+$studioSource = Replace-Once $studioSource $oldUnknownAction $newUnknownAction "unknown actions reported as warnings and errors"
 Save-Source $studioPath $studioSource
 
 # Fit personal OBJ files to a Roblox FileMesh target instead of writing OBJ text into the cache.
