@@ -850,6 +850,13 @@ $newLibrary = @'
             let assets = catalog.get("assets").and_then(serde_json::Value::as_array).cloned().unwrap_or_default();
             let total = assets.len();
             let mut selected_id: Option<String> = None;
+            if ui.button("Use all known map sky IDs").on_hover_text("Add every currently verified RIVALS map-sky target to one local replacement rule").clicked() {
+                let ids: Vec<&str> = assets.iter()
+                    .filter(|asset| asset.get("category").and_then(serde_json::Value::as_str) == Some("RIVALS map sky texture"))
+                    .filter_map(|asset| asset.get("id").and_then(serde_json::Value::as_str))
+                    .collect();
+                if !ids.is_empty() { selected_id = Some(ids.join("\n")); }
+            }
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
                 ui.label(egui::RichText::new(format!("{total} curated RIVALS asset IDs")).color(theme::MUTED).small());
                 for asset in assets {
