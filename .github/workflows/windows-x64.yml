@@ -58,6 +58,11 @@ jobs:
           Write-Host "Source repair: invoking project source patches"
           & (Join-Path $env:GITHUB_WORKSPACE ".github/patches/apply-source-patches.ps1") -Project $project
 
+          Push-Location $project
+          cargo fmt --all
+          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after source patching" }
+          Pop-Location
+
           Write-Host "Source repair: complete"
           if (!(Test-Path (Join-Path $project "src/gui.rs")) -or !(Test-Path (Join-Path $project "src/config.rs"))) { throw "Source repair did not leave the required Rust files in place" }
           $global:LASTEXITCODE = 0
