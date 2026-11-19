@@ -788,7 +788,7 @@ $gui = Replace-Once $gui @'
     }
 '@ @'
         let tab_fade = ui.ctx().animate_value_with_time(
-            egui::Id::new(("rivals-library-tab", format!("{:?}", self.tab))),
+            egui::Id::new(("rivals-library-tab", self.tab == Tab::All)),
             1.0,
             0.16,
         );
