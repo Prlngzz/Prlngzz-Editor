@@ -82,13 +82,13 @@ jobs:
           [IO.File]::WriteAllText($configFile, $configSource, [Text.UTF8Encoding]::new($false))
           Write-Host "Source repair: config file written"
 
-          "PRLNGZZ_PROJECT=$project" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "Source repair: project path exported"
+          Write-Host "Source repair: complete"
 
       - name: Check formatting
         shell: pwsh
         run: |
-          Push-Location $env:PRLNGZZ_PROJECT
+          $project = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source\Prlngzz-Editor"
+          Push-Location $project
           cargo fmt --all -- --check
           if ($LASTEXITCODE -ne 0) { throw "cargo fmt check failed" }
           Pop-Location
@@ -96,7 +96,8 @@ jobs:
       - name: Run tests
         shell: pwsh
         run: |
-          Push-Location $env:PRLNGZZ_PROJECT
+          $project = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source\Prlngzz-Editor"
+          Push-Location $project
           cargo test --release --locked --target x86_64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { throw "cargo test failed" }
           Pop-Location
@@ -104,7 +105,8 @@ jobs:
       - name: Run Clippy
         shell: pwsh
         run: |
-          Push-Location $env:PRLNGZZ_PROJECT
+          $project = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source\Prlngzz-Editor"
+          Push-Location $project
           cargo clippy --all-targets --locked --target x86_64-pc-windows-msvc -- -D warnings
           if ($LASTEXITCODE -ne 0) { throw "cargo clippy failed" }
           Pop-Location
@@ -112,7 +114,8 @@ jobs:
       - name: Build Windows x64
         shell: pwsh
         run: |
-          Push-Location $env:PRLNGZZ_PROJECT
+          $project = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source\Prlngzz-Editor"
+          Push-Location $project
           cargo build --release --locked --target x86_64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { throw "cargo build failed" }
           Pop-Location
@@ -120,7 +123,8 @@ jobs:
       - name: Verify executable and prepare artifact
         shell: pwsh
         run: |
-          $binary = Join-Path $env:PRLNGZZ_PROJECT "target/x86_64-pc-windows-msvc/release/prlngzz-editor.exe"
+          $project = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source\Prlngzz-Editor"
+          $binary = Join-Path $project "target/x86_64-pc-windows-msvc/release/prlngzz-editor.exe"
           if (!(Test-Path $binary)) { throw "Expected executable not found: $binary" }
           $versionOutput = & $binary --version
           if ($LASTEXITCODE -ne 0) { throw "Executable --version invocation failed" }
