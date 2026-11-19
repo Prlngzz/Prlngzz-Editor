@@ -40,8 +40,8 @@ jobs:
           $patchRoot = Join-Path $env:RUNNER_TEMP "prlngzz-editor-overrides"
           if (Test-Path $destination) { Remove-Item $destination -Recurse -Force }
           if (Test-Path $patchRoot) { Remove-Item $patchRoot -Recurse -Force }
-          Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force
-          Expand-Archive -LiteralPath $overridesArchive -DestinationPath $patchRoot -Force
+          $null = Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force
+          $null = Expand-Archive -LiteralPath $overridesArchive -DestinationPath $patchRoot -Force
           $patch = Join-Path $patchRoot "source-overrides.patch"
           if (!(Test-Path $patch)) { throw "The overrides archive is missing source-overrides.patch" }
           Push-Location $destination
