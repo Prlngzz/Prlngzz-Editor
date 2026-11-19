@@ -33,6 +33,12 @@ function Remove-RustMatchArm([string]$Text, [string]$StartPattern, [string]$What
     if ($end -lt $Text.Length -and $Text[$end] -eq [char]10) { $end++ }
     return $Text.Remove($start, $end - $start)
 }
+function Remove-RustMatchArms([string]$Text, [string]$StartPattern, [string]$What) {
+    while ([regex]::Matches($Text, $StartPattern, [Text.RegularExpressions.RegexOptions]::Multiline).Count -gt 0) {
+        $Text = Remove-RustMatchArm $Text $StartPattern $What
+    }
+    return $Text
+}
 function Save-Source([string]$Path, [string]$Text) {
     [IO.File]::WriteAllText($Path, $Text, [Text.UTF8Encoding]::new($false))
 }
@@ -231,8 +237,8 @@ $cli = [IO.File]::ReadAllText($cliPath)
 $cli = Replace-RegexOnce $cli '(?m)^        /// Open on a page:.*\r?\n' ('        /// Open on a page: overview, rivals, studio, asset-ids, settings, all, live, configs, ids, guide, info' + [char]10) "CLI page help"
 $cli = Replace-RegexOnce $cli '(?s)    /// List the known packs, or download one and apply it\r?\n    Packs \{.*?\r?\n    \},\r?\n' '' "CLI Packs command"
 $cli = Replace-RegexOnce $cli '(?s)    /// Print the fingerprints recorded for the asset IDs in configs, to publish in packs\.json\r?\n    Share \{.*?\r?\n    \},\r?\n' '' "CLI Share command"
-$cli = Remove-RustMatchArm $cli '(?m)^\s*Cmd::Packs\s*\{' "Cmd::Packs"
-$cli = Remove-RustMatchArm $cli '(?m)^\s*Cmd::Share\s*\{' "Cmd::Share"
+$cli = Remove-RustMatchArms $cli '(?m)^\s*Cmd::Packs\s*\{' "Cmd::Packs"
+$cli = Remove-RustMatchArms $cli '(?m)^\s*Cmd::Share\s*\{' "Cmd::Share"
 $cli = [regex]::Replace($cli, '(?m)^use crate::packs.*\r?\n', '')
 Save-Source $cliPath $cli
 
