@@ -21,6 +21,7 @@ $main = [IO.File]::ReadAllText($mainPath)
 if (!$main.Contains("mod obj;")) {
     $main = Replace-Once $main "mod originals;" ("mod obj;" + [char]10 + "mod originals;") "OBJ module declaration"
 }
+$main = Replace-Once $main "mod packs;" "" "Game Library module declaration"
 Save-Source $mainPath $main
 Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE ".github/patches/obj.rs") -Destination (Join-Path $Project "src/obj.rs") -Force
 
@@ -210,7 +211,7 @@ $gui = $gui.Replace('("Add it", "Press Apply on a pack, or Add configs on the Co
 $gui = Replace-RegexOnce $gui '(?s)    fn packs_page\(.*?(?=    fn \w+\()' '' "Game Library page implementation"
 $gui = Replace-RegexOnce $gui '(?s)        \} else if let Some\(\(_, name\)\) = &self\.pack_job \{.*?        \} else if self\.apply_job\.is_some\(\) \{' '        } else if self.apply_job.is_some() {' "Game Library busy status"
 $gui = Replace-RegexOnce $gui '(?m)^\s*self\.poll_catalog\(ctx\);\r?\n\s*self\.poll_pack\(ctx\);\r?\n' '' "Game Library polling"
-$gui = Replace-RegexOnce $gui '(?m)^\s*Action::RefreshPacks\s*\|\s*$' '' "pack refresh harmless action"
+$gui = Replace-Once $gui ' | Action::RefreshPacks' '' "pack refresh harmless action"
 $gui = Replace-RegexOnce $gui '(?s)            Action::RefreshPacks => \{.*?            Action::ApplyPack\(index\) => \{.*?            \},\r?\n' '' "Game Library action handlers"
 $gui = $gui.Replace('overview, rivals, studio, asset-ids, settings, all, live, configs, packs, ids, guide, info or a kind such as textures',
                     'overview, rivals, studio, asset-ids, settings, all, live, configs, ids, guide, info or a kind such as textures')
