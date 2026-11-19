@@ -201,7 +201,7 @@ Save-Source $guiPath $gui
 # Remove pack catalog and pack-sharing commands from the CLI.
 $cliPath = Join-Path $Project "src/cli.rs"
 $cli = [IO.File]::ReadAllText($cliPath)
-$cli = Replace-RegexOnce $cli '(?m)^        /// Open on a page:.*\r?\n' '        /// Open on a page: overview, rivals, studio, asset-ids, settings, all, live, configs, ids, guide, info' + [char]10 "CLI page help"
+$cli = Replace-RegexOnce $cli '(?m)^        /// Open on a page:.*\r?\n' ('        /// Open on a page: overview, rivals, studio, asset-ids, settings, all, live, configs, ids, guide, info' + [char]10) "CLI page help"
 $cli = Replace-RegexOnce $cli '(?s)    /// List the known packs, or download one and apply it\r?\n    Packs \{.*?\r?\n    \},\r?\n' '' "CLI Packs command"
 $cli = Replace-RegexOnce $cli '(?s)    /// Print the fingerprints recorded for the asset IDs in configs, to publish in packs\.json\r?\n    Share \{.*?\r?\n    \},\r?\n' '' "CLI Share command"
 $cli = Replace-RegexOnce $cli '(?s)        Cmd::Packs \{.*?(?=        Cmd::Fetch \{)' '' "CLI pack/share command handlers"
