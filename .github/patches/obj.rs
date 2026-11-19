@@ -52,6 +52,23 @@ fn face_normal(a: [f32; 3], b: [f32; 3], c: [f32; 3]) -> [f32; 3] {
     if length > 1.0e-12 { [cross[0] / length, cross[1] / length, cross[2] / length] } else { [0.0, 1.0, 0.0] }
 }
 
+/// True for UTF-8 Wavefront OBJ text containing at least one vertex and one face.
+pub fn looks_like_obj(input: &[u8]) -> bool {
+    let Ok(text) = std::str::from_utf8(input) else { return false };
+    let mut has_vertex = false;
+    let mut has_face = false;
+    for line in text.lines() {
+        let line = line.split('#').next().unwrap_or("").trim();
+        match line.split_whitespace().next() {
+            Some("v") => has_vertex = true,
+            Some("f") => has_face = true,
+            _ => {}
+        }
+        if has_vertex && has_face { return true; }
+    }
+    false
+}
+
 /// Converts UTF-8 Wavefront OBJ geometry into Roblox's textual FileMesh v1.01.
 /// Each face corner gets a separate record to preserve OBJ's independent indices.
 pub fn to_roblox_mesh(input: &[u8]) -> Result<Vec<u8>> {
