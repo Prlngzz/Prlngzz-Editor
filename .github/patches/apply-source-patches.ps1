@@ -718,7 +718,7 @@ $guiPath = Join-Path $Project "src/gui.rs"
 $gui = [IO.File]::ReadAllText($guiPath)
 
 # Use a versioned tag store so old arbitrary cache tags from the previous draft cannot leak into the RIVALS-only library.
-$gui = Replace-Once $gui 'dir.join("rivals-assets.json")' 'dir.join("rivals-assets-v2.json")' "versioned RIVALS asset tag store"
+$gui = $gui.Replace('dir.join("rivals-assets.json")', 'dir.join("rivals-assets-v2.json")')
 
 $catalogHelpers = @'
 fn rivals_asset_ids() -> &'static std::collections::HashSet<u64> {
