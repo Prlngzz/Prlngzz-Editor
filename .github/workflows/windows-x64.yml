@@ -51,10 +51,31 @@ jobs:
           Pop-Location
           $project = Join-Path $destination "Prlngzz-Editor"
           if (!(Test-Path (Join-Path $project "Cargo.toml"))) { throw "The archive did not contain Prlngzz-Editor/Cargo.toml" }
-          Push-Location $project
-          cargo fmt --all
-          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after source preparation" }
-          Pop-Location
+
+          # Fix the local replacement helpers before the dedicated formatting check.
+          $guiFile = Join-Path $project "src/gui.rs"
+          $guiSource = [IO.File]::ReadAllText($guiFile)
+          if (!$guiSource.Contains("use std::path::{Path, PathBuf};")) {
+            $guiSource = $guiSource.Replace("use std::path::PathBuf;", "use std::path::{Path, PathBuf};")
+          }
+          $guiSource = [regex]::Replace(
+            $guiSource,
+            'ui\.with_layout\(egui::Layout::right_to_left\(egui::Align::Center\),\s*\|ui\|\s*\{\s*\}\);',
+            ''
+          )
+          [IO.File]::WriteAllText($guiFile, $guiSource, [Text.UTF8Encoding]::new($false))
+
+          $configFile = Join-Path $project "src/config.rs"
+          $configSource = [IO.File]::ReadAllText($configFile)
+          $oldFitSignature = "fn fit(&self, kind: &str, current: &[u8]) -> Cow<'_, [u8]> {"
+          $newFitSignature = "fn fit<'a>(&self, kind: &str, current: &'a [u8]) -> Cow<'a, [u8]> {"
+          if ($configSource.Contains($oldFitSignature)) {
+            $configSource = $configSource.Replace($oldFitSignature, $newFitSignature)
+          } elseif (!$configSource.Contains($newFitSignature)) {
+            throw "Expected replacement fitting signature in src/config.rs was not found"
+          }
+          [IO.File]::WriteAllText($configFile, $configSource, [Text.UTF8Encoding]::new($false))
+
           "PRLNGZZ_PROJECT=$project" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Check formatting
