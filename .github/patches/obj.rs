@@ -55,6 +55,7 @@ fn face_normal(a: [f32; 3], b: [f32; 3], c: [f32; 3]) -> [f32; 3] {
 /// True for UTF-8 Wavefront OBJ text containing at least one vertex and one face.
 pub fn looks_like_obj(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else { return false };
+    let text = text.trim_start_matches('\u{feff}');
     let mut has_vertex = false;
     let mut has_face = false;
     for line in text.lines() {
@@ -73,6 +74,7 @@ pub fn looks_like_obj(input: &[u8]) -> bool {
 /// Each face corner gets a separate record to preserve OBJ's independent indices.
 pub fn to_roblox_mesh(input: &[u8]) -> Result<Vec<u8>> {
     let text = std::str::from_utf8(input).context("OBJ file must be UTF-8 text")?;
+    let text = text.trim_start_matches('\u{feff}');
     let (mut positions, mut uvs, mut normals, mut triangles) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
 
     for (offset, source) in text.lines().enumerate() {

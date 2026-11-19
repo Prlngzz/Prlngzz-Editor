@@ -44,9 +44,6 @@ jobs:
           $guiFile = Join-Path $project "src/gui.rs"
           Write-Host "Source repair: GUI file opened"
           $guiSource = [IO.File]::ReadAllText($guiFile)
-          if (!$guiSource.Contains("use std::path::{Path, PathBuf};")) {
-            $guiSource = $guiSource.Replace("use std::path::PathBuf;", "use std::path::{Path, PathBuf};")
-          }
           $guiSource = [regex]::Replace(
             $guiSource,
             'ui\.with_layout\(egui::Layout::right_to_left\(egui::Align::Center\),\s*\|ui\|\s*\{\s*\}\);',
