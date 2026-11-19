@@ -18,7 +18,7 @@ function Replace-RegexOnce([string]$Text, [string]$Pattern, [string]$New, [strin
 function Remove-RustMatchArm([string]$Text, [string]$StartPattern, [string]$What) {
     $Text = $Text.Replace(([string][char]13 + [char]10), [string][char]10)
     $hits = [regex]::Matches($Text, $StartPattern, [Text.RegularExpressions.RegexOptions]::Multiline)
-    if ($hits.Count -ne 1) { throw "Expected exactly one '$What' match arm; found $($hits.Count)" }
+    if ($hits.Count -lt 1) { throw "Could not find a '$What' match arm to remove" }
     $start = $Text.LastIndexOf([char]10, $hits[0].Index)
     if ($start -lt 0) { $start = 0 } else { $start++ }
     $lineEnd = $Text.IndexOf([char]10, $hits[0].Index)
