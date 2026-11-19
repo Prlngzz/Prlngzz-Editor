@@ -28,65 +28,20 @@ Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE ".github/patches/obj.rs"
 # Fit personal OBJ files to a Roblox FileMesh target instead of writing OBJ text into the cache.
 $configPath = Join-Path $Project "src/config.rs"
 $config = [IO.File]::ReadAllText($configPath)
-$oldFit = @'
-    fn fit(&self, kind: &str, current: &[u8]) -> Cow<'_, [u8]> {
-        let raw = Cow::Borrowed(&self.bytes[..]);
-        if !format::is_image(kind) {
-            return raw;
-        }
-        let Some(image) = self.image() else { return raw };
-        let foreign = self.bytes.is_empty() || format::sniff(&self.bytes) == "ktx2";
-        match (kind, Pack::parse(current)) {
-            ("ktx2", Some(pack)) => pack.refit(image).into(),
-            // A KTX2 file that is not one of Roblox's packs: an uncompressed texture stands in.
-            ("ktx2", None) if format::sniff(&self.bytes) != "ktx2" => {
-                crate::viewers::encode_ktx2(image.width(), image.height(), image.as_raw()).map_or(raw, Cow::Owned)
-            }
-            ("png" | "jpeg" | "gif" | "webp", _) if foreign => {
-                let mut png = std::io::Cursor::new(Vec::new());
-                match image.write_to(&mut png, image::ImageFormat::Png) {
-                    Ok(()) => png.into_inner().into(),
-                    Err(_) => raw,
-                }
-            }
-            _ => raw,
-        }
-    }
-
-'@
-$newFit = @'
-    fn fit(&self, kind: &str, current: &[u8]) -> Result<Cow<'_, [u8]>> {
-        let raw = Cow::Borrowed(&self.bytes[..]);
-        if kind == "mesh" && !self.bytes.is_empty() && !self.bytes.starts_with(b"version ") {
+$fitAnchor = '    /// True when `current` already is what [`Payload::fit`] would store.'
+$fitChecked = @'
+    /// Fits a config payload and converts personal Wavefront OBJ files to Roblox mesh data.
+    fn fit_checked(&self, kind: &str, current: &[u8]) -> Result<Cow<'_, [u8]>> {
+        if kind == "mesh" && crate::obj::looks_like_obj(&self.bytes) {
             return crate::obj::to_roblox_mesh(&self.bytes)
                 .map(Cow::Owned)
-                .context("converting Wavefront OBJ to Roblox FileMesh");
+                .context("converting personal Wavefront OBJ file to Roblox FileMesh");
         }
-        if !format::is_image(kind) {
-            return Ok(raw);
-        }
-        let Some(image) = self.image() else { return Ok(raw) };
-        let foreign = self.bytes.is_empty() || format::sniff(&self.bytes) == "ktx2";
-        let fitted = match (kind, Pack::parse(current)) {
-            ("ktx2", Some(pack)) => pack.refit(image).into(),
-            // A KTX2 file that is not one of Roblox's packs: an uncompressed texture stands in.
-            ("ktx2", None) if format::sniff(&self.bytes) != "ktx2" => {
-                crate::viewers::encode_ktx2(image.width(), image.height(), image.as_raw()).map_or(raw, Cow::Owned)
-            }
-            ("png" | "jpeg" | "gif" | "webp", _) if foreign => {
-                let mut png = std::io::Cursor::new(Vec::new());
-                match image.write_to(&mut png, image::ImageFormat::Png) {
-                    Ok(()) => png.into_inner().into(),
-                    Err(_) => raw,
-                }
-            }
-            _ => raw,
-        };
-        Ok(fitted)
+        Ok(self.fit(kind, current))
     }
 
 '@
-$config = Replace-Once $config $oldFit $newFit "Payload::fit"
+$config = Replace-Once $config $fitAnchor $fitChecked + $fitAnchor "checked OBJ fitting"
 $oldHeld = @'
     fn held_by(&self, kind: &str, current: &[u8]) -> bool {
         if kind == "ktx2" {
@@ -98,17 +53,27 @@ $oldHeld = @'
     }
 '@
 $newHeld = @'
-    fn held_by(&self, kind: &str, current: &[u8]) -> Result<bool> {
+    fn held_by(&self, kind: &str, current: &[u8]) -> bool {
+        if kind == "ktx2" {
+            if let (Some(pack), Some(image)) = (Pack::parse(current), self.image()) {
+                return <[u8; 16]>::from(Md5::digest(current)) == texture::refit_digest(&pack, &self.digest, image);
+            }
+        }
+        current == &*self.fit(kind, current)
+    }
+
+    /// Checked variant used by actual replacement writes so malformed OBJ files are reported.
+    fn held_by_checked(&self, kind: &str, current: &[u8]) -> Result<bool> {
         if kind == "ktx2" {
             if let (Some(pack), Some(image)) = (Pack::parse(current), self.image()) {
                 return Ok(<[u8; 16]>::from(Md5::digest(current)) == texture::refit_digest(&pack, &self.digest, image));
             }
         }
-        Ok(current == &*self.fit(kind, current)?)
+        Ok(current == &*self.fit_checked(kind, current)?)
     }
 '@
-$config = Replace-Once $config $oldHeld $newHeld "Payload::held_by"
-$config = Replace-Once $config 'let body = payload.fit(kind, &store.read_body(&target)?).into_owned();' 'let body = payload.fit(kind, &store.read_body(&target)?)?.into_owned();' "manual replacement fitting"
+$config = Replace-Once $config $oldHeld $newHeld "checked replacement ownership"
+$config = Replace-Once $config 'let body = payload.fit(kind, &store.read_body(&target)?).into_owned();' 'let body = payload.fit_checked(kind, &store.read_body(&target)?)?.into_owned();' "manual replacement fitting"
 $oldHeldCall = @'
                     match store.read_body(&entries[i].id) {
                         Ok(current) if payload.held_by(entries[i].kind, &current) => {}
@@ -118,7 +83,7 @@ $oldHeldCall = @'
 '@
 $newHeldCall = @'
                     match store.read_body(&entries[i].id) {
-                        Ok(current) => match payload.held_by(entries[i].kind, &current) {
+                        Ok(current) => match payload.held_by_checked(entries[i].kind, &current) {
                             Ok(true) => {}
                             Ok(false) => plan.writes.push(i),
                             Err(e) => plan.report.notes.push(format!("{}: {e:#}", entries[i].id_hex)),
@@ -127,17 +92,7 @@ $newHeldCall = @'
                     }
 '@
 $config = Replace-Once $config $oldHeldCall $newHeldCall "replacement plan payload check"
-$config = Replace-Once $config 'let fitted = payload.fit(entries[i].kind, &current);' 'let fitted = payload.fit(entries[i].kind, &current)?;' "replacement write fitting"
-$config = $config.Replace('picture.fit("ktx2", &pack);', 'picture.fit("ktx2", &pack).unwrap();')
-$config = $config.Replace('picture.held_by("ktx2", &fitted) && !picture.held_by("ktx2", &pack)', 'picture.held_by("ktx2", &fitted).unwrap() && !picture.held_by("ktx2", &pack).unwrap()')
-$config = $config.Replace('&*picture.fit("png", b"")', '&*picture.fit("png", b"").unwrap()')
-$config = $config.Replace('format::sniff(&picture.fit("ktx2", b""))', 'format::sniff(&picture.fit("ktx2", b"").unwrap())')
-$config = $config.Replace('&*sound.fit("ktx2", &pack)', '&*sound.fit("ktx2", &pack).unwrap()')
-$config = $config.Replace('&*sound.fit("ogg", b"OggS")', '&*sound.fit("ogg", b"OggS").unwrap()')
-$config = $config.Replace('format::sniff(&Payload::new(Arc::new(pack.clone())).fit("png", b""))', 'format::sniff(&Payload::new(Arc::new(pack.clone())).fit("png", b"").unwrap())')
-$config = $config.Replace('format::sniff(&nothing.fit("png", b""))', 'format::sniff(&nothing.fit("png", b"").unwrap())')
-$config = $config.Replace('Pack::parse(&nothing.fit("ktx2", &pack))', 'Pack::parse(&nothing.fit("ktx2", &pack).unwrap())')
-$config = $config.Replace('nothing.fit("ogg", b"OggS").is_empty()', 'nothing.fit("ogg", b"OggS").unwrap().is_empty()')
+$config = Replace-Once $config 'let fitted = payload.fit(entries[i].kind, &current);' 'let fitted = payload.fit_checked(entries[i].kind, &current)?;' "replacement write fitting"
 Save-Source $configPath $config
 
 # Retry an already-replaced entry if Roblox rewrites it with the same byte length.
