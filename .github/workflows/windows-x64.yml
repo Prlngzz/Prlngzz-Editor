@@ -31,6 +31,7 @@ jobs:
         shell: pwsh
         run: |
           $PSNativeCommandUseErrorActionPreference = $false
+          $ErrorActionPreference = "Continue"
           $archive = Join-Path $env:GITHUB_WORKSPACE "Prlngzz-Editor-source.zip"
           $overridesArchive = Join-Path $env:GITHUB_WORKSPACE "Prlngzz-Editor-overrides.zip"
           foreach ($file in @($archive, $overridesArchive)) {
@@ -82,6 +83,9 @@ jobs:
           Write-Host "Source repair: config file written"
 
           Write-Host "Source repair: complete"
+          if (!(Test-Path (Join-Path $project "src/gui.rs")) -or !(Test-Path (Join-Path $project "src/config.rs"))) { throw "Source repair did not leave the required Rust files in place" }
+          $global:LASTEXITCODE = 0
+          exit 0
 
       - name: Check formatting
         shell: pwsh
