@@ -695,3 +695,16 @@ $newAction = @'
 '@
 $gui = Replace-Once $gui $oldAction $newAction "Result-wrapped Use in Config action"
 Save-Source $guiPath $gui
+
+
+# Remove the obsolete generic-list counter after the Asset Library became RIVALS-only.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui @'
+    /// How many entries the All list has: redirect records only count while they are listed.
+    fn listed(&self) -> usize {
+        let redirects = self.kinds.iter().find(|(kind, _)| *kind == "redirect").map_or(0, |(_, n)| *n);
+        self.entries.len() - if self.show_redirects { 0 } else { redirects }
+    }
+'@ '' "obsolete generic asset list count"
+Save-Source $guiPath $gui
