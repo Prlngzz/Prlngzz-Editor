@@ -70,17 +70,9 @@ jobs:
           [IO.File]::WriteAllText($guiFile, $guiSource, [Text.UTF8Encoding]::new($false))
           Write-Host "Source repair: GUI file written"
 
-          $configFile = Join-Path $project "src/config.rs"
-          Write-Host "Source repair: config file opened"
-          $configSource = [IO.File]::ReadAllText($configFile)
-          $oldFitSignature = "fn fit(&self, kind: &str, current: &[u8]) -> Result<Cow<'_, [u8]>> {"
-          $newFitSignature = "fn fit<'a>(&self, kind: &str, current: &'a [u8]) -> Result<Cow<'a, [u8]>> {"
-          # Idempotent: patch the old form when it exists; keep any already-fixed form.
-          if ($configSource.Contains($oldFitSignature)) {
-            $configSource = $configSource.Replace($oldFitSignature, $newFitSignature)
-          }
-          [IO.File]::WriteAllText($configFile, $configSource, [Text.UTF8Encoding]::new($false))
-          Write-Host "Source repair: config file written"
+          Write-Host "Source repair: invoking project source patches"
+          & (Join-Path $env:GITHUB_WORKSPACE ".github/patches/apply-source-patches.ps1") -Project $project
+          if ($LASTEXITCODE -ne 0) { throw "Project source patches failed" }
 
           Write-Host "Source repair: complete"
           if (!(Test-Path (Join-Path $project "src/gui.rs")) -or !(Test-Path (Join-Path $project "src/config.rs"))) { throw "Source repair did not leave the required Rust files in place" }
