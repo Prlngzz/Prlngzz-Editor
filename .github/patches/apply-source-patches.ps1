@@ -631,3 +631,40 @@ $theme = Replace-Once $theme @'
 '@ "soft open colours"
 Save-Source $themePath $theme
 
+
+
+# Validate local OBJ file extensions and cache target kinds before any replacement write.
+$configPath = Join-Path $Project "src/config.rs"
+$config = [IO.File]::ReadAllText($configPath)
+$oldObjFit = @'
+        if kind == "mesh" && crate::obj::looks_like_obj(&self.bytes) {
+            return crate::obj::to_roblox_mesh(&self.bytes)
+                .map(Cow::Owned)
+                .context("converting personal Wavefront OBJ file to Roblox FileMesh");
+        }
+'@
+$newObjFit = @'
+        if crate::obj::looks_like_obj(&self.bytes) {
+            ensure!(kind == "mesh", "OBJ files can only replace RIVALS mesh cache entries; select a mesh asset as the target");
+            return crate::obj::to_roblox_mesh(&self.bytes)
+                .map(Cow::Owned)
+                .context("converting personal Wavefront OBJ file to Roblox FileMesh");
+        }
+'@
+$config = Replace-Once $config $oldObjFit $newObjFit "OBJ cache-kind validation"
+$oldLocal = '            Action::Local(path) => std::fs::read(path).map(|body| Some(Arc::new(body))).with_context(|| format!("reading {}", path.display())),'
+$newLocal = @'
+            Action::Local(path) => (|| {
+                let mut body = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
+                let is_obj = path.extension().and_then(std::ffi::OsStr::to_str)
+                    .is_some_and(|extension| extension.eq_ignore_ascii_case("obj"));
+                if is_obj {
+                    ensure!(matched.iter().all(|&i| resolver.kind(i) == "mesh"),
+                        "OBJ files can only replace RIVALS mesh cache entries; select a mesh asset as the target");
+                    body = crate::obj::to_roblox_mesh(&body)?;
+                }
+                Ok(Some(Arc::new(body)))
+            })(),
+'@
+$config = Replace-Once $config $oldLocal $newLocal "local OBJ conversion and target validation"
+Save-Source $configPath $config
