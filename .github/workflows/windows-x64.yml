@@ -30,27 +30,12 @@ jobs:
       - name: Restore and patch source archive
         shell: powershell
         run: |
-          $PSNativeCommandUseErrorActionPreference = $false
-          $ErrorActionPreference = "Continue"
+          $ErrorActionPreference = "Stop"
           $archive = Join-Path $env:GITHUB_WORKSPACE "Prlngzz-Editor-source.zip"
-          $overridesArchive = Join-Path $env:GITHUB_WORKSPACE "Prlngzz-Editor-overrides.zip"
-          foreach ($file in @($archive, $overridesArchive)) {
-            if (!(Test-Path $file)) { throw "Required source file not found: $file" }
-          }
+          if (!(Test-Path $archive)) { throw "Upload Prlngzz-Editor-source.zip to the repository root." }
           $destination = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source"
-          $patchRoot = Join-Path $env:RUNNER_TEMP "prlngzz-editor-overrides"
           if (Test-Path $destination) { Remove-Item $destination -Recurse -Force }
-          if (Test-Path $patchRoot) { Remove-Item $patchRoot -Recurse -Force }
-          $null = Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force
-          $null = Expand-Archive -LiteralPath $overridesArchive -DestinationPath $patchRoot -Force
-          $patch = Join-Path $patchRoot "source-overrides.patch"
-          if (!(Test-Path $patch)) { throw "The overrides archive is missing source-overrides.patch" }
-          Push-Location $destination
-          git apply --check --directory=Prlngzz-Editor $patch
-          if ($LASTEXITCODE -ne 0) { throw "Source override patch did not match the uploaded source snapshot" }
-          git apply --directory=Prlngzz-Editor $patch
-          if ($LASTEXITCODE -ne 0) { throw "Could not apply source override patch" }
-          Pop-Location
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force
           $project = Join-Path $destination "Prlngzz-Editor"
           if (!(Test-Path (Join-Path $project "Cargo.toml"))) { throw "The archive did not contain Prlngzz-Editor/Cargo.toml" }
 
@@ -72,7 +57,6 @@ jobs:
 
           Write-Host "Source repair: invoking project source patches"
           & (Join-Path $env:GITHUB_WORKSPACE ".github/patches/apply-source-patches.ps1") -Project $project
-          if ($LASTEXITCODE -ne 0) { throw "Project source patches failed" }
 
           Write-Host "Source repair: complete"
           if (!(Test-Path (Join-Path $project "src/gui.rs")) -or !(Test-Path (Join-Path $project "src/config.rs"))) { throw "Source repair did not leave the required Rust files in place" }
