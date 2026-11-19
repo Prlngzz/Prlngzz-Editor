@@ -2,6 +2,10 @@ param([Parameter(Mandatory=$true)][string]$Project)
 $ErrorActionPreference = "Stop"
 
 function Replace-Once([string]$Text, [string]$Old, [string]$New, [string]$What) {
+    # ZIP archives can contain CRLF while GitHub-authored patch scripts use LF.
+    $Text = $Text.Replace("`r`n", "`n")
+    $Old = $Old.Replace("`r`n", "`n")
+    $New = $New.Replace("`r`n", "`n")
     $count = [regex]::Matches($Text, [regex]::Escape($Old)).Count
     if ($count -ne 1) { throw "Expected exactly one '$What' source block; found $count" }
     return $Text.Replace($Old, $New)
