@@ -753,12 +753,12 @@ $gui = Replace-Once $gui @'
 
 # Using an entry in Config Studio must not silently classify an arbitrary cache entry as a RIVALS asset.
 $gui = Replace-Once $gui @'
-            Action::UseEntryForConfig(id) => {
+            Action::UseEntryForConfig(id) => (|| {
                 self.rivals_entries.insert(id);
                 save_rivals_entries(&self.rivals_entries)?;
                 self.studio_target_input = store::hex(&id);
 '@ @'
-            Action::UseEntryForConfig(id) => {
+            Action::UseEntryForConfig(id) => (|| {
                 self.studio_target_input = store::hex(&id);
 '@ "keep Config Studio selection separate from RIVALS library membership"
 
@@ -802,3 +802,82 @@ $gui = $gui.Replace("Select an asset and choose “Use in Config”, or enter it
                     "Select an asset and choose “Use in Config”, or paste one or more RIVALS target IDs above. One click adds the chosen file to every target.")
 $gui = $gui.Replace("Add local rule", "Add file to Config")
 Save-Source $guiPath $gui
+
+
+# Replace the cache-only Asset Library view with a searchable curated RIVALS catalogue.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui @'
+    rivals_entries: HashSet<Id>,
+'@ @'
+    rivals_entries: HashSet<Id>,
+    rivals_catalog_search: String,
+'@ "RIVALS catalogue search state"
+$gui = Replace-Once $gui @'
+            rivals_entries: load_rivals_entries(),
+'@ @'
+            rivals_entries: load_rivals_entries(),
+            rivals_catalog_search: String::new(),
+'@ "RIVALS catalogue search initialization"
+
+$oldEmpty = @'
+        if self.view.is_empty() && self.tab == Tab::All {
+            ui.vertical_centered(|ui| {
+                ui.add_space(56.0);
+                ui.label(egui::RichText::new("No RIVALS assets tagged yet").size(18.0).strong());
+                ui.add_space(5.0);
+                ui.label(egui::RichText::new("Open Discover, select a cache entry, enter its Roblox asset ID and choose Tag as RIVALS.").color(theme::MUTED).small());
+                ui.add_space(12.0);
+                if ui.add(primary_button("Open Discover")).clicked() {
+                    actions.push(Action::ShowTab(Tab::Live));
+                }
+            });
+            return;
+        }
+'@
+$newLibrary = @'
+        if self.tab == Tab::All {
+            ui.horizontal(|ui| {
+                ui.label(egui::RichText::new("RIVALS ASSET CATALOGUE").strong());
+                ui.add_space(8.0);
+                ui.add(egui::TextEdit::singleline(&mut self.rivals_catalog_search)
+                    .desired_width(260.0)
+                    .hint_text("Search skins, skies, sounds or ID…"));
+            });
+            ui.label(egui::RichText::new("Curated Roblox IDs for RIVALS weapon icons, community skyboxes and audio. Select an item to use its ID in Config Studio.").color(theme::MUTED).small());
+            let query = self.rivals_catalog_search.trim().to_lowercase();
+            let catalog: serde_json::Value = serde_json::from_str(include_str!("../rivals_asset_catalog.json")).unwrap_or_default();
+            let assets = catalog.get("assets").and_then(serde_json::Value::as_array).cloned().unwrap_or_default();
+            let total = assets.len();
+            let mut selected_id: Option<String> = None;
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                ui.label(egui::RichText::new(format!("{total} curated RIVALS asset IDs")).color(theme::MUTED).small());
+                for asset in assets {
+                    let id = asset.get("id").and_then(serde_json::Value::as_str).unwrap_or("");
+                    let name = asset.get("name").and_then(serde_json::Value::as_str).unwrap_or("RIVALS asset");
+                    let category = asset.get("category").and_then(serde_json::Value::as_str).unwrap_or("RIVALS");
+                    let variant = asset.get("variant").and_then(serde_json::Value::as_str).unwrap_or("");
+                    let haystack = format!("{category} {name} {variant} {id}").to_lowercase();
+                    if !query.is_empty() && !haystack.contains(&query) { continue; }
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new(category).color(theme::MUTED).small());
+                        ui.label(name);
+                        if !variant.is_empty() { ui.label(egui::RichText::new(variant).color(theme::MUTED).small()); }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.small_button("Use in Config").clicked() { selected_id = Some(id.to_owned()); }
+                            ui.monospace(id);
+                        });
+                    });
+                    ui.separator();
+                }
+            });
+            if let Some(id) = selected_id {
+                self.studio_target_input = id;
+                self.show_tab(Tab::Studio, ui.ctx());
+            }
+            return;
+        }
+'@
+$gui = Replace-Once $gui $oldEmpty $newLibrary "searchable RIVALS Asset Library catalogue"
+Save-Source $guiPath $gui
+
