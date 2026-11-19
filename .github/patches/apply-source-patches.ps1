@@ -41,7 +41,7 @@ $fitChecked = @'
     }
 
 '@
-$config = Replace-Once $config $fitAnchor $fitChecked + $fitAnchor "checked OBJ fitting"
+$config = Replace-Once $config $fitAnchor ($fitChecked + $fitAnchor) "checked OBJ fitting"
 $oldHeld = @'
     fn held_by(&self, kind: &str, current: &[u8]) -> bool {
         if kind == "ktx2" {
