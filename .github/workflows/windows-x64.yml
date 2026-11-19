@@ -30,6 +30,7 @@ jobs:
       - name: Restore and patch source archive
         shell: pwsh
         run: |
+          $PSNativeCommandUseErrorActionPreference = $false
           $archive = Join-Path $env:GITHUB_WORKSPACE "Prlngzz-Editor-source.zip"
           $overridesArchive = Join-Path $env:GITHUB_WORKSPACE "Prlngzz-Editor-overrides.zip"
           foreach ($file in @($archive, $overridesArchive)) {
