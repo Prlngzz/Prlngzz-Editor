@@ -25,7 +25,8 @@ function Remove-RustMatchArm([string]$Text, [string]$StartPattern, [string]$What
     if ($lineEnd -lt 0) { $lineEnd = $Text.Length }
     $line = $Text.Substring($start, $lineEnd - $start)
     $indent = [regex]::Match($line, '^\s*').Value
-    $closePattern = '(?m)^' + [regex]::Escape($indent) + '\},?[ \t]*    $tail = $Text.Substring($lineEnd)
+    $closePattern = '(?m)^' + [regex]::Escape($indent) + '\},?[ \t]*$'
+    $tail = $Text.Substring($lineEnd)
     $closing = [regex]::Match($tail, $closePattern)
     if (!$closing.Success) { throw "Could not find the end of '$What' match arm" }
     $end = $lineEnd + $closing.Index + $closing.Length
