@@ -1,18 +1,23 @@
 # Development hand-off
 
-The current source snapshot is supplied separately as `Prlngzz-Editor-source.zip` in the ChatGPT conversation. It contains the Rust project, bundled JSON presets, font licensing notice, native profile implementation, and Windows CI workflow.
+The Prlngzz Editor source snapshot is provided as `Prlngzz-Editor-source.zip` in the current ChatGPT conversation.
 
-## Source import
+## Add the source to this repository
 
-Before running the Windows build workflow, extract the source archive into the repository root so that `Cargo.toml`, `Cargo.lock`, `src/`, `assets/`, `packs/`, and `.github/workflows/windows.yml` are at the repository root. Preserve the `THIRD_PARTY_NOTICES.md` file. Do not commit build output under `target/`.
+1. Download the ZIP from the ChatGPT conversation.
+2. Open this repository on GitHub and switch to the `development` branch.
+3. Use **Add file → Upload files** and upload the ZIP to the repository root with the exact name `Prlngzz-Editor-source.zip`.
+4. Commit the upload to `development`.
 
-## Verification
+The Windows x64 workflow at `.github/workflows/windows-x64.yml` extracts that archive on a Windows runner and then runs formatting, tests, Clippy, the release build, and executable/PE architecture checks. It uploads `Prlngzz-Editor-Windows-x64.exe` as a workflow artifact. An `editor-v*` tag publishes a GitHub Release.
 
-The archive has been checked for ZIP integrity, and static checks confirmed:
+## Local source layout
 
-- `Cargo.toml` is valid TOML and names the package `prlngzz-editor` version `0.1.0`.
-- All 22 declared Rust modules have matching source files.
-- All seven bundled JSON files parse successfully.
+The ZIP contains a `Prlngzz-Editor/` directory with `Cargo.toml`, `Cargo.lock`, `src/`, `assets/`, `packs/`, and `THIRD_PARTY_NOTICES.md`. For local development, extract that directory and open it as the Rust project. Do not commit build output under `target/`.
+
+## Verification status
+
+The archive has been checked for ZIP integrity. Static checks confirmed that `Cargo.toml` is valid TOML and names the package `prlngzz-editor` version `0.1.0`, all 22 declared Rust modules have matching source files, and all seven bundled JSON files parse successfully.
 
 Rust compilation, Rust tests, Clippy, Windows x64 executable startup, and in-game cache behavior have not yet been verified. A successful CI run is required before calling this a working release.
 
