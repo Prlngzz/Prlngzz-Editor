@@ -146,8 +146,8 @@ $newHeldCall = @'
 $config = Replace-Once $config $oldHeldCall $newHeldCall "replacement plan payload check"
 $config = Replace-Once $config 'let fitted = payload.fit(entries[i].kind, &current);' 'let fitted = payload.fit_checked(entries[i].kind, &current)?;' "replacement write fitting"
 $config = Replace-RegexOnce $config '(?m)^    /// Takes every fingerprint of `other` that this map does not have\. Returns how many assets gained one\.\r?\n' '' "orphaned IdMap merge documentation"
-$config = Replace-RegexOnce $config '(?s)(?m)^    pub fn merge\(&mut self, other: &IdMap\) -> usize \{.*?^    \}\r?\n' '' "unused IdMap merge method"
-$config = Replace-RegexOnce $config '(?s)(?m)^    fn held_by\(&self, kind: &str, current: &\[u8\]\) -> bool \{.*?^    \}\r?\n' '' "unused unchecked payload ownership method"
+$config = Replace-Once $config '    pub fn merge(&mut self, other: &IdMap) -> usize {' ('    #[cfg(test)]' + [char]10 + '    pub fn merge(&mut self, other: &IdMap) -> usize {') "test-only IdMap merge helper"
+$config = Replace-Once $config '    fn held_by(&self, kind: &str, current: &[u8]) -> bool {' ('    #[cfg(test)]' + [char]10 + '    fn held_by(&self, kind: &str, current: &[u8]) -> bool {') "test-only payload ownership helper"
 Save-Source $configPath $config
 
 # Retry an already-replaced entry if Roblox rewrites it with the same byte length.
