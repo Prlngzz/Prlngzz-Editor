@@ -41,6 +41,17 @@ jobs:
           if (!(Test-Path (Join-Path $project "Cargo.toml"))) {
             throw "The archive did not contain Prlngzz-Editor/Cargo.toml"
           }
+          # Repair malformed percent-escape character literals in the uploaded source snapshot.
+          $packsFile = Join-Path $project "src/packs.rs"
+          $packsSource = [IO.File]::ReadAllText($packsFile)
+          $packsSource = $packsSource.Replace(".contains('%2e')", '.contains("%2e")')
+          $packsSource = $packsSource.Replace(".contains('%2f')", '.contains("%2f")')
+          $packsSource = $packsSource.Replace(".contains('%5c')", '.contains("%5c")')
+          [IO.File]::WriteAllText($packsFile, $packsSource, [Text.UTF8Encoding]::new($false))
+          Push-Location $project
+          cargo fmt --all
+          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after source repair" }
+          Pop-Location
           "PRLNGZZ_PROJECT=$project" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Check formatting
