@@ -145,6 +145,8 @@ $newHeldCall = @'
 '@
 $config = Replace-Once $config $oldHeldCall $newHeldCall "replacement plan payload check"
 $config = Replace-Once $config 'let fitted = payload.fit(entries[i].kind, &current);' 'let fitted = payload.fit_checked(entries[i].kind, &current)?;' "replacement write fitting"
+$config = Replace-RegexOnce $config '(?s)(?m)^    pub fn merge\(&mut self, other: &IdMap\) -> usize \{.*?^    \}\r?\n' '' "unused IdMap merge method"
+$config = Replace-RegexOnce $config '(?s)(?m)^    fn held_by\(&self, kind: &str, current: &\[u8\]\) -> bool \{.*?^    \}\r?\n' '' "unused unchecked payload ownership method"
 Save-Source $configPath $config
 
 # Retry an already-replaced entry if Roblox rewrites it with the same byte length.
@@ -240,6 +242,9 @@ $gui = $gui.Replace('overview, rivals, studio, asset-ids, settings, all, live, c
 if ($gui.Contains("Tab::Packs") -or $gui.Contains("catalog.fingerprints") -or $gui.Contains("pack_job") -or $gui.Contains("pack_undo") -or $gui.Contains("RefreshPacks") -or $gui.Contains("ApplyPack")) {
     throw "Game Library removal left GUI references behind"
 }
+$gui = Replace-Once $gui '/// Where a pack''s config was saved, and what that file held before.' '' "orphaned pack documentation"
+$gui = Replace-RegexOnce $gui '(?s)(?m)^fn skeleton_card\(ui: &mut egui::Ui, now: f64, motion: bool\) \{.*?(?=^fn [A-Za-z_])' '' "unused skeleton card helper"
+$gui = Replace-Once $gui 'alpha(if selected { theme::TEXT } else { theme::TEXT }, t)' 'alpha(theme::TEXT, t)' "identical selected text color branches"
 Save-Source $guiPath $gui
 
 # Remove pack catalog and pack-sharing commands from the CLI.
