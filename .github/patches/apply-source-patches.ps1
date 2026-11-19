@@ -668,3 +668,30 @@ $newLocal = @'
 '@
 $config = Replace-Once $config $oldLocal $newLocal "local OBJ conversion and target validation"
 Save-Source $configPath $config
+
+
+# Keep selected-entry actions inside the existing Result-returning action dispatcher.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$oldAction = @'
+            Action::UseEntryForConfig(id) => {
+                self.rivals_entries.insert(id);
+                save_rivals_entries(&self.rivals_entries)?;
+                self.studio_target_input = store::hex(&id);
+                self.show_tab(Tab::Studio, ctx);
+                self.studio_status = "Selected cache entry as a local RIVALS replacement target. Choose a file below.".into();
+                Ok(String::new())
+            }
+'@
+$newAction = @'
+            Action::UseEntryForConfig(id) => (|| {
+                self.rivals_entries.insert(id);
+                save_rivals_entries(&self.rivals_entries)?;
+                self.studio_target_input = store::hex(&id);
+                self.show_tab(Tab::Studio, ctx);
+                self.studio_status = "Selected cache entry as a local RIVALS replacement target. Choose a file below.".into();
+                Ok(String::new())
+            })(),
+'@
+$gui = Replace-Once $gui $oldAction $newAction "Result-wrapped Use in Config action"
+Save-Source $guiPath $gui
