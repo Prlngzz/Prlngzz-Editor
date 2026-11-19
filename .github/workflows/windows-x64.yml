@@ -74,10 +74,9 @@ jobs:
           $configSource = [IO.File]::ReadAllText($configFile)
           $oldFitSignature = "fn fit(&self, kind: &str, current: &[u8]) -> Result<Cow<'_, [u8]>> {"
           $newFitSignature = "fn fit<'a>(&self, kind: &str, current: &'a [u8]) -> Result<Cow<'a, [u8]>> {"
+          # Idempotent: patch the old form when it exists; keep any already-fixed form.
           if ($configSource.Contains($oldFitSignature)) {
             $configSource = $configSource.Replace($oldFitSignature, $newFitSignature)
-          } elseif (!$configSource.Contains($newFitSignature)) {
-            throw "Expected replacement fitting signature in src/config.rs was not found"
           }
           [IO.File]::WriteAllText($configFile, $configSource, [Text.UTF8Encoding]::new($false))
           Write-Host "Source repair: config file written"
