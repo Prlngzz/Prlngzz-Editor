@@ -276,3 +276,358 @@ if (Test-Path $readmePath) {
     $readme = $readme.Replace('Game Library currently provides bundled presets and the retained pack workflow. A complete offline custom-game/preset manager and in-app catalog URL settings are not yet implemented.', 'Community pack catalogs are not included. Use your own Fleasion-compatible JSON profiles.')
     Save-Source $readmePath $readme
 }
+
+
+# RIVALS-only local asset workflow and streamlined Config Studio file picker.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+
+$gui = Replace-Once $gui @'
+    Tag,
+    CopyId,
+'@ @'
+    Tag,
+    UseEntryForConfig(Id),
+    CopyId,
+'@ "selected cache entry Config Studio action"
+
+$gui = Replace-Once $gui @'
+    selected: BTreeSet<Id>,
+    focus: Option<Id>,
+'@ @'
+    selected: BTreeSet<Id>,
+    /// Cache entries explicitly identified by the user as RIVALS assets.
+    rivals_entries: HashSet<Id>,
+    focus: Option<Id>,
+'@ "RIVALS-only asset library state"
+
+$gui = Replace-Once $gui @'
+    studio_replacement_input: String,
+    studio_search: String,
+'@ @'
+    studio_replacement_input: String,
+    studio_local_path_input: String,
+    studio_search: String,
+'@ "local replacement path state"
+
+$gui = Replace-Once $gui @'
+            selected: BTreeSet::new(),
+            focus: None,
+'@ @'
+            selected: BTreeSet::new(),
+            rivals_entries: load_rivals_entries(),
+            focus: None,
+'@ "RIVALS asset state initialization"
+
+$gui = Replace-Once $gui @'
+            studio_replacement_input: String::new(),
+            studio_search: String::new(),
+'@ @'
+            studio_replacement_input: String::new(),
+            studio_local_path_input: String::new(),
+            studio_search: String::new(),
+'@ "local replacement path initialization"
+
+$helpers = @'
+fn load_rivals_entries() -> HashSet<Id> {
+    let Ok(path) = crate::protection::data_dir().map(|dir| dir.join("rivals-assets.json")) else { return HashSet::new() };
+    let Ok(bytes) = std::fs::read(path) else { return HashSet::new() };
+    serde_json::from_slice::<Vec<String>>(&bytes).unwrap_or_default()
+        .iter().filter_map(|id| store::parse_id(id)).collect()
+}
+
+fn save_rivals_entries(entries: &HashSet<Id>) -> anyhow::Result<()> {
+    let dir = crate::protection::data_dir()?;
+    std::fs::create_dir_all(&dir)?;
+    let mut ids: Vec<String> = entries.iter().map(|id| store::hex(id)).collect();
+    ids.sort_unstable();
+    std::fs::write(dir.join("rivals-assets.json"), serde_json::to_string_pretty(&ids)?)?;
+    Ok(())
+}
+
+'@
+$gui = Replace-Once $gui 'impl App {' ($helpers + 'impl App {') "RIVALS asset tag persistence helpers"
+
+$gui = Replace-Once $gui @'
+        if self.idmap.add(asset, fp) {
+            self.idmap.save(&self.idmap_path)?;
+        }
+        if let Some(sound)
+'@ @'
+        if self.idmap.add(asset, fp) {
+            self.idmap.save(&self.idmap_path)?;
+        }
+        if self.rivals_entries.insert(entry) {
+            save_rivals_entries(&self.rivals_entries)?;
+        }
+        if let Some(sound)
+'@ "lookup-picked cache entry RIVALS tag"
+
+$gui = Replace-Once $gui @'
+        let Some(e) = self.focused() else { return Ok(String::new()) };
+        if let Some(error) = &self.idmap_error {
+'@ @'
+        let Some(e) = self.focused() else { return Ok(String::new()) };
+        let entry_id = e.id;
+        let entry_hex = e.id_hex.clone();
+        if let Some(error) = &self.idmap_error {
+'@ "focused cache entry borrow"
+
+$gui = Replace-Once $gui @'
+        let fp = config::fingerprint(&Store::open(&self.dir, false)?.read_body(&e.id)?);
+        let msg = format!("Asset {asset} now points at {}", e.id_hex);
+        if self.idmap.add(asset, fp) {
+            self.idmap.save(&self.idmap_path)?;
+        }
+        self.tag_input.clear();
+        self.preview = None;
+        Ok(msg)
+'@ @'
+        let fp = config::fingerprint(&Store::open(&self.dir, false)?.read_body(&entry_id)?);
+        let msg = format!("Asset {asset} is tagged as a RIVALS asset ({entry_hex})");
+        if self.idmap.add(asset, fp) {
+            self.idmap.save(&self.idmap_path)?;
+        }
+        self.rivals_entries.insert(entry_id);
+        save_rivals_entries(&self.rivals_entries)?;
+        self.tag_input.clear();
+        self.preview = None;
+        self.rebuild_view();
+        Ok(msg)
+'@ "tag focused cache entry as RIVALS"
+
+$gui = Replace-Once $gui @'
+        let entries = &self.entries;
+        // Position of each arrival, which doubles as the Live tab's membership test.
+'@ @'
+        let entries = &self.entries;
+        let rivals_library = matches!(self.tab, Tab::All | Tab::Group(_) | Tab::Other);
+        // Position of each arrival, which doubles as the Live tab's membership test.
+'@ "RIVALS Asset Library filtering"
+
+$gui = Replace-Once $gui @'
+            .filter(|&i| self.tab != Tab::Live || arrived.contains_key(&entries[i].id))
+            .filter(|&i| {
+'@ @'
+            .filter(|&i| self.tab != Tab::Live || arrived.contains_key(&entries[i].id))
+            .filter(|&i| !rivals_library || self.rivals_entries.contains(&entries[i].id))
+            .filter(|&i| {
+'@ "RIVALS-only visible entries"
+
+$gui = Replace-Once $gui @'
+            Action::Tag => self.tag_focused(),
+            Action::PlayAudio => self.play_audio(),
+'@ @'
+            Action::Tag => self.tag_focused(),
+            Action::UseEntryForConfig(id) => {
+                self.rivals_entries.insert(id);
+                save_rivals_entries(&self.rivals_entries)?;
+                self.studio_target_input = store::hex(&id);
+                self.show_tab(Tab::Studio, ctx);
+                self.studio_status = "Selected cache entry as a local RIVALS replacement target. Choose a file below.".into();
+                Ok(String::new())
+            }
+            Action::PlayAudio => self.play_audio(),
+'@ "selected asset opens Config Studio"
+
+$gui = Replace-Once $gui @'
+                if ui.button("Replace...").on_hover_text("Swap the payload for a file of your choice").clicked() {
+                    actions.push(Action::Replace);
+                }
+'@ @'
+                if ui.button("Use in Config").on_hover_text("Use this exact cache entry as a RIVALS replacement target").clicked() {
+                    if let Some(entry) = entry { actions.push(Action::UseEntryForConfig(entry.id)); }
+                }
+                if ui.button("Replace...").on_hover_text("Swap the payload for a file of your choice").clicked() {
+                    actions.push(Action::Replace);
+                }
+'@ "Use in Config detail action"
+
+$gui = Replace-Once $gui @'
+                if ui.button("Tag").on_hover_text("Remember that this entry is that Roblox asset, so configs can refer to it by ID").clicked()
+'@ @'
+                if ui.button("Tag as RIVALS").on_hover_text("Add this cache entry to the RIVALS-only Asset Library").clicked()
+'@ "RIVALS tag button"
+
+$oldChips = @'
+    fn browse_chips(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        let mut chips = vec![(Tab::All, "All", Some(self.listed()), theme::MUTED), (Tab::Live, "Live", Some(self.arrivals.len()), theme::OK)];
+        for (i, (name, kinds)) in GROUPS.iter().enumerate() {
+            if self.group_counts[i] > 0 {
+                chips.push((Tab::Group(i), name, Some(self.group_counts[i]), theme::kind_color(kinds[0])));
+            }
+        }
+        if self.other_count > 0 {
+            chips.push((Tab::Other, "Other", Some(self.other_count), theme::MUTED));
+        }
+        self.chips(ui, &chips, actions);
+    }
+'@
+$newChips = @'
+    fn browse_chips(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        let tagged = self.rivals_entries.iter().filter(|id| self.index.contains_key(*id)).count();
+        let chips = [
+            (Tab::All, "RIVALS assets", Some(tagged), theme::ACCENT),
+            (Tab::Live, "Discover", Some(self.arrivals.len()), theme::OK),
+        ];
+        self.chips(ui, &chips, actions);
+    }
+'@
+$gui = Replace-Once $gui $oldChips $newChips "RIVALS-only Asset Library tabs"
+
+$gui = Replace-Once $gui @'
+            (Tab::AssetIds, "Asset ID Editor", "Bulk ID management"),
+            (Tab::All, "Asset Library", "Local cached assets"),
+'@ @'
+            (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),
+            (Tab::All, "Asset Library", "RIVALS-tagged assets only"),
+'@ "RIVALS-only navigation labels"
+
+$gui = Replace-Once $gui @'
+        });
+        ui.add_space(10.0);
+        let rows = self.studio_doc.rules().to_vec();
+'@ @'
+        });
+        ui.add_space(10.0);
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("LOCAL FILE REPLACEMENT").strong());
+            ui.label(egui::RichText::new("Select an asset and choose “Use in Config”, or enter its Roblox asset ID / cache entry ID in Target IDs above.").color(theme::MUTED).small());
+            ui.horizontal(|ui| {
+                ui.add(egui::TextEdit::singleline(&mut self.studio_local_path_input).desired_width(280.0).hint_text(".obj, image, or audio file"));
+                if ui.button("Browse…").clicked() {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("RIVALS replacement assets", &["obj", "png", "jpg", "jpeg", "webp", "gif", "wav", "mp3", "ogg", "flac"])
+                        .pick_file()
+                    {
+                        self.studio_local_path_input = path.display().to_string();
+                    }
+                }
+            });
+            if ui.add(primary_button("Add local rule")).clicked() {
+                match self.add_studio_local_rules() {
+                    Ok(count) => self.studio_status = format!("Added {count} local replacement rule(s)."),
+                    Err(error) => self.studio_status = format!("Could not add local rule: {error:#}"),
+                }
+            }
+            ui.label(egui::RichText::new("OBJ geometry is converted to Roblox mesh v1.01 for mesh targets. Texture maps are separate image rules; OBJ does not contain rigging or skin weights.").color(theme::MUTED).small());
+        });
+        ui.add_space(10.0);
+        let rows = self.studio_doc.rules().to_vec();
+'@ "Config Studio local replacement card"
+
+$localHelper = @'
+    fn add_studio_local_rules(&mut self) -> anyhow::Result<usize> {
+        let path = self.studio_local_path_input.trim().to_owned();
+        anyhow::ensure!(!path.is_empty() && std::fs::metadata(&path).is_ok_and(|meta| meta.is_file()),
+            "Choose an existing local replacement file");
+        let raw = self.studio_target_input.trim();
+        let targets: Vec<String> = if raw.len() == 32 && raw.bytes().all(|b| b.is_ascii_hexdigit()) {
+            vec![raw.to_ascii_lowercase()]
+        } else {
+            crate::studio::extract_asset_ids(raw).into_iter().map(|id| id.to_string()).collect()
+        };
+        anyhow::ensure!(!targets.is_empty(), "Select an asset or enter a Roblox asset ID");
+        for target in &targets { self.studio_doc.add_local_rule(target, &path)?; }
+        self.studio_target_input.clear();
+        self.studio_local_path_input.clear();
+        Ok(targets.len())
+    }
+
+'@
+$gui = Replace-Once $gui '    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {' ($localHelper + '    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {') "local-file Config Studio helper"
+
+$gui = Replace-Once $gui @'
+    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        let mut clicked: Option<usize> = None;
+'@ @'
+    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        if self.view.is_empty() && self.tab == Tab::All {
+            ui.vertical_centered(|ui| {
+                ui.add_space(56.0);
+                ui.label(egui::RichText::new("No RIVALS assets tagged yet").size(18.0).strong());
+                ui.add_space(5.0);
+                ui.label(egui::RichText::new("Open Discover, select a cache entry, enter its Roblox asset ID and choose Tag as RIVALS.").color(theme::MUTED).small());
+                ui.add_space(12.0);
+                if ui.add(primary_button("Open Discover")).clicked() {
+                    actions.push(Action::ShowTab(Tab::Live));
+                }
+            });
+            return;
+        }
+        let mut clicked: Option<usize> = None;
+'@ "RIVALS Asset Library empty state"
+
+Save-Source $guiPath $gui
+
+# Add local_file actions to the profile document used by Config Studio.
+$studioPath = Join-Path $Project "src/studio.rs"
+$studio = [IO.File]::ReadAllText($studioPath)
+$addRule = @'
+    pub fn add_rule(&mut self, target_id: u64, replacement_id: u64) -> Result<()> {
+        ensure!(target_id > 0 && replacement_id > 0, "Asset IDs must be greater than zero");
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": "Asset replacement",
+            "enabled": true,
+            "targets": [target_id],
+            "action": { "type": "asset_id", "asset_id": replacement_id },
+            "notes": ""
+        }));
+        Ok(())
+    }
+'@
+$localMethod = @'
+
+    /// Adds a local replacement to a Roblox asset ID or a 32-hex cache-entry ID.
+    pub fn add_local_rule(&mut self, target: &str, path: &str) -> Result<()> {
+        ensure!(self.game().trim().eq_ignore_ascii_case("RIVALS"), "Local replacements are available for RIVALS profiles only");
+        ensure!(!path.trim().is_empty(), "Choose a local replacement file");
+        let target = target.trim();
+        let target = match target.parse::<u64>() {
+            Ok(id) if id > 0 => json!(id),
+            _ => {
+                ensure!(target.len() == 32 && target.bytes().all(|b| b.is_ascii_hexdigit()),
+                    "Target must be a positive Roblox asset ID or a 32-character cache entry ID");
+                json!(target.to_ascii_lowercase())
+            }
+        };
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": "Local file replacement",
+            "enabled": true,
+            "targets": [target],
+            "action": { "type": "local_file", "path": path },
+            "notes": "Local RIVALS cache replacement; OBJ geometry is converted to Roblox mesh v1.01 for mesh targets."
+        }));
+        Ok(())
+    }
+'@
+$studio = Replace-Once $studio $addRule ($addRule + $localMethod) "local-file profile rule constructor"
+Save-Source $studioPath $studio
+
+# Give hover states a softer purple lift while preserving the existing navigation and selection easing.
+$themePath = Join-Path $Project "src/theme.rs"
+$theme = [IO.File]::ReadAllText($themePath)
+$theme = Replace-Once $theme @'
+    w.hovered.bg_fill = Color32::from_rgb(50, 57, 78);
+    w.hovered.weak_bg_fill = Color32::from_rgb(50, 57, 78);
+'@ @'
+    w.hovered.bg_fill = Color32::from_rgb(45, 37, 59);
+    w.hovered.weak_bg_fill = Color32::from_rgb(45, 37, 59);
+'@ "soft hover colours"
+$theme = Replace-Once $theme @'
+    w.open.bg_fill = Color32::from_rgb(44, 50, 70);
+    w.open.weak_bg_fill = Color32::from_rgb(44, 50, 70);
+'@ @'
+    w.open.bg_fill = Color32::from_rgb(39, 32, 52);
+    w.open.weak_bg_fill = Color32::from_rgb(39, 32, 52);
+'@ "soft open colours"
+Save-Source $themePath $theme
+
