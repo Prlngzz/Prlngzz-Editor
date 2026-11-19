@@ -216,7 +216,7 @@ $gui = Replace-RegexOnce $gui '(?s)        \} else if let Some\(\(_, name\)\) = 
 $gui = Replace-RegexOnce $gui '(?m)^\s*self\.poll_catalog\(ctx\);\r?\n\s*self\.poll_pack\(ctx\);\r?\n' '' "Game Library polling"
 $gui = Replace-Once $gui ' | Action::RefreshPacks' '' "pack refresh harmless action"
 $gui = Remove-RustMatchArm $gui '(?m)^\s*Action::RefreshPacks\s*=>' "RefreshPacks"
-$gui = Remove-RustMatchArm $gui '(?m)^\s*Action::ApplyPack\(index\)\s*=>' "ApplyPack"
+$gui = if ($gui -match '(?m)^\s*Action::ApplyPack\(index\)\s*=>') { $gui = Remove-RustMatchArm $gui '(?m)^\s*Action::ApplyPack\(index\)\s*=>' "ApplyPack" }
 $gui = $gui.Replace('overview, rivals, studio, asset-ids, settings, all, live, configs, packs, ids, guide, info or a kind such as textures',
                     'overview, rivals, studio, asset-ids, settings, all, live, configs, ids, guide, info or a kind such as textures')
 if ($gui.Contains("Tab::Packs") -or $gui.Contains("catalog.fingerprints") -or $gui.Contains("pack_job") -or $gui.Contains("pack_undo") -or $gui.Contains("RefreshPacks") -or $gui.Contains("ApplyPack")) {
