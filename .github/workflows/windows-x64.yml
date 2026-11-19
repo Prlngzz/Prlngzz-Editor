@@ -1,0 +1,109 @@
+name: Prlngzz Editor — Windows x64
+
+on:
+  push:
+    branches: [development]
+    tags: ["editor-v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prlngzz-editor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: clippy, rustfmt
+
+      - name: Restore source archive
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:GITHUB_WORKSPACE "Prlngzz-Editor-source.zip"
+          if (!(Test-Path $archive)) {
+            throw "Upload Prlngzz-Editor-source.zip to the repository root before running this workflow."
+          }
+          $destination = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source"
+          if (Test-Path $destination) { Remove-Item $destination -Recurse -Force }
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force
+          $project = Join-Path $destination "Prlngzz-Editor"
+          if (!(Test-Path (Join-Path $project "Cargo.toml"))) {
+            throw "The archive did not contain Prlngzz-Editor/Cargo.toml"
+          }
+          "PRLNGZZ_PROJECT=$project" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Check formatting
+        shell: pwsh
+        run: |
+          Push-Location $env:PRLNGZZ_PROJECT
+          cargo fmt --all -- --check
+          if ($LASTEXITCODE -ne 0) { throw "cargo fmt check failed" }
+          Pop-Location
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          Push-Location $env:PRLNGZZ_PROJECT
+          cargo test --release --locked --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { throw "cargo test failed" }
+          Pop-Location
+
+      - name: Run Clippy
+        shell: pwsh
+        run: |
+          Push-Location $env:PRLNGZZ_PROJECT
+          cargo clippy --all-targets --locked --target x86_64-pc-windows-msvc -- -D warnings
+          if ($LASTEXITCODE -ne 0) { throw "cargo clippy failed" }
+          Pop-Location
+
+      - name: Build Windows x64
+        shell: pwsh
+        run: |
+          Push-Location $env:PRLNGZZ_PROJECT
+          cargo build --release --locked --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { throw "cargo build failed" }
+          Pop-Location
+
+      - name: Verify executable and prepare artifact
+        shell: pwsh
+        run: |
+          $binary = Join-Path $env:PRLNGZZ_PROJECT "target/x86_64-pc-windows-msvc/release/prlngzz-editor.exe"
+          if (!(Test-Path $binary)) { throw "Expected executable not found: $binary" }
+          $versionOutput = & $binary --version
+          if ($LASTEXITCODE -ne 0) { throw "Executable --version invocation failed" }
+          if ($versionOutput.Trim() -ne "prlngzz-editor 0.1.0") { throw "Unexpected version: $versionOutput" }
+          $bytes = [IO.File]::ReadAllBytes($binary)
+          if ($bytes.Length -lt 256 -or $bytes[0] -ne 0x4d -or $bytes[1] -ne 0x5a) { throw "Invalid PE file" }
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
+          if ($bytes[$peOffset] -ne 0x50 -or $bytes[$peOffset + 1] -ne 0x45) { throw "Missing PE signature" }
+          $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
+          if ($machine -ne 0x8664) { throw "Expected AMD64 PE; found 0x$('{0:X4}' -f $machine)" }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item $binary "dist/Prlngzz-Editor-Windows-x64.exe" -Force
+
+      - name: Upload Windows x64 executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Prlngzz-Editor-Windows-x64
+          path: dist/Prlngzz-Editor-Windows-x64.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/editor-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Prlngzz Editor ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/Prlngzz-Editor-Windows-x64.exe
