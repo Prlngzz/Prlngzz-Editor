@@ -58,7 +58,6 @@ foreach ($field in @("asset_id", "path", "url", "type")) {
 }
 Save-Source $studioPath $studioSource
 
-
 # Fit personal OBJ files to a Roblox FileMesh target instead of writing OBJ text into the cache.
 $configPath = Join-Path $Project "src/config.rs"
 $config = [IO.File]::ReadAllText($configPath)
@@ -214,9 +213,11 @@ $gui = $gui.Replace('("Add it", "Press Apply on a pack, or Add configs on the Co
 $gui = Replace-RegexOnce $gui '(?s)    fn packs_page\(.*?(?=    fn \w+\()' '' "Game Library page implementation"
 $gui = Replace-RegexOnce $gui '(?s)        \} else if let Some\(\(_, name\)\) = &self\.pack_job \{.*?        \} else if self\.apply_job\.is_some\(\) \{' '        } else if self.apply_job.is_some() {' "Game Library busy status"
 $gui = Replace-RegexOnce $gui '(?m)^\s*self\.poll_catalog\(ctx\);\r?\n\s*self\.poll_pack\(ctx\);\r?\n' '' "Game Library polling"
-$gui = Replace-Once $gui ' | Action::RefreshPacks' '' "pack refresh harmless action"
+$gui = $gui.Replace(' | Action::RefreshPacks', '')
 $gui = Remove-RustMatchArm $gui '(?m)^\s*Action::RefreshPacks\s*=>' "RefreshPacks"
-$gui = if ($gui -match '(?m)^\s*Action::ApplyPack\(index\)\s*=>') { $gui = Remove-RustMatchArm $gui '(?m)^\s*Action::ApplyPack\(index\)\s*=>' "ApplyPack" }
+if ($gui -match '(?m)^\s*Action::ApplyPack\(index\)\s*=>') {
+    $gui = Remove-RustMatchArm $gui '(?m)^\s*Action::ApplyPack\(index\)\s*=>' "ApplyPack"
+}
 $gui = $gui.Replace('overview, rivals, studio, asset-ids, settings, all, live, configs, packs, ids, guide, info or a kind such as textures',
                     'overview, rivals, studio, asset-ids, settings, all, live, configs, ids, guide, info or a kind such as textures')
 if ($gui.Contains("Tab::Packs") -or $gui.Contains("catalog.fingerprints") -or $gui.Contains("pack_job") -or $gui.Contains("pack_undo") -or $gui.Contains("RefreshPacks") -or $gui.Contains("ApplyPack")) {
