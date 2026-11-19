@@ -165,6 +165,7 @@ Save-Source $guiPath $gui
 # Remove the Game Library, its bundled/remote catalog and its non-RIVALS fingerprints.
 $gui = [IO.File]::ReadAllText($guiPath)
 $gui = $gui.Replace("use crate::packs::{self, Catalog};" + [char]10, "")
+$gui = Replace-RegexOnce $gui '(?m)^type SavedPack = \(PathBuf, Option<Vec<u8>>\);\r?\n' '' "saved pack type"
 $gui = Replace-RegexOnce $gui '(?m)^    Packs,\r?\n' '' "Packs tab variant"
 $gui = Replace-RegexOnce $gui '(?m)^            "packs" => Some\(Tab::Packs\),\r?\n' '' "Packs command-line tab"
 $gui = $gui.Replace(' | Tab::Packs', '')
