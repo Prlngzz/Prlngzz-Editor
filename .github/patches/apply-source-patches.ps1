@@ -708,3 +708,97 @@ $gui = Replace-Once $gui @'
     }
 '@ '' "obsolete generic asset list count"
 Save-Source $guiPath $gui
+
+
+# Install the curated RIVALS-only asset ID allowlist and catalogue.
+Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE ".github/patches/rivals_asset_ids.json") -Destination (Join-Path $Project "rivals_asset_ids.json") -Force
+Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE ".github/patches/rivals_asset_catalog.json") -Destination (Join-Path $Project "rivals_asset_catalog.json") -Force
+
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+
+# Use a versioned tag store so old arbitrary cache tags from the previous draft cannot leak into the RIVALS-only library.
+$gui = Replace-Once $gui 'dir.join("rivals-assets.json")' 'dir.join("rivals-assets-v2.json")' "versioned RIVALS asset tag store"
+
+$catalogHelpers = @'
+fn rivals_asset_ids() -> &'static std::collections::HashSet<u64> {
+    static IDS: std::sync::OnceLock<std::collections::HashSet<u64>> = std::sync::OnceLock::new();
+    IDS.get_or_init(|| {
+        let values: Vec<String> = serde_json::from_str(include_str!("../rivals_asset_ids.json")).unwrap_or_default();
+        values.into_iter().filter_map(|value| value.parse::<u64>().ok()).collect()
+    })
+}
+
+'@
+$gui = Replace-Once $gui 'impl App {' ($catalogHelpers + 'impl App {') "curated RIVALS asset ID allowlist"
+
+# Only IDs in the pinned RIVALS catalogue may be tagged into the Asset Library.
+$gui = Replace-Once $gui @'
+        let fp = config::fingerprint(&Store::open(&self.dir, false)?.read_body(&entry_id)?);
+'@ @'
+        anyhow::ensure!(rivals_asset_ids().contains(&asset), "This Roblox ID is not in the curated RIVALS catalogue, so it cannot be added to the RIVALS Asset Library.");
+        let fp = config::fingerprint(&Store::open(&self.dir, false)?.read_body(&entry_id)?);
+'@ "reject non-RIVALS asset IDs"
+
+# Cache lookups only add entries to the RIVALS library when the requested Roblox ID is on the allowlist.
+$gui = Replace-Once $gui @'
+        if self.rivals_entries.insert(entry) {
+            save_rivals_entries(&self.rivals_entries)?;
+        }
+'@ @'
+        if rivals_asset_ids().contains(&asset) && self.rivals_entries.insert(entry) {
+            save_rivals_entries(&self.rivals_entries)?;
+        }
+'@ "only catalogue IDs enter the RIVALS library"
+
+# Using an entry in Config Studio must not silently classify an arbitrary cache entry as a RIVALS asset.
+$gui = Replace-Once $gui @'
+            Action::UseEntryForConfig(id) => {
+                self.rivals_entries.insert(id);
+                save_rivals_entries(&self.rivals_entries)?;
+                self.studio_target_input = store::hex(&id);
+'@ @'
+            Action::UseEntryForConfig(id) => {
+                self.studio_target_input = store::hex(&id);
+'@ "keep Config Studio selection separate from RIVALS library membership"
+
+# Accept any file extension in the picker; the payload decoder will validate the actual format.
+$gui = Replace-Once $gui @'
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("RIVALS replacement assets", &["obj", "png", "jpg", "jpeg", "webp", "gif", "wav", "mp3", "ogg", "flac"])
+                        .pick_file()
+'@ @'
+                    if let Some(path) = rfd::FileDialog::new()
+                        .pick_file()
+'@ "unrestricted local file picker"
+
+# Make the local-file card and library-tab changes ease in with small, unobtrusive motion.
+$gui = Replace-Once $gui @'
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("LOCAL FILE REPLACEMENT").strong());
+'@ @'
+        let card_fade = ui.ctx().animate_value_with_time(egui::Id::new("config-local-file-card"), 1.0, 0.20);
+        ui.add_space((1.0 - card_fade) * 5.0);
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("LOCAL FILE REPLACEMENT").strong());
+'@ "Config Studio card fade transition"
+
+$gui = Replace-Once $gui @'
+        self.chips(ui, &chips, actions);
+    }
+'@ @'
+        let tab_fade = ui.ctx().animate_value_with_time(
+            egui::Id::new(("rivals-library-tab", format!("{:?}", self.tab))),
+            1.0,
+            0.16,
+        );
+        ui.add_space((1.0 - tab_fade) * 3.0);
+        self.chips(ui, &chips, actions);
+    }
+'@ "RIVALS library tab transition"
+
+# Explain that one local-file action applies to every target ID entered in the same rule.
+$gui = $gui.Replace("Select an asset and choose “Use in Config”, or enter its Roblox asset ID / cache entry ID in Target IDs above.",
+                    "Select an asset and choose “Use in Config”, or paste one or more RIVALS target IDs above. One click adds the chosen file to every target.")
+$gui = $gui.Replace("Add local rule", "Add file to Config")
+Save-Source $guiPath $gui
