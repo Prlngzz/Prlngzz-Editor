@@ -1415,7 +1415,7 @@ $removeMethod = @'
     }
 
 '@
-$studio = Replace-Once $studio 'fn rule_id_exists(nodes: &[Value], id: &str) -> bool {' ($removeMethod + 'fn rule_id_exists(nodes: &[Value], id: &str) -> bool {') "native remove-rule constructor"
+$studio = Replace-Once $studio '    /// Adds a local replacement to a Roblox asset ID or a 32-hex cache-entry ID.' ($removeMethod + '    /// Adds a local replacement to a Roblox asset ID or a 32-hex cache-entry ID.') "native remove-rule constructor"
 Save-Source $studioPath $studio
 
 # Add a multi-ID removal action beside the local-file Config Builder.
@@ -1587,10 +1587,4 @@ $gui = Replace-Once $gui $oldRows $newRows "virtualized RIVALS catalogue rows"
 $gui = $gui.Replace('theme::ACCENT', 'theme::accent()')
 Save-Source $guiPath $gui
 
-# Use the dynamic accent in other Rust modules too.
-Get-ChildItem (Join-Path $Project "src") -Recurse -Filter "*.rs" | Where-Object { $_.Name -ne "theme.rs" -and $_.Name -ne "gui.rs" } | ForEach-Object {
-    $source = [IO.File]::ReadAllText($_.FullName)
-    if ($source.Contains("theme::ACCENT")) {
-        Save-Source $_.FullName ($source.Replace("theme::ACCENT", "theme::accent()"))
-    }
-}
+# Non-GUI surfaces retain the brand's default accent; the interactive editor uses the selected palette.
