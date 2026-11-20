@@ -84,7 +84,7 @@ fn locate_resource_compiler() -> Result<PathBuf, String> {
 
     for root in sdk_roots {
         let bin = if root.file_name().is_some_and(|name| name.eq_ignore_ascii_case("bin")) {
-            root
+            root.clone()
         } else {
             root.join("bin")
         };
