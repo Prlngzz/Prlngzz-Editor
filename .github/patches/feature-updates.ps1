@@ -1655,10 +1655,22 @@ $theme = Replace-Once $theme 'w.hovered.bg_fill = Color32::from_rgb(56, 42, 82);
 $theme = Replace-Once $theme 'w.hovered.weak_bg_fill = Color32::from_rgb(56, 42, 82);' 'w.hovered.weak_bg_fill = Color32::from_rgb(68, 49, 101);' "lifted native weak hover surface"
 $theme = Replace-Once $theme 'w.active.bg_fill = alpha(accent, 0.55);' 'w.active.bg_fill = accent.gamma_multiply(0.78);' "pressed native button face"
 $theme = Replace-Once $theme 'w.active.weak_bg_fill = alpha(accent, 0.55);' 'w.active.weak_bg_fill = accent.gamma_multiply(0.78);' "pressed native weak button face"
-$theme = Replace-Once $theme '    w.hovered.expansion = 0.0;' '    w.hovered.expansion = 1.4;' "native hover lift"
-$theme = Replace-Once $theme '    w.inactive.expansion = 0.0;' '    w.inactive.expansion = 0.8;' "native idle elevation"
-$theme = Replace-Once $theme '    w.active.expansion = 0.0;' '    w.active.expansion = 0.0;' "native pressed depth"
-$theme = Replace-Once $theme '    w.open.expansion = 0.0;' '    w.open.expansion = 0.8;' "native open elevation"
+$oldExpansionLoop = @'
+    for visuals in [&mut w.noninteractive, &mut w.inactive, &mut w.hovered, &mut w.active, &mut w.open] {
+        visuals.corner_radius = radius;
+        visuals.expansion = 0.0;
+    }
+'@
+$newExpansionLoop = @'
+    for visuals in [&mut w.noninteractive, &mut w.inactive, &mut w.hovered, &mut w.active, &mut w.open] {
+        visuals.corner_radius = radius;
+        visuals.expansion = 0.0;
+    }
+    w.inactive.expansion = 0.8;
+    w.hovered.expansion = 1.4;
+    w.open.expansion = 0.8;
+'@
+$theme = Replace-Once $theme $oldExpansionLoop $newExpansionLoop "native button elevation states"
 $theme = Replace-Once $theme 'CornerRadius::same(6)).inner_margin(Margin::symmetric(7, 1))' 'CornerRadius::same(9)).inner_margin(Margin::symmetric(8, 2))' "bubbly status pills"
 Save-Source $themePath $theme
 
