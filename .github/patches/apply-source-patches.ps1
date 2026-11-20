@@ -513,6 +513,8 @@ $gui = Replace-Once $gui @'
                     }
                 }
             });
+            let add_enter = ui.ctx().animate_value_with_time(egui::Id::new("config-add-action-enter"), 1.0, 0.26);
+            ui.add_space((1.0 - add_enter) * 6.0);
             ui.label(egui::RichText::new("03  ADD TO CONFIG").strong().small().color(theme::ACCENT));
             if ui.add(primary_button("Add to Config")).clicked() {
                 match self.add_studio_local_rules() {
@@ -644,22 +646,78 @@ Save-Source $studioPath $studio
 # Give hover states a softer purple lift while preserving the existing navigation and selection easing.
 $themePath = Join-Path $Project "src/theme.rs"
 $theme = [IO.File]::ReadAllText($themePath)
-Write-Host "THEME SNAPSHOT BEGIN"
-Write-Host $theme
-Write-Host "THEME SNAPSHOT END"
+# Refine the visual system: richer violet surfaces, clearer contrast, larger radii and roomier controls.
+$theme = Replace-Once $theme 'pub const BG: Color32 = Color32::from_rgb(11, 9, 18);' 'pub const BG: Color32 = Color32::from_rgb(9, 8, 18);' "deep background palette"
+$theme = Replace-Once $theme 'pub const PANEL: Color32 = Color32::from_rgb(20, 16, 29);' 'pub const PANEL: Color32 = Color32::from_rgb(17, 15, 30);' "panel palette"
+$theme = Replace-Once $theme 'pub const CARD: Color32 = Color32::from_rgb(28, 22, 41);' 'pub const CARD: Color32 = Color32::from_rgb(25, 21, 43);' "card palette"
+$theme = Replace-Once $theme 'pub const RAISED: Color32 = Color32::from_rgb(38, 30, 53);' 'pub const RAISED: Color32 = Color32::from_rgb(36, 29, 58);' "raised surface palette"
+$theme = Replace-Once $theme 'pub const BORDER: Color32 = Color32::from_rgb(48, 36, 64);' 'pub const BORDER: Color32 = Color32::from_rgb(64, 48, 91);' "border palette"
+$theme = Replace-Once $theme 'pub const TEXT: Color32 = Color32::from_rgb(245, 240, 255);' 'pub const TEXT: Color32 = Color32::from_rgb(248, 245, 255);' "text palette"
+$theme = Replace-Once $theme 'pub const MUTED: Color32 = Color32::from_rgb(169, 158, 184);' 'pub const MUTED: Color32 = Color32::from_rgb(178, 168, 198);' "muted text palette"
+$theme = Replace-Once $theme 'pub const ACCENT: Color32 = Color32::from_rgb(153, 92, 255);' 'pub const ACCENT: Color32 = Color32::from_rgb(169, 112, 255);' "violet accent palette"
+$theme = Replace-Once $theme 'pub const SPLASH_PURPLE: Color32 = Color32::from_rgb(62, 30, 100);' 'pub const SPLASH_PURPLE: Color32 = Color32::from_rgb(76, 35, 132);' "splash gradient palette"
+$theme = Replace-Once $theme 'pub const SPLASH_BAR: Color32 = Color32::from_rgb(153, 92, 255);' 'pub const SPLASH_BAR: Color32 = Color32::from_rgb(169, 112, 255);' "splash bar palette"
+$theme = Replace-Once $theme 'pub const LIME: Color32 = Color32::from_rgb(181, 138, 255);' 'pub const LIME: Color32 = Color32::from_rgb(194, 157, 255);' "wordmark palette"
+$theme = Replace-Once $theme @'
+    v.extreme_bg_color = Color32::from_rgb(30, 34, 46);
+    v.faint_bg_color = Color32::from_rgb(22, 25, 33);
+'@ @'
+    v.extreme_bg_color = Color32::from_rgb(14, 12, 25);
+    v.faint_bg_color = Color32::from_rgb(21, 18, 35);
+'@ "violet window surfaces"
+$theme = Replace-Once $theme @'
+    v.window_corner_radius = CornerRadius::same(14);
+    v.menu_corner_radius = CornerRadius::same(10);
+    v.window_shadow = egui::Shadow { offset: [0, 14], blur: 40, spread: 0, color: Color32::from_black_alpha(140) };
+    v.popup_shadow = egui::Shadow { offset: [0, 8], blur: 24, spread: 0, color: Color32::from_black_alpha(120) };
+'@ @'
+    v.window_corner_radius = CornerRadius::same(18);
+    v.menu_corner_radius = CornerRadius::same(13);
+    v.window_shadow = egui::Shadow { offset: [0, 18], blur: 52, spread: 1, color: Color32::from_black_alpha(165) };
+    v.popup_shadow = egui::Shadow { offset: [0, 10], blur: 30, spread: 1, color: Color32::from_black_alpha(145) };
+'@ "premium rounded windows and layered shadows"
+$theme = Replace-Once $theme '    let radius = CornerRadius::same(7);' '    let radius = CornerRadius::same(10);' "rounded controls"
+$theme = Replace-Once $theme @'
+    s.item_spacing = Vec2::new(8.0, 6.0);
+    s.button_padding = Vec2::new(10.0, 5.0);
+    s.interact_size.y = 26.0;
+    s.menu_margin = Margin::same(6);
+    s.window_margin = Margin::same(14);
+    s.scroll.bar_width = 8.0;
+'@ @'
+    s.item_spacing = Vec2::new(10.0, 8.0);
+    s.button_padding = Vec2::new(14.0, 7.0);
+    s.interact_size.y = 32.0;
+    s.menu_margin = Margin::same(9);
+    s.window_margin = Margin::same(18);
+    s.scroll.bar_width = 9.0;
+'@ "roomier layout spacing"
+$theme = Replace-Once $theme @'
+    style.text_styles.insert(TextStyle::Body, FontId::proportional(14.0));
+    style.text_styles.insert(TextStyle::Button, FontId::proportional(14.0));
+    style.text_styles.insert(TextStyle::Small, FontId::proportional(11.5));
+    style.text_styles.insert(TextStyle::Heading, FontId::proportional(20.0));
+'@ @'
+    style.text_styles.insert(TextStyle::Body, FontId::proportional(14.5));
+    style.text_styles.insert(TextStyle::Button, FontId::proportional(14.0));
+    style.text_styles.insert(TextStyle::Small, FontId::proportional(12.0));
+    style.text_styles.insert(TextStyle::Heading, FontId::proportional(22.0));
+'@ "refined app typography"
+$theme = Replace-Once $theme '    style.animation_time = 0.16;' '    style.animation_time = 0.28;' "smoother global widget transitions"
+
 $theme = Replace-Once $theme @'
     w.hovered.bg_fill = Color32::from_rgb(50, 57, 78);
     w.hovered.weak_bg_fill = Color32::from_rgb(50, 57, 78);
 '@ @'
-    w.hovered.bg_fill = Color32::from_rgb(45, 37, 59);
-    w.hovered.weak_bg_fill = Color32::from_rgb(45, 37, 59);
+    w.hovered.bg_fill = Color32::from_rgb(56, 42, 82);
+    w.hovered.weak_bg_fill = Color32::from_rgb(56, 42, 82);
 '@ "soft hover colours"
 $theme = Replace-Once $theme @'
     w.open.bg_fill = Color32::from_rgb(44, 50, 70);
     w.open.weak_bg_fill = Color32::from_rgb(44, 50, 70);
 '@ @'
-    w.open.bg_fill = Color32::from_rgb(39, 32, 52);
-    w.open.weak_bg_fill = Color32::from_rgb(39, 32, 52);
+    w.open.bg_fill = Color32::from_rgb(48, 36, 74);
+    w.open.weak_bg_fill = Color32::from_rgb(48, 36, 74);
 '@ "soft open colours"
 Save-Source $themePath $theme
 
@@ -810,8 +868,8 @@ $gui = Replace-Once $gui @'
             ui.label(egui::RichText::new("RIVALS CONFIG BUILDER").strong().size(17.0).color(theme::ACCENT));
 '@ @'
         let card_fade = ui.ctx().animate_value_with_time(egui::Id::new("config-local-file-card"), 1.0, 0.20);
-        ui.add_space((1.0 - card_fade) * 5.0);
-        card(ui, 1.0, |ui| {
+        ui.add_space((1.0 - card_fade) * 7.0);
+        card(ui, card_fade, |ui| {
             ui.label(egui::RichText::new("RIVALS CONFIG BUILDER").strong().size(17.0).color(theme::ACCENT));
 '@ "Config Studio card fade transition"
 
