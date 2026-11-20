@@ -491,10 +491,19 @@ $gui = Replace-Once $gui @'
         });
         ui.add_space(10.0);
         card(ui, 1.0, |ui| {
-            ui.label(egui::RichText::new("LOCAL FILE REPLACEMENT").strong());
-            ui.label(egui::RichText::new("Select an asset and choose “Use in Config”, or enter its Roblox asset ID / cache entry ID in Target IDs above.").color(theme::MUTED).small());
+            ui.label(egui::RichText::new("RIVALS CONFIG BUILDER").strong().size(17.0).color(theme::ACCENT));
+            ui.label(egui::RichText::new("Pick a target, choose a local file, then add the replacement rule. Multiple IDs can be pasted together.").color(theme::MUTED).small());
+            let target_fade = ui.ctx().animate_value_with_time(egui::Id::new("config-target-field-enter"), 1.0, 0.18);
+            ui.add_space((1.0 - target_fade) * 5.0);
             ui.horizontal(|ui| {
-                ui.add(egui::TextEdit::singleline(&mut self.studio_local_path_input).desired_width(280.0).hint_text(".obj, image, or audio file"));
+                ui.label(egui::RichText::new("01  TARGET IDs").strong().small());
+                ui.add(egui::TextEdit::singleline(&mut self.studio_target_input).desired_width(280.0).hint_text("RIVALS asset IDs or cache keys"));
+            });
+            let file_fade = ui.ctx().animate_value_with_time(egui::Id::new("config-file-field-enter"), 1.0, 0.22);
+            ui.add_space((1.0 - file_fade) * 5.0);
+            ui.horizontal(|ui| {
+                ui.label(egui::RichText::new("02  FILE").strong().small());
+                ui.add(egui::TextEdit::singleline(&mut self.studio_local_path_input).desired_width(280.0).hint_text("Choose OBJ, image, texture map or audio"));
                 if ui.button("Browse…").clicked() {
                     if let Some(path) = rfd::FileDialog::new()
                         .add_filter("RIVALS replacement assets", &["obj", "png", "jpg", "jpeg", "webp", "gif", "wav", "mp3", "ogg", "flac"])
@@ -504,7 +513,8 @@ $gui = Replace-Once $gui @'
                     }
                 }
             });
-            if ui.add(primary_button("Add local rule")).clicked() {
+            ui.label(egui::RichText::new("03  ADD TO CONFIG").strong().small().color(theme::ACCENT));
+            if ui.add(primary_button("Add to Config")).clicked() {
                 match self.add_studio_local_rules() {
                     Ok(count) => self.studio_status = format!("Added {count} local replacement rule(s)."),
                     Err(error) => self.studio_status = format!("Could not add local rule: {error:#}"),
@@ -521,13 +531,33 @@ $localHelper = @'
         let path = self.studio_local_path_input.trim().to_owned();
         anyhow::ensure!(!path.is_empty() && std::fs::metadata(&path).is_ok_and(|meta| meta.is_file()),
             "Choose an existing local replacement file");
+
         let raw = self.studio_target_input.trim();
-        let targets: Vec<String> = if raw.len() == 32 && raw.bytes().all(|b| b.is_ascii_hexdigit()) {
-            vec![raw.to_ascii_lowercase()]
-        } else {
-            crate::studio::extract_asset_ids(raw).into_iter().map(|id| id.to_string()).collect()
-        };
-        anyhow::ensure!(!targets.is_empty(), "Select an asset or enter a Roblox asset ID");
+        let mut targets = Vec::new();
+        let mut seen = HashSet::new();
+        for token in raw.split(|ch: char| ch.is_whitespace() || ch == ',' || ch == ';') {
+            let token = token.trim().trim_matches('"');
+            if token.is_empty() { continue; }
+
+            if token.len() == 32 && token.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+                let key = token.to_ascii_lowercase();
+                if seen.insert(key.clone()) { targets.push(key); }
+            } else if let Ok(id) = token.parse::<u64>() {
+                if id > 0 {
+                    let value = id.to_string();
+                    if seen.insert(value.clone()) { targets.push(value); }
+                }
+            } else {
+                for id in crate::studio::extract_asset_ids(token) {
+                    if id > 0 {
+                        let value = id.to_string();
+                        if seen.insert(value.clone()) { targets.push(value); }
+                    }
+                }
+            }
+        }
+        anyhow::ensure!(!targets.is_empty(),
+            "Paste one or more decimal Roblox asset IDs or 32-character cache-entry keys");
         for target in &targets { self.studio_doc.add_local_rule(target, &path)?; }
         self.studio_target_input.clear();
         self.studio_local_path_input.clear();
@@ -584,7 +614,6 @@ $localMethod = @'
 
     /// Adds a local replacement to a Roblox asset ID or a 32-hex cache-entry ID.
     pub fn add_local_rule(&mut self, target: &str, path: &str) -> Result<()> {
-        ensure!(self.game().trim().eq_ignore_ascii_case("RIVALS"), "Local replacements are available for RIVALS profiles only");
         ensure!(!path.trim().is_empty(), "Choose a local replacement file");
         let target = target.trim();
         let target = match target.parse::<u64>() {
@@ -684,14 +713,14 @@ $oldAction = @'
             }
 '@
 $newAction = @'
-            Action::UseEntryForConfig(id) => (|| {
+            Action::UseEntryForConfig(id) => {
                 self.rivals_entries.insert(id);
                 save_rivals_entries(&self.rivals_entries)?;
                 self.studio_target_input = store::hex(&id);
                 self.show_tab(Tab::Studio, ctx);
                 self.studio_status = "Selected cache entry as a local RIVALS replacement target. Choose a file below.".into();
                 Ok(String::new())
-            })(),
+            }
 '@
 $gui = Replace-Once $gui $oldAction $newAction "Result-wrapped Use in Config action"
 Save-Source $guiPath $gui
@@ -753,12 +782,12 @@ $gui = Replace-Once $gui @'
 
 # Using an entry in Config Studio must not silently classify an arbitrary cache entry as a RIVALS asset.
 $gui = Replace-Once $gui @'
-            Action::UseEntryForConfig(id) => (|| {
+            Action::UseEntryForConfig(id) => {
                 self.rivals_entries.insert(id);
                 save_rivals_entries(&self.rivals_entries)?;
                 self.studio_target_input = store::hex(&id);
 '@ @'
-            Action::UseEntryForConfig(id) => (|| {
+            Action::UseEntryForConfig(id) => {
                 self.studio_target_input = store::hex(&id);
 '@ "keep Config Studio selection separate from RIVALS library membership"
 
@@ -854,6 +883,8 @@ $newLibrary = @'
                     let variant = asset.get("variant").and_then(serde_json::Value::as_str).unwrap_or("");
                     let haystack = format!("{category} {name} {variant} {id}").to_lowercase();
                     if !query.is_empty() && !haystack.contains(&query) { continue; }
+                    let row_enter = ui.ctx().animate_value_with_time(egui::Id::new(("rivals-catalog-entry-enter", id)), 1.0, 0.20);
+                    ui.add_space((1.0 - row_enter) * 4.0);
                     ui.horizontal(|ui| {
                         ui.label(egui::RichText::new(category).color(theme::MUTED).small());
                         ui.label(name);
