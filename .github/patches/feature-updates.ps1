@@ -688,3 +688,287 @@ mod supplied_config_regressions {
 Save-Source $configPath $config
 
 Write-Host "Feature updates applied: version, six-face sky groups, previews, multi-ID pairing, launch, config regressions and customization."
+
+
+# Source-complete replacement workflow, verified arena texture examples, and startup intro.
+$studioPath = Join-Path $Project "src/studio.rs"
+$studio = [IO.File]::ReadAllText($studioPath)
+$cdnMethod = @'
+    /// Adds an HTTPS CDN replacement to a Roblox asset target.
+    pub fn add_cdn_rule(&mut self, target_id: u64, url: &str) -> Result<()> {
+        ensure!(target_id > 0, "Target asset ID must be greater than zero");
+        let url = url.trim();
+        ensure!(url.starts_with("https://"), "CDN replacements must use HTTPS");
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": "CDN texture replacement",
+            "enabled": true,
+            "targets": [target_id],
+            "action": { "type": "https", "url": url },
+            "notes": "HTTPS CDN replacement. The URL is fetched anonymously when the local cache rule is applied."
+        }));
+        Ok(())
+    }
+
+'@
+$studio = Replace-Once $studio '    pub fn remove_rule(&mut self, index: usize) -> bool {' ($cdnMethod + '    pub fn remove_rule(&mut self, index: usize) -> bool {') "Config Studio HTTPS CDN rule method"
+Save-Source $studioPath $studio
+
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui @'
+    studio_replacement_input: String,
+    studio_local_path_input: String,
+'@ @'
+    studio_replacement_input: String,
+    studio_cdn_input: String,
+    studio_local_path_input: String,
+'@ "Config Studio CDN input state"
+$gui = Replace-Once $gui @'
+            studio_replacement_input: String::new(),
+            studio_local_path_input: String::new(),
+'@ @'
+            studio_replacement_input: String::new(),
+            studio_cdn_input: String::new(),
+            studio_local_path_input: String::new(),
+'@ "Config Studio CDN input initialization"
+
+$cdnCard = @'
+        ui.add_space(10.0);
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("HTTPS CDN REPLACEMENT").strong().size(16.0).color(theme::accent()));
+            ui.label(egui::RichText::new("Use an HTTPS image or asset URL. The target is the original RIVALS asset; the URL is the replacement.").color(theme::MUTED).small());
+            ui.horizontal(|ui| {
+                ui.label("CDN URL");
+                ui.add(egui::TextEdit::singleline(&mut self.studio_cdn_input).desired_width(390.0).hint_text("https://example.com/texture.png"));
+            });
+            if ui.add(primary_button("Add CDN replacement")).clicked() {
+                match self.add_studio_cdn_rules() {
+                    Ok(count) => self.studio_status = format!("Added {count} HTTPS CDN replacement rule(s)."),
+                    Err(error) => self.studio_status = format!("Could not add CDN rule: {error:#}"),
+                }
+            }
+        });
+'@
+$gui = Replace-Once $gui @'
+        ui.add_space(10.0);
+        let rows = self.studio_doc.rules().to_vec();
+'@ ($cdnCard + @'
+        ui.add_space(10.0);
+        let rows = self.studio_doc.rules().to_vec();
+'@) "Config Studio CDN replacement card"
+
+$cdnHelper = @'
+    fn add_studio_cdn_rules(&mut self) -> anyhow::Result<usize> {
+        let url = self.studio_cdn_input.trim().to_owned();
+        anyhow::ensure!(url.starts_with("https://"), "Enter a valid HTTPS CDN URL");
+        let targets = crate::studio::extract_asset_ids(&self.studio_target_input);
+        anyhow::ensure!(!targets.is_empty(), "Enter one or more original RIVALS target asset IDs");
+        for target in &targets { self.studio_doc.add_cdn_rule(*target, &url)?; }
+        self.studio_target_input.clear();
+        self.studio_cdn_input.clear();
+        Ok(targets.len())
+    }
+
+'@
+$gui = Replace-Once $gui '    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {' ($cdnHelper + '    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {') "Config Studio CDN rule helper"
+
+# Surface the three actual examples from the user's supplied configs; do not infer a floor/wall/prop label.
+$arenaCards = @'
+        ui.add_space(12.0);
+        card(ui, 1.0, |ui| {
+            ui.horizontal(|ui| {
+                ui.label(egui::RichText::new("ARENA TEXTURE LIBRARY").strong().size(18.0).color(theme::accent()));
+                theme::pill(ui, "1 verified target · 3 examples", theme::OK);
+            });
+            ui.label(egui::RichText::new("These entries come from the supplied RIVALS configs. The target surface has not been identified, so it is deliberately labelled Unclassified rather than guessed as a floor, wall or prop.").color(theme::MUTED).small());
+            ui.separator();
+            ui.horizontal_wrapped(|ui| {
+                ui.vertical(|ui| {
+                    ui.label(egui::RichText::new("Tism textures").strong());
+                    ui.label("Target: 7658055825");
+                    ui.label("Replacement: 6372755229");
+                    if ui.small_button("Preview replacement").clicked() { actions.push(Action::PreviewCatalog(6372755229)); }
+                    if ui.button("Use this texture").clicked() {
+                        match self.studio_doc.add_rule(7658055825, 6372755229) {
+                            Ok(()) => { self.studio_status = "Added Tism textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add Tism textures: {error:#}"),
+                        }
+                    }
+                });
+                ui.separator();
+                ui.vertical(|ui| {
+                    ui.label(egui::RichText::new("Flow Textures").strong());
+                    ui.label("Target: 7658055825");
+                    ui.label("Replacement: HTTPS CDN");
+                    ui.label(egui::RichText::new("raw.githubusercontent.com · Flow Textures.png").color(theme::MUTED).small());
+                    if ui.button("Use Flow Textures").clicked() {
+                        match self.studio_doc.add_cdn_rule(7658055825, "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png") {
+                            Ok(()) => { self.studio_status = "Added Flow Textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add Flow Textures: {error:#}"),
+                        }
+                    }
+                });
+                ui.separator();
+                ui.vertical(|ui| {
+                    ui.label(egui::RichText::new("No Textures").strong());
+                    ui.label("Target: 7658055825");
+                    ui.label("Action: Remove original");
+                    if ui.button("Use No Textures").clicked() {
+                        match self.studio_doc.add_remove_rule("7658055825") {
+                            Ok(()) => { self.studio_status = "Added No Textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add No Textures: {error:#}"),
+                        }
+                    }
+                });
+            });
+            ui.label(egui::RichText::new("More arena surfaces will be listed only when their original target IDs and replacement assets are verified.").color(theme::MUTED).small());
+        });
+'@
+$gui = Replace-Once $gui @'
+        ui.add_space(12.0);
+        ui.label(egui::RichText::new("RECENT LOCAL ACTIVITY").strong().color(theme::MUTED).small());
+'@ ($arenaCards + @'
+        ui.add_space(12.0);
+        ui.label(egui::RichText::new("RECENT LOCAL ACTIVITY").strong().color(theme::MUTED).small());
+'@) "verified RIVALS arena texture presets"
+
+# Make local-file portability explicit in the applied-config rule list.
+$gui = Replace-Once $gui @'
+                                ui.label(egui::RichText::new(rule_summary(rule)).color(theme::MUTED).small());
+'@ @'
+                                ui.label(egui::RichText::new(rule_summary(rule)).color(theme::MUTED).small());
+                                if let config::Action::Local(path) = &rule.action {
+                                    if path.is_file() {
+                                        theme::pill(ui, "LOCAL ONLY", theme::WARN);
+                                    } else {
+                                        theme::pill(ui, "LOCAL ONLY · FILE MISSING", theme::DANGER);
+                                    }
+                                }
+'@ "local-only config portability indicator"
+
+# Four-and-a-half-second animated startup intro. The regular UI continues initializing underneath it.
+$gui = Replace-Once $gui @'
+    studio_status: String,
+}
+'@ @'
+    studio_status: String,
+    startup_intro_started: f64,
+    startup_intro_skipped: bool,
+}
+'@ "startup intro state"
+$gui = Replace-Once $gui @'
+            studio_status: "Create a profile or import a Fleasion-compatible JSON file.".into(),
+        };
+'@ @'
+            studio_status: "Create a profile or import a Fleasion-compatible JSON file.".into(),
+            startup_intro_started: cc.egui_ctx.input(|input| input.time),
+            startup_intro_skipped: false,
+        };
+'@ "startup intro initialization"
+$intro = @'
+        if self.settings.animations && !self.startup_intro_skipped {
+            let elapsed = (now - self.startup_intro_started) as f32;
+            let duration = 4.5_f32;
+            if elapsed < duration {
+                let t = (elapsed / duration).clamp(0.0, 1.0);
+                let fade_in = (t / 0.18).clamp(0.0, 1.0);
+                let fade_out = ((1.0 - t) / 0.18).clamp(0.0, 1.0);
+                let opacity = fade_in.min(fade_out);
+                let rect = ctx.screen_rect();
+                egui::Area::new(egui::Id::new("prlngzz-startup-intro"))
+                    .order(egui::Order::Foreground)
+                    .fixed_pos(rect.min)
+                    .show(ctx, |ui| {
+                        ui.set_min_size(rect.size());
+                        let (surface, _) = ui.allocate_exact_size(rect.size(), egui::Sense::click());
+                        let painter = ui.painter_at(surface);
+                        theme::splash_gradient(&painter, surface, 0.985 * opacity);
+                        let center = surface.center();
+                        let pulse = 1.0 + 0.035 * (elapsed * 2.2).sin();
+                        let radius = 74.0 * pulse;
+                        painter.circle_stroke(center, radius + 18.0, Stroke::new(1.2, alpha(theme::accent(), 0.20 * opacity)));
+                        painter.circle_stroke(center, radius + 7.0, Stroke::new(2.0, alpha(theme::accent(), 0.45 * opacity)));
+                        painter.circle_filled(center, radius, alpha(theme::CARD, 0.94 * opacity));
+                        painter.text(center, egui::Align2::CENTER_CENTER, "P", egui::FontId::new(76.0, egui::FontFamily::Proportional), alpha(theme::SPLASH_INK, opacity));
+                        let title_pos = egui::pos2(center.x, center.y + 112.0);
+                        painter.text(title_pos, egui::Align2::CENTER_CENTER, "PRLNGZZ EDITOR", egui::FontId::new(30.0, theme::wordmark_font()), alpha(theme::SPLASH_INK, opacity));
+                        painter.text(egui::pos2(center.x, title_pos.y + 34.0), egui::Align2::CENTER_CENTER, "RIVALS CUSTOMIZATION WORKSPACE", egui::FontId::proportional(12.0), alpha(theme::SPLASH_MUTED, opacity));
+                        let width = (surface.width() * 0.34).clamp(220.0, 420.0);
+                        let bar = Rect::from_center_size(egui::pos2(center.x, surface.bottom() - 66.0), Vec2::new(width, 3.0));
+                        painter.rect_filled(bar, CornerRadius::same(2), alpha(theme::BORDER, opacity));
+                        painter.rect_filled(Rect::from_min_size(bar.min, Vec2::new(width * t, bar.height())), CornerRadius::same(2), alpha(theme::SPLASH_BAR, opacity));
+                        if ui.put(Rect::from_min_size(egui::pos2(surface.right() - 112.0, surface.bottom() - 54.0), Vec2::new(92.0, 30.0)), egui::Button::new("Skip intro")).clicked() {
+                            self.startup_intro_skipped = true;
+                        }
+                    });
+                ctx.request_repaint_after(std::time::Duration::from_millis(16));
+            } else {
+                self.startup_intro_skipped = true;
+            }
+        }
+
+'@
+$gui = Replace-Once $gui @'
+        self.show_toast(ctx);
+        self.show_splash(ctx);
+
+        for action in actions {
+'@ @'
+        self.show_toast(ctx);
+        self.show_splash(ctx);
+'@ "startup intro insertion anchor"
+# Insert after the existing splash, but before queued actions are dispatched.
+$gui = Replace-Once $gui @'
+        self.show_toast(ctx);
+        self.show_splash(ctx);
+
+        for action in actions {
+'@ @'
+        self.show_toast(ctx);
+        self.show_splash(ctx);
+'@ "startup intro frame order"
+$gui = Replace-Once $gui @'
+        self.show_toast(ctx);
+        self.show_splash(ctx);
+
+        for action in actions {
+'@ @'
+        self.show_toast(ctx);
+        self.show_splash(ctx);
+'@ "startup intro overlay anchor stable"
+# Place the intro immediately after the existing splash call.
+$gui = Replace-Once $gui '        self.show_splash(ctx);' ('        self.show_splash(ctx);' + [char]10 + $intro.TrimEnd())
+Save-Source $guiPath $gui
+
+# Parser regression for the supplied Flow CDN example and HTTPS-only enforcement.
+$configPath = Join-Path $Project "src/config.rs"
+$config = [IO.File]::ReadAllText($configPath)
+$config += @'
+
+#[cfg(test)]
+mod cdn_texture_regressions {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn supplied_flow_texture_uses_verified_target_and_https_replacement() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"Textures","replace_ids":[7658055825],"mode":"cdn","enabled":true,"cdn_url":"https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png"}]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].targets, [Target::Asset(7658055825)]);
+        assert_eq!(rules[0].action, Action::Cdn("https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png".into()));
+    }
+
+    #[test]
+    fn rejects_non_https_remote_replacement_urls() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"unsafe","replace_ids":[7658055825],"mode":"cdn","cdn_url":"http://example.com/texture.png"}]}"#, Path::new(".")).unwrap();
+        assert!(matches!(&rules[0].action, Action::Invalid(_)));
+    }
+}
+'@
+Save-Source $configPath $config
+
+Write-Host "Added HTTPS Config Studio rules, the three supplied arena texture presets, LOCAL ONLY portability labels, and a 4.5-second animated startup intro."
