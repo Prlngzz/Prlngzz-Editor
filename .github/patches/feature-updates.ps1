@@ -912,15 +912,6 @@ $intro = @'
         }
 
 '@
-$gui = Replace-Once $gui @'
-        self.show_toast(ctx);
-        self.show_splash(ctx);
-
-        for action in actions {
-'@ @'
-        self.show_toast(ctx);
-        self.show_splash(ctx);
-'@ "startup intro insertion anchor"
 # Place the intro immediately after the existing splash call.
 $gui = Replace-Once $gui '        self.show_splash(ctx);' ('        self.show_splash(ctx);' + [char]10 + $intro.TrimEnd())
 Save-Source $guiPath $gui
