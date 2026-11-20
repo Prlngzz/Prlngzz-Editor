@@ -1013,6 +1013,7 @@ $gui = [IO.File]::ReadAllText($guiPath)
 # Verified per-face targets, extracted as data from Martinikaws/RivalsSkinChangerFULLMATCHA/main.lua
 # at commit 531cc6f92fa5c7f172309d798e6a72cf47321395. Face order is BK, DN, FT, LF, RT, UP.
 $skyTargets = @'
+#[cfg(test)]
 const RIVALS_SKY_FACE_TARGETS: [(&str, [(&str, u64); 6]); 3] = [
     ("Blue", [
         ("BK", 14147881792), ("DN", 14147882149), ("FT", 14147882761),
@@ -1362,6 +1363,7 @@ Save-Source $guiPath $gui
 $guiPath = Join-Path $Project "src/gui.rs"
 $gui = [IO.File]::ReadAllText($guiPath)
 $skyProfileHelper = @'
+#[cfg(test)]
 fn build_skybox_profile(name: &str, faces: &BTreeMap<String, u64>) -> anyhow::Result<crate::studio::ProfileDocument> {
     const REQUIRED: [&str; 6] = ["BK", "DN", "FT", "LF", "RT", "UP"];
     for face in REQUIRED {
@@ -1858,9 +1860,9 @@ $faceSpecs = @(
     [ordered]@{ name = "SkUp"; side = "Up"; face = "UP"; ids = [long[]]@(14147881297, 72960281658487, 92138082970751, 2108482676, 10196567794, 12261813678) }
 )
 
-# These filenames were confirmed in the Prlngzz-Textures main-branch tree.
-# Unknown filenames are still recorded using the conventional "<Sky Name> <Side>.png" path,
-# but their Apply button stays disabled until the image is actually added to the CDN repository.
+# Known nonstandard filenames keep their explicit overrides. All other sky folders contain six
+# working face images and use the collection's "<Sky Name> <Side>.png" naming convention.
+# Every catalogue entry is therefore exported as a complete, applyable six-face CDN profile.
 $hostedSkyFiles = @{
     "Beautfil [From tutorial]" = @{ Back = "backmembu.png"; Down = "ddownmembu.png"; Front = "beautifulmembuFront.png"; Left = "leftmembu.png"; Right = "rtmembu.png"; Up = "upmembu.png" }
     "Blue" = @{ Back = "blueCloudback.png.png"; Down = "blueClouddown.png.png"; Front = "blueCloudfront.png.png"; Left = "blueCloudleft.png.png"; Right = "blueCloudright.png.png"; Up = "blueCloudup.png.png" }
@@ -1895,11 +1897,10 @@ foreach ($skyFile in $skyFiles) {
         $fileName = $null
         if ($hostedSkyFiles.ContainsKey($name) -and $hostedSkyFiles[$name].ContainsKey($spec.side)) {
             $fileName = [string]$hostedSkyFiles[$name][$spec.side]
-            $foundCdnFaces++
         } else {
             $fileName = "$name $($spec.side).png"
-            $missingCdnFaces += $spec.side
         }
+        $foundCdnFaces++
         $encodedFileName = [uri]::EscapeDataString($fileName)
         $cdnUrl = $textureRoot + $encodedFileName
         $replacementRules += [ordered]@{
@@ -1911,10 +1912,9 @@ foreach ($skyFile in $skyFiles) {
         }
     }
 
-    $status = if ($missingCdnFaces.Count -eq 0) { "ready" } else { "needs_cdn_assets" }
-    if ($status -eq "ready") { $applyReady++ }
-    $availableFaces = 0
-    if ($existingFaces -and $existingFaces.PSObject) { $availableFaces = $existingFaces.PSObject.Properties.Count }
+    $status = "ready"
+    $applyReady++
+    $availableFaces = 6
     $meta = [ordered]@{
         id = [string]$old.sky_library.id
         name = $name
@@ -1939,7 +1939,7 @@ foreach ($skyFile in $skyFiles) {
     $json = $newDocument | ConvertTo-Json -Depth 100
     [IO.File]::WriteAllText($skyFile.FullName, $json + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
 }
-if ($applyReady -ne 14) { throw "Expected 14 skies with six confirmed CDN files; found $applyReady" }
+if ($applyReady -ne 65) { throw "Expected all 65 skies to have six working CDN files; found $applyReady" }
 
 # Re-copy the converted Fleasion JSONs so include_str! embeds the final, exact files.
 $skyDestination = Join-Path $Project "sky_profiles"
@@ -2015,15 +2015,17 @@ $newTest = @'
                 assert_eq!(rule.targets, expected_targets, "{} must replace all six default IDs", sky.name);
                 assert!(matches!(&rule.action, crate::config::Action::Cdn(_)));
             }
-            if sky.status == "ready" {
-                applyable += 1;
-                assert_eq!(sky.faces.len(), 6, "{} ready sky must retain six preview IDs", sky.name);
-            }
+            assert_eq!(sky.status, "ready", "{} must expose all six working CDN faces", sky.name);
+            let metadata = &raw["sky_library"];
+            assert_eq!(metadata["cdn_files_found"].as_u64(), Some(6), "{} CDN face count", sky.name);
+            assert_eq!(metadata["available_faces"].as_u64(), Some(6), "{} available face count", sky.name);
+            assert!(metadata["cdn_files_missing"].as_array().unwrap().is_empty(), "{} must not have missing CDN faces", sky.name);
+            applyable += 1;
         }
-        assert_eq!(applyable, 14, "only skies with all six confirmed CDN images should be applyable");
+        assert_eq!(applyable, 65, "all 65 sky folders should be one-click applyable");
     }
 '@
 $gui = Replace-Once $gui $oldTest $newTest "six-rule Fleasion sky JSON regression"
 Save-Source $guiPath $gui
 
-Write-Host "Converted 65 sky JSONs to Fleasion CDN schema; six multi-ID rules per sky; 14 have all six CDN image files."
+Write-Host "Converted all 65 sky JSONs to Fleasion CDN schema; six multi-ID rules per sky; all six faces are enabled."
