@@ -433,7 +433,7 @@ $settingsPath = Join-Path $Project "src/settings.rs"
 $settings = [IO.File]::ReadAllText($settingsPath)
 $settings = Replace-Once $settings @'
     pub animations: bool,
-    /// Accent palette selected in Customization.
+    /// Accent palette selected in the Customization page.
 '@ @'
     pub animations: bool,
     /// Soft breathing glow behind the selected navigation item.
