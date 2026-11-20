@@ -968,3 +968,318 @@ $newLibrary = @'
 $gui = Replace-Once $gui $oldEmpty $newLibrary "searchable RIVALS Asset Library catalogue"
 Save-Source $guiPath $gui
 
+
+# Persistent in-app customization and Config Manager navigation.
+$settingsPath = Join-Path $Project "src/settings.rs"
+$settings = [IO.File]::ReadAllText($settingsPath)
+$settings = Replace-Once $settings @'
+    pub animations: bool,
+'@ @'
+    pub animations: bool,
+    /// Accent palette selected in the Customization page.
+    pub accent: String,
+    /// Denser spacing for smaller windows and faster scanning.
+    pub compact_layout: bool,
+    /// Show glyph icons beside sidebar labels.
+    pub show_nav_icons: bool,
+'@ "persisted appearance preferences"
+$settings = Replace-Once $settings @'
+        Self { close_to_tray: true, animations: true, watch: true, configs: Vec::new(), winners: BTreeMap::new(), seen_version: String::new() }
+'@ @'
+        Self {
+            close_to_tray: true,
+            animations: true,
+            accent: "violet".into(),
+            compact_layout: false,
+            show_nav_icons: true,
+            watch: true,
+            configs: Vec::new(),
+            winners: BTreeMap::new(),
+            seen_version: String::new(),
+        }
+'@ "default appearance preferences"
+Save-Source $settingsPath $settings
+
+# Runtime accent palettes and a compact density preset.
+$themePath = Join-Path $Project "src/theme.rs"
+$theme = [IO.File]::ReadAllText($themePath)
+$theme = Replace-Once $theme 'use eframe::egui::{self, Color32, CornerRadius, FontId, Margin, Rect, Shape, Stroke, TextStyle, Vec2};' @'
+use eframe::egui::{self, Color32, CornerRadius, FontId, Margin, Rect, Shape, Stroke, TextStyle, Vec2};
+use std::sync::atomic::{AtomicU32, Ordering};
+'@ "runtime palette imports"
+$theme = Replace-Once $theme @'
+/// color at a opacity (0..1).
+pub fn alpha(color: Color32, a: f32) -> Color32 {
+'@ @'
+static ACCENT_RGB: AtomicU32 = AtomicU32::new(0xA970FF);
+
+/// The active accent colour, selected by the user in Customization.
+pub fn accent() -> Color32 {
+    let rgb = ACCENT_RGB.load(Ordering::Relaxed);
+    Color32::from_rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8)
+}
+
+/// Select one of the built-in accent palettes.
+pub fn set_accent_name(name: &str) {
+    let rgb = match name {
+        "blue" => 0x68A7FF,
+        "cyan" => 0x55D6D1,
+        "rose" => 0xF07BAE,
+        "amber" => 0xE8B65D,
+        _ => 0xA970FF,
+    };
+    ACCENT_RGB.store(rgb, Ordering::Relaxed);
+}
+
+/// Re-tint interactive states without rebuilding fonts or resetting spacing.
+pub fn apply_accent(ctx: &egui::Context) {
+    let accent = accent();
+    let mut style = (*ctx.style()).clone();
+    let visuals = &mut style.visuals;
+    visuals.hyperlink_color = accent;
+    visuals.selection.bg_fill = alpha(accent, 0.26);
+    visuals.widgets.hovered.bg_stroke = Stroke::new(1.0, alpha(accent, 0.72));
+    visuals.widgets.active.bg_fill = alpha(accent, 0.55);
+    visuals.widgets.active.bg_stroke = Stroke::new(1.0, accent);
+    visuals.widgets.open.bg_stroke = Stroke::new(1.0, alpha(accent, 0.72));
+    ctx.set_style(style);
+}
+
+/// Apply comfortable or compact spacing while retaining the rest of the theme.
+pub fn apply_density(ctx: &egui::Context, compact: bool) {
+    let mut style = (*ctx.style()).clone();
+    let spacing = &mut style.spacing;
+    if compact {
+        spacing.item_spacing = Vec2::new(6.0, 4.0);
+        spacing.button_padding = Vec2::new(9.0, 4.0);
+        spacing.interact_size.y = 27.0;
+        spacing.window_margin = Margin::same(12);
+        spacing.scroll.bar_width = 7.0;
+    } else {
+        spacing.item_spacing = Vec2::new(10.0, 8.0);
+        spacing.button_padding = Vec2::new(14.0, 7.0);
+        spacing.interact_size.y = 32.0;
+        spacing.window_margin = Margin::same(18);
+        spacing.scroll.bar_width = 9.0;
+    }
+    ctx.set_style(style);
+}
+
+/// color at a opacity (0..1).
+pub fn alpha(color: Color32, a: f32) -> Color32 {
+'@ "accent and density helpers"
+$applyStart = $theme.IndexOf("pub fn apply(ctx: &egui::Context) {")
+$kindStart = $theme.IndexOf("/// Colour that identifies a content type", $applyStart)
+if ($applyStart -lt 0 -or $kindStart -lt 0) { throw "Could not locate theme apply function" }
+$apply = $theme.Substring($applyStart, $kindStart - $applyStart)
+$apply = $apply.Replace("    let v = &mut style.visuals;", ("    let accent = accent();" + [char]10 + "    let v = &mut style.visuals;"))
+$apply = $apply.Replace("v.hyperlink_color = ACCENT;", "v.hyperlink_color = accent;")
+$apply = $apply.Replace("alpha(ACCENT, 0.26)", "alpha(accent, 0.26)")
+$apply = $apply.Replace("alpha(ACCENT, 0.7)", "alpha(accent, 0.7)")
+$apply = $apply.Replace("alpha(ACCENT, 0.55)", "alpha(accent, 0.55)")
+$apply = $apply.Replace("Stroke::new(1.0_f32, ACCENT)", "Stroke::new(1.0_f32, accent)")
+$theme = $theme.Substring(0, $applyStart) + $apply + $theme.Substring($kindStart)
+Save-Source $themePath $theme
+
+# Move Config Manager into the first sidebar slot, add iconography and Customization.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui @'
+    Studio,
+    AssetIds,
+    Settings,
+'@ @'
+    Studio,
+    AssetIds,
+    Settings,
+    Customization,
+'@ "Customization tab variant"
+$gui = Replace-Once $gui @'
+            "settings" => Some(Tab::Settings),
+'@ @'
+            "settings" => Some(Tab::Settings),
+            "customization" | "customise" | "customize" => Some(Tab::Customization),
+'@ "Customization command-line tab"
+$gui = Replace-Once $gui @'
+Tab::Overview | Tab::Rivals | Tab::Studio | Tab::AssetIds | Tab::Settings | Tab::Configs
+'@ @'
+Tab::Overview | Tab::Rivals | Tab::Studio | Tab::AssetIds | Tab::Settings | Tab::Customization | Tab::Configs
+'@ "Customization page list exclusion"
+$gui = Replace-Once $gui @'
+                        Tab::Settings => self.settings_page(ui, actions),
+'@ @'
+                        Tab::Settings => self.settings_page(ui, actions),
+                        Tab::Customization => self.customization_page(ui, actions),
+'@ "Customization page route"
+
+$oldRows = @'
+        let rows = [
+            (Tab::Overview, "Overview", "Your workspace"),
+            (Tab::Rivals, "RIVALS Workspace", "Game-specific profiles"),
+            (Tab::Studio, "Config Studio", "Build and edit JSON"),
+            (Tab::AssetIds, "Asset ID Editor", "Bulk ID management"),
+            (Tab::All, "Asset Library", "Local cached assets"),
+            (Tab::Packs, "Game Library", "Community and local packs"),
+            (Tab::Settings, "Settings", "Appearance and behavior"),
+        ];
+        for (index, (tab, label, hint)) in rows.iter().enumerate() {
+            let now = ui.input(|i| i.time);
+            let seen = *self.nav_seen.entry(label).or_insert(now);
+            let t = if self.settings.animations { theme::ease_out(((now - seen) as f32 - index as f32 * 0.035) / 0.32) } else { 1.0 };
+            if t < 1.0 { ui.ctx().request_repaint(); }
+            let (rect, response) = ui.allocate_exact_size(Vec2::new(ui.available_width(), 52.0), egui::Sense::click());
+            let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
+            let selected = self.tab == *tab || (*tab == Tab::All && matches!(self.tab, Tab::Live | Tab::Group(_) | Tab::Other));
+            if selected {
+                ui.painter().rect_filled(rect.shrink2(Vec2::new(8.0, 2.0)), CornerRadius::same(9), alpha(theme::ACCENT, 0.16));
+                ui.painter().rect_filled(Rect::from_min_size(rect.left_top() + Vec2::new(8.0, 10.0), Vec2::new(3.0, rect.height() - 20.0)), CornerRadius::same(2), theme::ACCENT);
+            } else if response.hovered() {
+                ui.painter().rect_filled(rect.shrink2(Vec2::new(8.0, 2.0)), CornerRadius::same(9), alpha(theme::RAISED, 0.8));
+            }
+            let x = rect.left() + 23.0;
+            ui.painter().text(egui::pos2(x, rect.center().y - 6.0), egui::Align2::LEFT_CENTER, *label, egui::FontId::proportional(14.0), alpha(if selected { theme::TEXT } else { theme::TEXT }, t));
+            ui.painter().text(egui::pos2(x, rect.center().y + 11.0), egui::Align2::LEFT_CENTER, *hint, egui::FontId::proportional(10.5), alpha(theme::MUTED, t));
+            if response.clicked() { actions.push(Action::ShowTab(*tab)); }
+        }
+'@
+$newRows = @'
+        let rows = [
+            (Tab::Configs, "▤", "Config Manager", "Active skin and removal rules"),
+            (Tab::Rivals, "◆", "RIVALS Workspace", "Game-specific profiles"),
+            (Tab::Studio, "✎", "Config Builder", "Create and edit replacement rules"),
+            (Tab::Overview, "⌂", "Overview", "Your workspace"),
+            (Tab::AssetIds, "#", "Asset ID Editor", "Bulk ID management"),
+            (Tab::All, "▦", "Asset Library", "RIVALS catalogue"),
+            (Tab::Packs, "◇", "Game Library", "Community and local packs"),
+            (Tab::Customization, "✦", "Customization", "Theme, layout and motion"),
+            (Tab::Settings, "⚙", "Settings", "Cache behavior and application"),
+        ];
+        for (index, (tab, glyph, label, hint)) in rows.iter().enumerate() {
+            let now = ui.input(|i| i.time);
+            let seen = *self.nav_seen.entry(label).or_insert(now);
+            let entrance = if self.settings.animations { theme::ease_out(((now - seen) as f32 - index as f32 * 0.028) / 0.30) } else { 1.0 };
+            if entrance < 1.0 { ui.ctx().request_repaint(); }
+            let row_height = if self.settings.compact_layout { 46.0 } else { 52.0 };
+            let (rect, response) = ui.allocate_exact_size(Vec2::new(ui.available_width(), row_height), egui::Sense::click());
+            let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
+            let selected = self.tab == *tab || (*tab == Tab::All && matches!(self.tab, Tab::Live | Tab::Group(_) | Tab::Other));
+            let active = if self.settings.animations {
+                ui.ctx().animate_value_with_time(egui::Id::new(("nav-active", label)), if selected { 1.0 } else { 0.0 }, 0.17)
+            } else { if selected { 1.0 } else { 0.0 } };
+            let hover = if self.settings.animations {
+                ui.ctx().animate_bool_with_time(egui::Id::new(("nav-hover", label)), response.hovered(), 0.12)
+            } else { if response.hovered() { 1.0 } else { 0.0 } };
+            if active > 0.001 {
+                ui.painter().rect_filled(rect.shrink2(Vec2::new(8.0, 2.0)), CornerRadius::same(10), alpha(theme::accent(), 0.16 * active));
+                ui.painter().rect_filled(Rect::from_min_size(rect.left_top() + Vec2::new(8.0, 9.0), Vec2::new(3.0, rect.height() - 18.0)), CornerRadius::same(2), alpha(theme::accent(), active));
+            } else if hover > 0.001 {
+                ui.painter().rect_filled(rect.shrink2(Vec2::new(8.0, 2.0)), CornerRadius::same(10), alpha(theme::RAISED, 0.75 * hover));
+            }
+            let show_icon = self.settings.show_nav_icons;
+            let icon_x = rect.left() + 25.0;
+            let label_x = rect.left() + if show_icon { 48.0 } else { 23.0 };
+            if show_icon {
+                ui.painter().text(egui::pos2(icon_x, rect.center().y), egui::Align2::CENTER_CENTER, *glyph,
+                    egui::FontId::proportional(if self.settings.compact_layout { 15.0 } else { 17.0 }),
+                    alpha(if selected { theme::accent() } else { theme::MUTED }, entrance));
+            }
+            ui.painter().text(egui::pos2(label_x, rect.center().y - 6.0), egui::Align2::LEFT_CENTER, *label,
+                egui::FontId::proportional(if self.settings.compact_layout { 13.0 } else { 14.0 }),
+                alpha(theme::TEXT, entrance));
+            if !self.settings.compact_layout {
+                ui.painter().text(egui::pos2(label_x, rect.center().y + 11.0), egui::Align2::LEFT_CENTER, *hint,
+                    egui::FontId::proportional(10.0), alpha(theme::MUTED, entrance));
+            }
+            if response.clicked() { actions.push(Action::ShowTab(*tab)); }
+        }
+'@
+$gui = Replace-Once $gui $oldRows $newRows "icon navigation with Config Manager pinned first"
+
+# The Customization page is the single place for visual preferences.
+$customPage = @'
+    fn customization_page(&mut self, ui: &mut egui::Ui, _actions: &mut Vec<Action>) {
+        self.page_header(ui, "Customization", "Make Prlngzz Editor feel right for you. Changes are saved locally and preview immediately.");
+        let mut accent_changed = false;
+        let mut density_changed = false;
+        let mut preferences_changed = false;
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("ACCENT COLOUR").strong());
+            ui.label(egui::RichText::new("Choose the highlight colour used by selected tabs, focus states and interactive controls.").color(theme::MUTED).small());
+            egui::ComboBox::from_id_salt("custom-accent-palette")
+                .selected_text(match self.settings.accent.as_str() {
+                    "blue" => "Ocean blue",
+                    "cyan" => "Electric cyan",
+                    "rose" => "Soft rose",
+                    "amber" => "Warm amber",
+                    _ => "Prlngzz violet",
+                })
+                .show_ui(ui, |ui| {
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "violet".into(), "Prlngzz violet").changed();
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "blue".into(), "Ocean blue").changed();
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "cyan".into(), "Electric cyan").changed();
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "rose".into(), "Soft rose").changed();
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "amber".into(), "Warm amber").changed();
+                });
+            ui.horizontal(|ui| {
+                ui.label(egui::RichText::new("Live preview").color(theme::MUTED));
+                theme::pill(ui, "Accent sample", theme::accent());
+            });
+        });
+        ui.add_space(10.0);
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("LAYOUT").strong());
+            ui.label(egui::RichText::new("Tune density and navigation for your screen size.").color(theme::MUTED).small());
+            density_changed |= ui.checkbox(&mut self.settings.compact_layout, "Compact layout").on_hover_text("Reduce spacing and navigation row height").changed();
+            preferences_changed |= ui.checkbox(&mut self.settings.show_nav_icons, "Show sidebar icons").changed();
+        });
+        ui.add_space(10.0);
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("MOTION").strong());
+            preferences_changed |= ui.checkbox(&mut self.settings.animations, "Enable animations and transitions").changed();
+            ui.label(egui::RichText::new("Controls page transitions, sidebar easing and decorative motion. Disabling this keeps the interface still while preserving progress and status feedback.").color(theme::MUTED).small());
+        });
+        ui.add_space(10.0);
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("PERFORMANCE").strong());
+            ui.label(egui::RichText::new("The RIVALS catalogue is parsed once and virtualized while scrolling. Compact mode and reduced motion lower UI work on smaller PCs.").color(theme::MUTED).small());
+        });
+        if accent_changed {
+            theme::set_accent_name(&self.settings.accent);
+            theme::apply_accent(ui.ctx());
+            preferences_changed = true;
+        }
+        if density_changed { theme::apply_density(ui.ctx(), self.settings.compact_layout); }
+        if preferences_changed || density_changed { self.settings.save(); }
+    }
+
+'@
+$gui = Replace-Once $gui '    fn settings_page(&mut self, ui: &mut egui::Ui, _actions: &mut Vec<Action>) {' ($customPage + '    fn settings_page(&mut self, ui: &mut egui::Ui, _actions: &mut Vec<Action>) {') "Customization page implementation"
+$oldAppearance = @'
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("APPEARANCE").strong());
+            ui.label(egui::RichText::new("Prlngzz dark purple").color(theme::MUTED).small());
+            ui.horizontal(|ui| {
+                ui.colored_label(theme::ACCENT, "Accent #995CFF");
+                ui.colored_label(theme::TEXT, "Text #F5F0FF");
+                ui.colored_label(theme::BORDER, "Borders #302440");
+            });
+        });
+        ui.add_space(10.0);
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("ANIMATIONS").strong());
+            if ui.checkbox(&mut self.settings.animations, "Enable interface animations").changed() { self.settings.save(); }
+            ui.label(egui::RichText::new("Turn off decorative transitions and motion effects. Operation status and real progress remain visible.").color(theme::MUTED).small());
+        });
+        ui.add_space(10.0);
+'@
+$gui = Replace-Once $gui $oldAppearance '' "move appearance controls into Customization"
+$gui = Replace-Once $gui '        theme::apply(&cc.egui_ctx);' '' "defer theme until saved preferences load"
+$gui = Replace-Once $gui @'
+        let settings = Settings::load();
+'@ @'
+        let settings = Settings::load();
+        theme::set_accent_name(&settings.accent);
+        theme::apply(&cc.egui_ctx);
+        theme::apply_density(&cc.egui_ctx, settings.compact_layout);
+'@ "restore saved theme and density on startup"
+Save-Source $guiPath $gui
