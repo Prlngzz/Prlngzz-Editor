@@ -644,6 +644,9 @@ Save-Source $studioPath $studio
 # Give hover states a softer purple lift while preserving the existing navigation and selection easing.
 $themePath = Join-Path $Project "src/theme.rs"
 $theme = [IO.File]::ReadAllText($themePath)
+Write-Host "THEME SNAPSHOT BEGIN"
+Write-Host $theme
+Write-Host "THEME SNAPSHOT END"
 $theme = Replace-Once $theme @'
     w.hovered.bg_fill = Color32::from_rgb(50, 57, 78);
     w.hovered.weak_bg_fill = Color32::from_rgb(50, 57, 78);
@@ -804,12 +807,12 @@ $gui = Replace-Once $gui @'
 # Make the local-file card and library-tab changes ease in with small, unobtrusive motion.
 $gui = Replace-Once $gui @'
         card(ui, 1.0, |ui| {
-            ui.label(egui::RichText::new("LOCAL FILE REPLACEMENT").strong());
+            ui.label(egui::RichText::new("RIVALS CONFIG BUILDER").strong().size(17.0).color(theme::ACCENT));
 '@ @'
         let card_fade = ui.ctx().animate_value_with_time(egui::Id::new("config-local-file-card"), 1.0, 0.20);
         ui.add_space((1.0 - card_fade) * 5.0);
         card(ui, 1.0, |ui| {
-            ui.label(egui::RichText::new("LOCAL FILE REPLACEMENT").strong());
+            ui.label(egui::RichText::new("RIVALS CONFIG BUILDER").strong().size(17.0).color(theme::ACCENT));
 '@ "Config Studio card fade transition"
 
 # Explain that one local-file action applies to every target ID entered in the same rule.
