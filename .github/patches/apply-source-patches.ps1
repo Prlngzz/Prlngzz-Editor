@@ -476,8 +476,8 @@ $newChips = @'
 $gui = Replace-Once $gui $oldChips $newChips "RIVALS-only Asset Library tabs"
 
 $gui = Replace-Once $gui @'
-            (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),
-            (Tab::All, "Asset Library", "RIVALS-tagged assets only"),
+            (Tab::AssetIds, "Asset ID Editor", "Bulk ID management"),
+            (Tab::All, "Asset Library", "Local cached assets"),
 '@ @'
             (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),
             (Tab::All, "Asset Library", "RIVALS-tagged assets only"),
@@ -1115,8 +1115,8 @@ $oldRows = @'
             (Tab::Overview, "Overview", "Your workspace"),
             (Tab::Rivals, "RIVALS Workspace", "Game-specific profiles"),
             (Tab::Studio, "Config Studio", "Build and edit JSON"),
-            (Tab::AssetIds, "Asset ID Editor", "Bulk ID management"),
-            (Tab::All, "Asset Library", "Local cached assets"),
+            (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),
+            (Tab::All, "Asset Library", "RIVALS-tagged assets only"),
             (Tab::Packs, "Game Library", "Community and local packs"),
             (Tab::Settings, "Settings", "Appearance and behavior"),
         ];
