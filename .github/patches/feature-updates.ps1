@@ -31,6 +31,7 @@ $changelog = $changelog.Replace('"Adds optional HTTPS-only community catalog, re
 Save-Source $changelogPath $changelog
 
 $buildScript = @'
+#[cfg(windows)]
 use std::path::PathBuf;
 
 fn main() {
@@ -196,7 +197,7 @@ $libraryMethod = @'
                         egui::Frame::group(ui.style()).show(ui, |ui| {
                             ui.horizontal_wrapped(|ui| {
                                 ui.label(egui::RichText::new(name).strong());
-                                theme::pill(ui, format!("{}/6 faces", faces.len()), if complete { theme::OK } else { theme::WARN });
+                                theme::pill(ui, &format!("{}/6 faces", faces.len()), if complete { theme::OK } else { theme::WARN });
                                 if complete && ui.small_button("Use 6 replacement IDs").clicked() {
                                     self.studio_replacement_input = replacement_ids.join("\n");
                                     self.show_tab(Tab::Studio, ui.ctx());
@@ -282,7 +283,7 @@ $gui = Replace-Once $gui @'
             Action::PreviewCatalog(id) => {
                 let is_sound = rivals_asset_catalog().iter().any(|asset|
                     asset.get("category").and_then(serde_json::Value::as_str) == Some("Community sound")
-                    && asset.get("id").and_then(serde_json::Value::as_str) == Some(&id.to_string())
+                    && asset.get("id").and_then(serde_json::Value::as_str).is_some_and(|value| value == id.to_string())
                 );
                 if is_sound {
                     self.lookup_input = id.to_string();
@@ -428,7 +429,8 @@ $gui = Replace-Once $gui @'
     }
 '@ "multi replacement ID pairing"
 $gui = Replace-Once $gui 'ui.label(egui::RichText::new("Replacement asset ID").color(theme::MUTED).small());' 'ui.label(egui::RichText::new("Replacement asset ID(s) · one per target, or one for all").color(theme::MUTED).small());' "replacement list label"
-$gui = Replace-Once $gui 'ui.text_edit_singleline(&mut self.studio_replacement_input);' 'ui.add(egui::TextEdit::multiline(&mut self.studio_replacement_input).desired_rows(3).desired_width(260.0).hint_text("Replacement IDs, one per line"));' "multiline replacement input"
+$gui = $gui.Replace('ui.text_edit_singleline(&mut self.studio_replacement_input);', 'ui.add(egui::TextEdit::multiline(&mut self.studio_replacement_input).desired_rows(3).desired_width(260.0).hint_text("Replacement IDs, one per line"));')
+if (!$gui.Contains('egui::TextEdit::multiline(&mut self.studio_replacement_input)')) { throw "Replacement ID list fields were not updated" }
 
 # Higher-detail texture decode / display settings.
 $gui = $gui.Replace('picture.thumbnail(256, 256)', 'picture.thumbnail(512, 512)')
@@ -606,7 +608,7 @@ mod supplied_config_regressions {
         ]}"#, Path::new(".")).unwrap();
         assert_eq!(rules.len(), 3);
         assert_eq!(rules[0].targets, [Target::Asset(18586195844)]);
-        assert!(matches!(&rules[0].action, Action::Local(path) if path.to_string_lossy() == "C:/Users/santh/Downloads/idekatp.obj"));
+        assert!(matches!(&rules[0].action, Action::Local(path) if path.file_name().and_then(|name| name.to_str()) == Some("idekatp.obj")));
         assert_eq!(rules[1].targets, [Target::Asset(18586195727)]);
         assert_eq!(rules[1].action, Action::Remove);
         assert_eq!(rules[2].targets, [Target::Asset(18766863586)]);
