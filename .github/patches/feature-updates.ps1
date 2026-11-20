@@ -2092,20 +2092,26 @@ $newTest = @'
             let parsed = crate::config::parse(sky.json, std::path::Path::new(".")).unwrap();
             assert_eq!(parsed.len(), sky.available_faces, "{} parsed rules", sky.name);
 
-            for (index, source_rule) in source_rules.iter().enumerate() {
-                assert_eq!(source_rule["name"].as_str(), Some(NAMES[index]));
+            let mut checked_faces = std::collections::BTreeSet::new();
+            for (source_rule, parsed_rule) in source_rules.iter().zip(parsed.iter()) {
+                let rule_name = source_rule["name"].as_str().unwrap_or("");
+                let index = NAMES.iter().position(|name| *name == rule_name)
+                    .unwrap_or_else(|| panic!("{} has unknown CDN face rule {rule_name}", sky.name));
+                assert!(checked_faces.insert(index), "{} has duplicate CDN face rule {rule_name}", sky.name);
                 assert_eq!(source_rule["mode"].as_str(), Some("cdn"));
                 assert_eq!(source_rule["enabled"].as_bool(), Some(true));
-                let ids = source_rule["replace_ids"].as_array().unwrap()
-                    .iter().map(|id| id.as_u64().unwrap()).collect::<Vec<_>>();
-                assert_eq!(ids, TARGETS[index].to_vec(), "{} face rule must preserve the original six target IDs", sky.name);
+                let ids = source_rule["replace_ids"].as_array().unwrap().iter()
+                    .map(|id| id.as_u64().unwrap()).collect::<Vec<_>>();
+                assert_eq!(ids, TARGETS[index].to_vec(), "{} {} target IDs", sky.name, rule_name);
                 assert!(source_rule["cdn_url"].as_str().unwrap().starts_with(
                     "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/"
                 ));
-                assert!(matches!(&parsed[index].action, crate::config::Action::Cdn(_)));
-                assert_eq!(parsed[index].targets.len(), 6);
+                let expected_targets = TARGETS[index].iter().copied()
+                    .map(crate::config::Target::Asset).collect::<Vec<_>>();
+                assert_eq!(parsed_rule.targets, expected_targets, "{} {} parsed target IDs", sky.name, rule_name);
+                assert!(matches!(&parsed_rule.action, crate::config::Action::Cdn(_)));
             }
-
+            assert_eq!(checked_faces.len(), sky.available_faces, "{} must have one rule per available face", sky.name);
             if sky.status == "ready" {
                 applyable += 1;
                 assert_eq!(sky.available_faces, 6, "{} must have all six hosted face images", sky.name);
