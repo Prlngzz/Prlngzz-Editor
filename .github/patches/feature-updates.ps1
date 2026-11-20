@@ -1752,7 +1752,7 @@ $skyUi = @'
             }).count();
             ui.label(egui::RichText::new(format!("SKY CONFIGURATIONS · {sky_count} profiles · {matching_skies} shown"))
                 .strong());
-            ui.label(egui::RichText::new("Each sky has its own six-rule JSON profile. Apply loads and enables that sky configuration.")
+            ui.label(egui::RichText::new("Each sky has its own JSON profile. Apply JSON loads that exact profile, validates its six face IDs, creates 18 RIVALS map-face rules and automatically enables the resulting config. Preview opens the selected face asset.")
                 .color(theme::MUTED).small());
             egui::ScrollArea::vertical().max_height(430.0).show(ui, |ui| {
                 for entry in skies {
@@ -1787,14 +1787,16 @@ $skyUi = @'
                                 }
                             }
                         });
-                        ui.label(egui::RichText::new(entry.archive.clone()).color(theme::MUTED).small());
+                        if !complete {
+                            ui.label(egui::RichText::new(format!("Face IDs needed · {}", entry.archive)).color(theme::WARN).small());
+                        } else {
+                            ui.label(egui::RichText::new(entry.archive.clone()).color(theme::MUTED).small());
+                        }
                     });
                 }
             });
-            if sky_count != 65 {
-                ui.label(egui::RichText::new(format!("Expected 65 sky configurations; found {sky_count}"))
-                    .color(theme::WARN).small());
-            }
+            ui.label(egui::RichText::new("All 65 JSON files are individual library entries. Entries with missing face IDs stay visible but cannot be applied until their source assets are added.")
+                .color(theme::WARN).small());
             let map_targets: Vec<String> = assets.iter()
                 .filter(|asset| asset.get("category").and_then(serde_json::Value::as_str) == Some("RIVALS map sky texture"))
                 .filter_map(|asset| asset.get("id").and_then(serde_json::Value::as_str).map(str::to_owned)).collect();
@@ -1905,12 +1907,11 @@ foreach ($skyFile in $skyFiles) {
     $foundCdnFaces = 0
 
     foreach ($spec in $faceSpecs) {
-        $fileName = $null
-        if ($hostedSkyFiles.ContainsKey($name) -and $hostedSkyFiles[$name].ContainsKey($spec.side)) {
-            $fileName = [string]$hostedSkyFiles[$name][$spec.side]
-        } else {
-            $fileName = "$name $($spec.side).png"
-        }
+        $compactNameParts = @($name -split '[^A-Za-z0-9]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object {
+            $_.Substring(0, 1).ToUpperInvariant() + $_.Substring(1)
+        })
+        $compactName = $compactNameParts -join ""
+        $fileName = "$compactName$($spec.side).png"
         $foundCdnFaces++
         $encodedFileName = [uri]::EscapeDataString($fileName)
         $cdnUrl = $textureRoot + $encodedFileName
