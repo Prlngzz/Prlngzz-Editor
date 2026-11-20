@@ -2,7 +2,7 @@ name: Prlngzz Editor — Windows x64
 
 on:
   push:
-    branches: [development]
+    branches: [development, "codex/**"]
     tags: ["editor-v*"]
   pull_request:
     branches: [main, development]
