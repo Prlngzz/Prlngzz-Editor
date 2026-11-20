@@ -81,6 +81,31 @@ jobs:
           Write-Output "===== SKIN / NO-HANDS FILES ====="
           Get-ChildItem $project -Recurse -File -Include *.json,*.toml,*.md | Select-String -Pattern 'no.?hands|skinchanger|skin.?changer|handless|hands' -CaseSensitive:$false | ForEach-Object { "$($_.Path):$($_.LineNumber): $($_.Line)" }
 
+      - name: Package restored source snapshot for feature update
+        shell: pwsh
+        run: |
+          $project = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source\\Prlngzz-Editor"
+          $snapshot = Join-Path $env:RUNNER_TEMP "Prlngzz-Editor-source-snapshot.zip"
+          $paths = @(
+            (Join-Path $project "src"),
+            (Join-Path $project "assets"),
+            (Join-Path $project "Cargo.toml"),
+            (Join-Path $project "Cargo.lock"),
+            (Join-Path $project "changelog.json"),
+            (Join-Path $project "rivals_asset_catalog.json"),
+            (Join-Path $project "rivals_asset_ids.json")
+          )
+          Compress-Archive -Path $paths -DestinationPath $snapshot -Force
+          if (!(Test-Path $snapshot)) { throw "Source snapshot was not created" }
+
+      - name: Upload restored source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: Prlngzz-Editor-source-snapshot
+          path: ${{ runner.temp }}/Prlngzz-Editor-source-snapshot.zip
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Check formatting
         shell: pwsh
         run: |
