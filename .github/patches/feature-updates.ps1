@@ -890,8 +890,8 @@ $intro = @'
                         let center = surface.center();
                         let pulse = 1.0 + 0.035 * (elapsed * 2.2).sin();
                         let radius = 74.0 * pulse;
-                        painter.circle_stroke(center, radius + 18.0, Stroke::new(1.2, alpha(theme::accent(), 0.20 * opacity)));
-                        painter.circle_stroke(center, radius + 7.0, Stroke::new(2.0, alpha(theme::accent(), 0.45 * opacity)));
+                        painter.circle_stroke(center, radius + 18.0, Stroke::new(1.2_f32, alpha(theme::accent(), 0.20 * opacity)));
+                        painter.circle_stroke(center, radius + 7.0, Stroke::new(2.0_f32, alpha(theme::accent(), 0.45 * opacity)));
                         painter.circle_filled(center, radius, alpha(theme::CARD, 0.94 * opacity));
                         painter.text(center, egui::Align2::CENTER_CENTER, "P", egui::FontId::new(76.0, egui::FontFamily::Proportional), alpha(theme::SPLASH_INK, opacity));
                         let title_pos = egui::pos2(center.x, center.y + 112.0);
