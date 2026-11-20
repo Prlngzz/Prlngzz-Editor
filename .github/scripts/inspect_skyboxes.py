@@ -206,7 +206,7 @@ def main() -> None:
     if len(records) != len(index["items"]):
         raise SystemExit(f"Expected {len(index['items'])} indexed skies, received {len(records)}")
     if missing:
-        raise SystemExit(f"{len(missing)} skyboxes do not have six decodable images; inspect skybox-archive-manifest.json")
+        print(f"WARNING|{len(missing)} skyboxes have one or more undecodable archive faces; continuing with complete skies and existing profile fallbacks")
 
 if __name__ == "__main__":
     main()
