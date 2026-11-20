@@ -23,6 +23,17 @@ $cargo = [IO.File]::ReadAllText($cargoPath)
 $cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.2.0"' "package version"
 Save-Source $cargoPath $cargo
 
+$lockPath = Join-Path $Project "Cargo.lock"
+$lock = [IO.File]::ReadAllText($lockPath)
+$lock = Replace-Once $lock @'
+name = "prlngzz-editor"
+version = "0.1.0"
+'@ @'
+name = "prlngzz-editor"
+version = "0.2.0"
+'@ "Cargo.lock package version"
+Save-Source $lockPath $lock
+
 $changelogPath = Join-Path $Project "changelog.json"
 $changelog = [IO.File]::ReadAllText($changelogPath)
 $changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.2.0"' "changelog version"
