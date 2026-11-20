@@ -892,12 +892,12 @@ $gui = Replace-Once $gui @'
 $intro = @'
         if self.settings.animations && !self.startup_intro_skipped {
             let elapsed = (now - self.startup_intro_started) as f32;
-            let duration = 3.2_f32;
+            let duration = 4.0_f32;
             if elapsed < duration {
                 let t = (elapsed / duration).clamp(0.0, 1.0);
-                let fade_in = (t / 0.22).clamp(0.0, 1.0);
-                let fade_out = ((1.0 - t) / 0.22).clamp(0.0, 1.0);
-                let opacity = fade_in.min(fade_out);
+                let entrance = theme::ease_out((t / 0.18).clamp(0.0, 1.0));
+                let exit = ((1.0 - t) / 0.20).clamp(0.0, 1.0);
+                let opacity = entrance * exit;
                 let rect = ctx.screen_rect();
                 egui::Area::new(egui::Id::new("prlngzz-startup-intro"))
                     .order(egui::Order::Foreground)
@@ -906,31 +906,102 @@ $intro = @'
                         ui.set_min_size(rect.size());
                         let (surface, _) = ui.allocate_exact_size(rect.size(), egui::Sense::hover());
                         let painter = ui.painter_at(surface);
-                        theme::splash_gradient(&painter, surface, 0.975 * opacity);
+                        theme::splash_gradient(&painter, surface, 0.985 * opacity);
                         let center = surface.center();
-                        let radius = 48.0;
-                        painter.circle_stroke(center, radius + 12.0,
-                            Stroke::new(1.0_f32, alpha(theme::accent(), 0.18 * opacity)));
-                        painter.circle_filled(center, radius, alpha(theme::CARD, 0.92 * opacity));
-                        painter.text(center, egui::Align2::CENTER_CENTER, "P",
-                            egui::FontId::new(52.0, egui::FontFamily::Proportional),
+                        let phase = elapsed * 0.72;
+                        for i in 0..34 {
+                            let x = ((i * 73 + 19) % 997) as f32 / 997.0;
+                            let y = ((i * 151 + 47) % 991) as f32 / 991.0;
+                            let twinkle = 0.18 + 0.22 * (((elapsed * 1.4 + i as f32).sin() + 1.0) * 0.5);
+                            let point = egui::pos2(
+                                surface.left() + x * surface.width(),
+                                surface.top() + y * surface.height(),
+                            );
+                            painter.circle_filled(point, 0.8 + (i % 3) as f32 * 0.35,
+                                alpha(theme::SPLASH_INK, twinkle * opacity));
+                        }
+
+                        let panel_width = (surface.width() * 0.72).clamp(460.0, 760.0);
+                        let panel_height = (surface.height() * 0.62).clamp(330.0, 420.0);
+                        let lift = (1.0 - entrance) * 26.0;
+                        let panel = Rect::from_center_size(
+                            center + Vec2::new(0.0, lift),
+                            Vec2::new(panel_width, panel_height),
+                        );
+                        painter.rect_filled(panel.expand(18.0), CornerRadius::same(34),
+                            alpha(theme::CARD, 0.12 * opacity));
+                        painter.rect_filled(panel, CornerRadius::same(28),
+                            alpha(theme::CARD, 0.96 * opacity));
+                        painter.rect_filled(
+                            Rect::from_min_size(panel.left_top(), Vec2::new(panel.width(), 2.0)),
+                            CornerRadius::same(2), alpha(theme::accent(), 0.9 * opacity));
+
+                        let orbit = 86.0 + 10.0 * (phase * 1.8).sin();
+                        painter.circle_stroke(center + Vec2::new(0.0, -86.0 + lift), orbit,
+                            Stroke::new(1.0, alpha(theme::accent(), 0.30 * opacity)));
+                        painter.circle_stroke(center + Vec2::new(0.0, -86.0 + lift), orbit + 16.0,
+                            Stroke::new(1.0, alpha(theme::SPLASH_INK, 0.09 * opacity)));
+                        let orbit_angle = phase * std::f32::consts::TAU;
+                        let orbit_dot = egui::pos2(
+                            center.x + orbit * orbit_angle.cos(),
+                            center.y - 86.0 + lift + orbit * orbit_angle.sin(),
+                        );
+                        painter.circle_filled(orbit_dot, 4.0, alpha(theme::accent(), opacity));
+
+                        let mark_center = center + Vec2::new(0.0, -86.0 + lift);
+                        painter.circle_filled(mark_center, 43.0, alpha(theme::accent(), 0.16 * opacity));
+                        painter.circle_stroke(mark_center, 42.0,
+                            Stroke::new(1.5, alpha(theme::accent(), 0.72 * opacity)));
+                        painter.text(mark_center, egui::Align2::CENTER_CENTER, "P",
+                            egui::FontId::new(48.0, theme::wordmark_font()),
                             alpha(theme::SPLASH_INK, opacity));
-                        let wordmark = egui::pos2(center.x, center.y + 82.0);
-                        painter.text(wordmark, egui::Align2::CENTER_CENTER, "PRLNGZZ EDITOR",
-                            egui::FontId::new(24.0, theme::wordmark_font()),
+
+                        let title_at = center + Vec2::new(0.0, -14.0 + lift);
+                        painter.text(title_at, egui::Align2::CENTER_CENTER, "PRLNGZZ EDITOR",
+                            egui::FontId::new(30.0, theme::wordmark_font()),
                             alpha(theme::SPLASH_INK, opacity));
-                        painter.text(egui::pos2(center.x, wordmark.y + 28.0),
-                            egui::Align2::CENTER_CENTER, "A CLEANER ROBLOX WORKSPACE",
-                            egui::FontId::proportional(10.5),
+                        painter.text(title_at + Vec2::new(0.0, 34.0), egui::Align2::CENTER_CENTER,
+                            "YOUR ROBLOX ASSET WORKSPACE",
+                            egui::FontId::proportional(11.0),
                             alpha(theme::SPLASH_MUTED, opacity));
-                        let width = (surface.width() * 0.28).clamp(180.0, 320.0);
+
+                        let chip_y = title_at.y + 86.0;
+                        let chip_labels = ["SKY LIBRARY", "CONFIG BUILDER", "CACHE CONTROL"];
+                        let chip_width = 132.0;
+                        let chip_gap = 12.0;
+                        let total = chip_width * 3.0 + chip_gap * 2.0;
+                        for (index, label) in chip_labels.iter().enumerate() {
+                            let x = center.x - total * 0.5 + index as f32 * (chip_width + chip_gap);
+                            let chip = Rect::from_min_size(
+                                egui::pos2(x, chip_y),
+                                Vec2::new(chip_width, 30.0),
+                            );
+                            painter.rect_filled(chip, CornerRadius::same(15),
+                                alpha(theme::RAISED, 0.94 * opacity));
+                            painter.text(chip.center(), egui::Align2::CENTER_CENTER, *label,
+                                egui::FontId::proportional(9.5),
+                                alpha(theme::SPLASH_INK, 0.92 * opacity));
+                        }
+
+                        painter.text(
+                            egui::pos2(panel.center().x, panel.bottom() - 46.0),
+                            egui::Align2::CENTER_CENTER,
+                            &format!("VERSION  {}  ·  MADE FOR YOUR WORKFLOW", update::CURRENT),
+                            egui::FontId::proportional(9.5),
+                            alpha(theme::SPLASH_MUTED, opacity),
+                        );
+                        let width = (panel.width() * 0.52).clamp(220.0, 390.0);
                         let bar = Rect::from_center_size(
-                            egui::pos2(center.x, surface.bottom() - 56.0),
-                            Vec2::new(width, 2.5));
-                        painter.rect_filled(bar, CornerRadius::same(2), alpha(theme::BORDER, opacity));
+                            egui::pos2(center.x, panel.bottom() - 22.0),
+                            Vec2::new(width, 2.5),
+                        );
+                        painter.rect_filled(bar, CornerRadius::same(2),
+                            alpha(theme::BORDER, opacity));
                         painter.rect_filled(
                             Rect::from_min_size(bar.min, Vec2::new(width * t, bar.height())),
-                            CornerRadius::same(2), alpha(theme::SPLASH_BAR, opacity));
+                            CornerRadius::same(2),
+                            alpha(theme::SPLASH_BAR, opacity),
+                        );
                     });
                 ctx.request_repaint_after(std::time::Duration::from_millis(16));
             } else {
@@ -2027,3 +2098,15 @@ $gui = Replace-Once $gui $oldTest $newTest "six-rule Fleasion sky JSON regressio
 Save-Source $guiPath $gui
 
 Write-Host "Converted all 65 sky JSONs to Fleasion CDN schema; six multi-ID rules per sky; all six faces are enabled."
+
+
+# Navigation tabs are text-only; remove the icon drawing path and its preference toggle.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-RegexOnce $gui '(?s)\s+let glyph = match tab \{.*?ui\.painter\(\)\.text\(\s*egui::pos2\(x, rect\.center\(\)\.y - 6\.0,' @'
+            let x = rect.left() + 23.0;
+            ui.painter().text(
+                egui::pos2(x, rect.center().y - 6.0,
+'@ "text-only sidebar navigation"
+$gui = $gui.Replace('            preferences_changed |= ui.checkbox(&mut self.settings.show_nav_icons, "Show sidebar icons").changed();', '')
+Save-Source $guiPath $gui
