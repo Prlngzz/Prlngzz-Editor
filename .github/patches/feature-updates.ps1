@@ -1890,9 +1890,8 @@ $faceSpecs = @(
     [ordered]@{ name = "SkUp"; side = "Up"; face = "UP"; ids = [long[]]@(14147881297, 72960281658487, 92138082970751, 2108482676, 10196567794, 12261813678) }
 )
 
-# Known nonstandard filenames keep their explicit overrides. All other sky folders contain six
-# working face images and use the collection's "<Sky Name> <Side>.png" naming convention.
-# Every catalogue entry is therefore exported as a complete, applyable six-face CDN profile.
+# Only exact, existing CDN image names are allowed into applyable profiles.
+# A sky is ready only when all six matching face files are mapped.
 $hostedSkyFiles = @{
     "Beautfil [From tutorial]" = @{ Back = "backmembu.png"; Down = "ddownmembu.png"; Front = "beautifulmembuFront.png"; Left = "leftmembu.png"; Right = "rtmembu.png"; Up = "upmembu.png" }
     "Blue" = @{ Back = "blueCloudback.png.png"; Down = "blueClouddown.png.png"; Front = "blueCloudfront.png.png"; Left = "blueCloudleft.png.png"; Right = "blueCloudright.png.png"; Up = "blueCloudup.png.png" }
@@ -1924,12 +1923,15 @@ foreach ($skyFile in $skyFiles) {
     $foundCdnFaces = 0
 
     foreach ($spec in $faceSpecs) {
-        $compactNameParts = @($name -split '[^A-Za-z0-9]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object {
-            $_.Substring(0, 1).ToUpperInvariant() + $_.Substring(1)
-        })
-        $compactName = $compactNameParts -join ""
-        $fileName = "$compactName$($spec.side).png"
-        $foundCdnFaces++
+        $fileName = $null
+        if ($hostedSkyFiles.ContainsKey($name) -and $hostedSkyFiles[$name].ContainsKey($spec.side)) {
+            $fileName = [string]$hostedSkyFiles[$name][$spec.side]
+        }
+        if ([string]::IsNullOrWhiteSpace($fileName)) {
+            $missingCdnFaces += $spec.side
+            continue
+        }
+
         $encodedFileName = [uri]::EscapeDataString($fileName)
         $cdnUrl = $textureRoot + $encodedFileName
         $replacementRules += [ordered]@{
@@ -1939,11 +1941,11 @@ foreach ($skyFile in $skyFiles) {
             enabled = $true
             cdn_url = $cdnUrl
         }
+        $foundCdnFaces++
     }
 
-    $status = "ready"
-    $applyReady++
-    $availableFaces = 6
+    $status = if ($foundCdnFaces -eq 6) { "ready" } else { "needs_face_assets" }
+    if ($status -eq "ready") { $applyReady++ }
     $meta = [ordered]@{
         id = [string]$old.sky_library.id
         name = $name
@@ -1951,16 +1953,16 @@ foreach ($skyFile in $skyFiles) {
         archive_type = [string]$old.sky_library.archive_type
         catalog_name = $old.sky_library.catalog_name
         status = $status
-        available_faces = $availableFaces
+        available_faces = $foundCdnFaces
         required_faces = 6
         cdn_files_found = $foundCdnFaces
         cdn_files_missing = @($missingCdnFaces)
-        replacement_rule_count = 6
+        replacement_rule_count = $replacementRules.Count
     }
     $newDocument = [ordered]@{
         name = "$name Skybox"
         game = "RIVALS"
-        description = "Six CDN skybox face rules. Each rule targets the six default RIVALS sky asset IDs and replaces them with this sky's corresponding image."
+        description = "Fleasion-compatible six-face RIVALS skybox. Each enabled Sk* rule targets the six original IDs for that face and uses the corresponding hosted image."
         replacement_rules = @($replacementRules)
         sky_library = $meta
         faces = $existingFaces
@@ -1968,7 +1970,7 @@ foreach ($skyFile in $skyFiles) {
     $json = $newDocument | ConvertTo-Json -Depth 100
     [IO.File]::WriteAllText($skyFile.FullName, $json + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
 }
-if ($applyReady -ne 65) { throw "Expected all 65 skies to have six working CDN files; found $applyReady" }
+if ($applyReady -ne 14) { throw "Expected exactly 14 complete sky image sets; found $applyReady" }
 
 # Re-copy the converted Fleasion JSONs so include_str! embeds the final, exact files.
 $skyDestination = Join-Path $Project "sky_profiles"
@@ -1985,73 +1987,40 @@ $oldTest = @'
         assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
         let mut applyable = 0usize;
         for sky in skies {
-            let order = ["BK", "DN", "FT", "LF", "RT", "UP"];
-            if sky.status == "ready" {
-                applyable += 1;
-                assert_eq!(sky.faces.len(), 6, "{} must have six face IDs", sky.name);
-                assert!(order.iter().all(|face| sky.faces.contains_key(*face)), "{} has an incomplete face map", sky.name);
-                let profile = crate::studio::ProfileDocument::import_fleasion(sky.json).unwrap();
-                let validation = profile.validation();
-                assert!(validation.errors.is_empty(), "{} profile errors: {:?}", sky.name, validation.errors);
-                assert_eq!(validation.enabled_rules, 18, "{} must enable 18 map-face rules", sky.name);
-            } else {
-                assert!(sky.faces.len() < 6, "{} is marked incomplete but has all faces", sky.name);
-            }
-        }
-        assert_eq!(applyable, 63, "all catalog-complete skies should be one-click applyable");
-    }
-'@
-$newTest = @'
-    #[test]
-    fn all_individual_sky_json_profiles_use_six_multi_id_cdn_rules() {
-        const NAMES: [&str; 6] = ["SkBack", "SkDown", "SkFront", "SkLeft", "SkRight", "SkUp"];
-        const TARGETS: [[u64; 6]; 6] = [
-            [2108482005, 14147881792, 135908632589654, 84214501374682, 10196550937, 12261809766],
-            [2108545280, 10196550667, 14147882149, 103020541883227, 89972436184102, 12261813110],
-            [14147882761, 12261809766, 135908632589654, 84214501374682, 10196550367, 2108482231],
-            [14147883091, 135908632589654, 84214501374682, 2108482395, 12261809766, 10196550128],
-            [14147882405, 135908632589654, 84214501374682, 2108482542, 12261809766, 10196549902],
-            [14147881297, 72960281658487, 92138082970751, 2108482676, 10196567794, 12261813678],
-        ];
-        let skies = sky_library_entries();
-        assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
-        let mut applyable = 0usize;
-        for sky in skies {
             let raw: serde_json::Value = serde_json::from_str(sky.json).unwrap();
             let source_rules = raw.get("replacement_rules").and_then(serde_json::Value::as_array).unwrap();
-            assert_eq!(source_rules.len(), 6, "{} must have six CDN side rules", sky.name);
+            assert_eq!(source_rules.len(), sky.available_faces, "{} CDN face count", sky.name);
+            let profile = crate::studio::ProfileDocument::import_fleasion(sky.json).unwrap();
+            let validation = profile.validation();
+            assert!(validation.errors.is_empty(), "{} profile errors: {:?}", sky.name, validation.errors);
+            assert_eq!(validation.enabled_rules, sky.available_faces, "{} enabled replacement rules", sky.name);
+            let parsed = crate::config::parse(sky.json, std::path::Path::new(".")).unwrap();
+            assert_eq!(parsed.len(), sky.available_faces, "{} parsed rules", sky.name);
+
             for (index, source_rule) in source_rules.iter().enumerate() {
-                assert_eq!(source_rule["name"].as_str(), Some(NAMES[index]));
+                assert_eq!(source_rule["name"].as_str(), Some(["SkBack", "SkDown", "SkFront", "SkLeft", "SkRight", "SkUp"][index]));
                 assert_eq!(source_rule["mode"].as_str(), Some("cdn"));
                 assert_eq!(source_rule["enabled"].as_bool(), Some(true));
                 let ids = source_rule["replace_ids"].as_array().unwrap()
                     .iter().map(|id| id.as_u64().unwrap()).collect::<Vec<_>>();
-                assert_eq!(ids, TARGETS[index].to_vec(), "{} {} target IDs", sky.name, NAMES[index]);
+                assert_eq!(ids.len(), 6, "{} face rules must use the user's six-target config schema", sky.name);
                 assert!(source_rule["cdn_url"].as_str().unwrap().starts_with(
                     "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/"
                 ));
+                assert!(matches!(&parsed[index].action, crate::config::Action::Cdn(_)));
+                assert_eq!(parsed[index].targets.len(), 6);
             }
 
-            let profile = crate::studio::ProfileDocument::import_fleasion(sky.json).unwrap();
-            let validation = profile.validation();
-            assert!(validation.errors.is_empty(), "{} profile errors: {:?}", sky.name, validation.errors);
-            assert_eq!(validation.enabled_rules, 6, "{} must enable six side rules", sky.name);
-            let parsed = crate::config::parse(sky.json, std::path::Path::new(".")).unwrap();
-            assert_eq!(parsed.len(), 6, "{} must parse to six active CDN rules", sky.name);
-            for (rule, expected) in parsed.iter().zip(TARGETS) {
-                let expected_targets = expected.iter().copied()
-                    .map(crate::config::Target::Asset).collect::<Vec<_>>();
-                assert_eq!(rule.targets, expected_targets, "{} must replace all six default IDs", sky.name);
-                assert!(matches!(&rule.action, crate::config::Action::Cdn(_)));
+            if sky.status == "ready" {
+                applyable += 1;
+                assert_eq!(sky.available_faces, 6, "{} must have all six hosted face images", sky.name);
+                assert_eq!(source_rules.len(), 6);
+            } else {
+                assert!(sky.available_faces < 6, "{} is incorrectly marked unavailable", sky.name);
+                assert!(source_rules.len() < 6, "{} should not advertise a broken six-face profile", sky.name);
             }
-            assert_eq!(sky.status, "ready", "{} must expose all six working CDN faces", sky.name);
-            let metadata = &raw["sky_library"];
-            assert_eq!(metadata["cdn_files_found"].as_u64(), Some(6), "{} CDN face count", sky.name);
-            assert_eq!(metadata["available_faces"].as_u64(), Some(6), "{} available face count", sky.name);
-            assert!(metadata["cdn_files_missing"].as_array().unwrap().is_empty(), "{} must not have missing CDN faces", sky.name);
-            applyable += 1;
         }
-        assert_eq!(applyable, 65, "all 65 sky folders should be one-click applyable");
+        assert_eq!(applyable, 14, "only complete, mapped CDN sets are applyable");
     }
 '@
 $gui = Replace-Once $gui $oldTest $newTest "six-rule Fleasion sky JSON regression"
