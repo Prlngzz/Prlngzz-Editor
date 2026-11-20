@@ -1624,23 +1624,25 @@ $homeHero = @'
 $gui = Replace-Once $gui $homeAnchor $homeHero "home page launch hero"
 
 $gui = Replace-Once $gui 'let duration = 4.5_f32;' 'let duration = 5.2_f32;' "cinematic intro duration"
-$introAnchor = @'
-                    let center = surface.center();
-                    let pulse = 1.0 + 0.035 * (elapsed * 2.2).sin();
-'@
-$introOrbit = @'
-                    let center = surface.center();
-                    let orbit = 118.0 + 8.0 * (elapsed * 0.9).sin();
-                    for particle in 0..9 {
-                        let angle = elapsed * 0.42 + particle as f32 * std::f32::consts::TAU / 9.0;
-                        let position = center + egui::vec2(angle.cos() * orbit, angle.sin() * orbit * 0.58);
-                        let particle_radius = 2.5 + (particle % 3) as f32 * 1.1;
-                        painter.circle_filled(position, particle_radius + 3.0, alpha(theme::accent(), 0.045 * opacity));
-                        painter.circle_filled(position, particle_radius, alpha(theme::SPLASH_INK, 0.30 * opacity));
-                    }
-                    let pulse = 1.0 + 0.045 * (elapsed * 2.2).sin();
-'@
-$gui = Replace-Once $gui $introAnchor $introOrbit "intro orbiting particles and logo pulse"
+$introOrbitPattern = '(?m)^([ \t]*)let center = surface\.center\(\);\r?\n[ \t]*let pulse = 1\.0 \+ 0\.035 \* \(elapsed \* 2\.2\)\.sin\(\);'
+$introOrbitMatches = [regex]::Matches($gui, $introOrbitPattern).Count
+if ($introOrbitMatches -ne 1) { throw "Expected one logo pulse anchor for the intro; found $introOrbitMatches" }
+$gui = [regex]::Replace($gui, $introOrbitPattern, {
+    param($match)
+    $indent = $match.Groups[1].Value
+    @(
+        $indent + 'let center = surface.center();',
+        $indent + 'let orbit = 118.0 + 8.0 * (elapsed * 0.9).sin();',
+        $indent + 'for particle in 0..9 {',
+        $indent + '    let angle = elapsed * 0.42 + particle as f32 * std::f32::consts::TAU / 9.0;',
+        $indent + '    let position = center + egui::vec2(angle.cos() * orbit, angle.sin() * orbit * 0.58);',
+        $indent + '    let particle_radius = 2.5 + (particle % 3) as f32 * 1.1;',
+        $indent + '    painter.circle_filled(position, particle_radius + 3.0, alpha(theme::accent(), 0.045 * opacity));',
+        $indent + '    painter.circle_filled(position, particle_radius, alpha(theme::SPLASH_INK, 0.30 * opacity));',
+        $indent + '}',
+        $indent + 'let pulse = 1.0 + 0.045 * (elapsed * 2.2).sin();'
+    ) -join [Environment]::NewLine
+})
 $gui = Replace-Once $gui '"RIVALS CUSTOMIZATION WORKSPACE"' '"YOUR ROBLOX WORKSPACE, REFINED"' "intro brand subtitle"
 $gui = Replace-Once $gui 'Vec2::new(width, 3.0)' 'Vec2::new(width, 4.0)' "intro progress bar thickness"
 
