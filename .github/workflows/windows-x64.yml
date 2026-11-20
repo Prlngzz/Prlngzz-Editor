@@ -37,7 +37,7 @@ jobs:
           Write-Host "Fetch the exact archive object from the checked-out branch"
           git lfs fetch --include="SkyboxImages/SKyboxes.zip" origin "refs/heads/$env:GITHUB_REF_NAME"
           if ($LASTEXITCODE -ne 0) { git lfs logs last; throw "Could not fetch Skyboxes.zip from Git LFS" }
-          git lfs checkout --force SkyboxImages/SKyboxes.zip
+          git lfs checkout SkyboxImages/SKyboxes.zip
           if ($LASTEXITCODE -ne 0) { git lfs logs last; throw "Could not materialize Skyboxes.zip from Git LFS" }
           $pointer = Get-Content (Join-Path $env:GITHUB_WORKSPACE "SkyboxImages/SKyboxes.zip") -Raw
           Write-Host "Archive file size: $((Get-Item (Join-Path $env:GITHUB_WORKSPACE "SkyboxImages/SKyboxes.zip")).Length)"
