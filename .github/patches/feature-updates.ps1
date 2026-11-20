@@ -938,7 +938,8 @@ $intro = @'
             }
         }
 
-'@# Insert the intro immediately after the existing splash call.
+'@
+# Insert the intro immediately after the existing splash call.
 $gui = Replace-Once $gui '        self.show_splash(ctx);' ('        self.show_splash(ctx);' + [char]10 + $intro.TrimEnd())
 Save-Source $guiPath $gui
 
@@ -1806,7 +1807,8 @@ $skyUi = @'
             });
         }
         let matches: Vec<usize> = assets
-'@$gui = Replace-RegexOnce $gui '        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new\(\);[\s\S]*?        let matches: Vec<usize> = assets' $skyUi "replace grouped catalogue skies with individual JSON profiles"
+'@
+$gui = Replace-RegexOnce $gui '        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new\(\);[\s\S]*?        let matches: Vec<usize> = assets' $skyUi "replace grouped catalogue skies with individual JSON profiles"
 
 $gui = Replace-Once $gui @'
     #[test]
