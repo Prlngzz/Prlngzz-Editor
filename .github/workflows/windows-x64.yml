@@ -59,6 +59,7 @@ jobs:
           name: skybox-face-manifest
           path: |
             skybox-archive-manifest.json
+            skybox-outer-entries.txt
             .github/assets/sky-face-map.json
           if-no-files-found: error
           retention-days: 7
