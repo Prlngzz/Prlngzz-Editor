@@ -476,8 +476,8 @@ $newChips = @'
 $gui = Replace-Once $gui $oldChips $newChips "RIVALS-only Asset Library tabs"
 
 $gui = Replace-Once $gui @'
-            (Tab::AssetIds, "Asset ID Editor", "Bulk ID management"),
-            (Tab::All, "Asset Library", "Local cached assets"),
+            (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),
+            (Tab::All, "Asset Library", "RIVALS-tagged assets only"),
 '@ @'
             (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),
             (Tab::All, "Asset Library", "RIVALS-tagged assets only"),
