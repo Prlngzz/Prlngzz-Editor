@@ -1953,8 +1953,14 @@ $faceSpecs = @(
     [ordered]@{ name = "SkUp"; side = "Up"; face = "UP"; ids = [long[]]@(14147881297, 72960281658487, 92138082970751, 2108482676, 10196567794, 12261813678) }
 )
 
-# Only exact, existing CDN image names are allowed into applyable profiles.
-# A sky is ready only when all six matching face files are mapped.
+# Load face URLs extracted from the original nested sky archives. These override legacy filename guesses.
+$archiveFaceMapPath = Join-Path $env:GITHUB_WORKSPACE ".github/assets/sky-face-map.json"
+$archiveFaceMap = @{}
+if (Test-Path $archiveFaceMapPath) {
+    $archiveFaceMap = Get-Content -LiteralPath $archiveFaceMapPath -Raw | ConvertFrom-Json -AsHashtable
+}
+
+# Legacy verified texture-repository names remain a fallback when an original archive has no usable face.
 $hostedSkyFiles = @{
     "Beautfil [From tutorial]" = @{ Back = "backmembu.png"; Down = "ddownmembu.png"; Front = "beautifulmembuFront.png"; Left = "leftmembu.png"; Right = "rtmembu.png"; Up = "upmembu.png" }
     "Blue" = @{ Back = "blueCloudback.png.png"; Down = "blueClouddown.png.png"; Front = "blueCloudfront.png.png"; Left = "blueCloudleft.png.png"; Right = "blueCloudright.png.png"; Up = "blueCloudup.png.png" }
@@ -1987,16 +1993,20 @@ foreach ($skyFile in $skyFiles) {
 
     foreach ($spec in $faceSpecs) {
         $fileName = $null
-        if ($hostedSkyFiles.ContainsKey($name) -and $hostedSkyFiles[$name].ContainsKey($spec.side)) {
-            $fileName = [string]$hostedSkyFiles[$name][$spec.side]
+        $cdnUrl = $null
+        $archiveFaces = $archiveFaceMap[$name]
+        if ($null -ne $archiveFaces -and -not [string]::IsNullOrWhiteSpace([string]$archiveFaces[$spec.side])) {
+            $cdnUrl = [string]$archiveFaces[$spec.side]
         }
-        if ([string]::IsNullOrWhiteSpace($fileName)) {
+        if ([string]::IsNullOrWhiteSpace($cdnUrl) -and $hostedSkyFiles.ContainsKey($name) -and $hostedSkyFiles[$name].ContainsKey($spec.side)) {
+            $fileName = [string]$hostedSkyFiles[$name][$spec.side]
+            $encodedFileName = [uri]::EscapeDataString($fileName)
+            $cdnUrl = $textureRoot + $encodedFileName
+        }
+        if ([string]::IsNullOrWhiteSpace($cdnUrl)) {
             $missingCdnFaces += $spec.side
             continue
         }
-
-        $encodedFileName = [uri]::EscapeDataString($fileName)
-        $cdnUrl = $textureRoot + $encodedFileName
         $replacementRules += [ordered]@{
             name = $spec.name
             replace_ids = $spec.ids
@@ -2033,7 +2043,7 @@ foreach ($skyFile in $skyFiles) {
     $json = $newDocument | ConvertTo-Json -Depth 100
     [IO.File]::WriteAllText($skyFile.FullName, $json + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
 }
-if ($applyReady -ne 14) { throw "Expected exactly 14 complete sky image sets; found $applyReady" }
+if ($applyReady -ne 65) { throw "Expected all 65 original archive skyboxes to have six real faces; found $applyReady. Inspect skybox-archive-manifest.json for missing/ambiguous members." }
 
 # Re-copy the converted Fleasion JSONs so include_str! embeds the final, exact files.
 $skyDestination = Join-Path $Project "sky_profiles"
@@ -2103,9 +2113,12 @@ $newTest = @'
                 let ids = source_rule["replace_ids"].as_array().unwrap().iter()
                     .map(|id| id.as_u64().unwrap()).collect::<Vec<_>>();
                 assert_eq!(ids, TARGETS[index].to_vec(), "{} {} target IDs", sky.name, rule_name);
-                assert!(source_rule["cdn_url"].as_str().unwrap().starts_with(
-                    "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/"
-                ));
+                let cdn_url = source_rule["cdn_url"].as_str().unwrap();
+                assert!(
+                    cdn_url.starts_with("https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/")
+                        || cdn_url.starts_with("https://media.githubusercontent.com/media/Prlngzz/Prlngzz-Editor/"),
+                    "{} {} must use a verified hosted face URL: {cdn_url}", sky.name, rule_name
+                );
                 let expected_targets = TARGETS[index].iter().copied()
                     .map(crate::config::Target::Asset).collect::<Vec<_>>();
                 assert_eq!(parsed_rule.targets, expected_targets, "{} {} parsed target IDs", sky.name, rule_name);
@@ -2121,7 +2134,7 @@ $newTest = @'
                 assert!(source_rules.len() < 6, "{} should not advertise a broken six-face profile", sky.name);
             }
         }
-        assert_eq!(applyable, 14, "only complete, mapped CDN sets are applyable");
+        assert_eq!(applyable, 65, "all original six-face sky archives must be one-click applyable");
     }
 '@
 $gui = Replace-Once $gui $oldTest $newTest "six-rule Fleasion sky JSON regression"
