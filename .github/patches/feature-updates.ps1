@@ -394,31 +394,17 @@ $gui = Replace-Once $gui @'
 '@ "sidebar Roblox launch button"
 
 # Pair target and replacement lists one-to-one; a single replacement still works for multiple targets.
-$gui = Replace-Once $gui @'
-    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {
-        let targets = crate::studio::extract_asset_ids(&self.studio_target_input);
-        anyhow::ensure!(!targets.is_empty(), "Enter at least one positive numeric asset ID or Roblox asset URL");
-        let replacement = self
-            .studio_replacement_input
-            .trim()
-            .parse::<u64>()
-            .ok()
-            .filter(|id| *id > 0)
-            .context("Enter a valid replacement asset ID greater than zero")?;
-        for target in &targets {
-            self.studio_doc.add_rule(*target, replacement)?;
-        }
-        self.studio_target_input.clear();
-        Ok(targets.len())
-    }
-'@ @'
+$methodStart = $gui.IndexOf('    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {')
+$methodEnd = $gui.IndexOf('    fn customization_page', $methodStart)
+if ($methodStart -lt 0 -or $methodEnd -le $methodStart) { throw "Could not isolate the Config Studio replacement helper" }
+$newMethod = @'
     fn add_studio_rules(&mut self) -> anyhow::Result<usize> {
         let targets = crate::studio::extract_asset_ids(&self.studio_target_input);
         let replacements = crate::studio::extract_asset_ids(&self.studio_replacement_input);
         anyhow::ensure!(!targets.is_empty(), "Enter at least one target asset ID or Roblox asset URL");
         anyhow::ensure!(!replacements.is_empty(), "Enter one or more replacement asset IDs");
         anyhow::ensure!(replacements.len() == 1 || replacements.len() == targets.len(),
-            "Enter either one replacement ID for every target, or the same number of replacement IDs and targets for one-to-one pairing");
+            "Enter one replacement ID for every target, or the same number of IDs for one-to-one pairing");
         for (index, target) in targets.iter().enumerate() {
             let replacement = replacements[if replacements.len() == 1 { 0 } else { index }];
             self.studio_doc.add_rule(*target, replacement)?;
@@ -427,7 +413,11 @@ $gui = Replace-Once $gui @'
         self.studio_replacement_input.clear();
         Ok(targets.len())
     }
-'@ "multi replacement ID pairing"
+
+'@
+$gui = $gui.Substring(0, $methodStart) + $newMethod + $gui.Substring($methodEnd)
+$labelOld = 'ui.label(egui::RichText::new("Replacement asset ID").color(theme::MUTED).small());'
+$gui = $gui.Replace($labelOld, 'ui.label(egui::RichText::new("Replacement asset ID(s) · one per target, or one for all").color(theme::MUTED).small());')
 $gui = Replace-Once $gui 'ui.label(egui::RichText::new("Replacement asset ID").color(theme::MUTED).small());' 'ui.label(egui::RichText::new("Replacement asset ID(s) · one per target, or one for all").color(theme::MUTED).small());' "replacement list label"
 $gui = $gui.Replace('ui.text_edit_singleline(&mut self.studio_replacement_input);', 'ui.add(egui::TextEdit::multiline(&mut self.studio_replacement_input).desired_rows(3).desired_width(260.0).hint_text("Replacement IDs, one per line"));')
 if (!$gui.Contains('egui::TextEdit::multiline(&mut self.studio_replacement_input)')) { throw "Replacement ID list fields were not updated" }
