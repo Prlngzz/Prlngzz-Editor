@@ -1,0 +1,269 @@
+{
+  "format": "prlngzz-editor",
+  "schema_version": 1,
+  "profile": {
+    "name": "Beautfil [From tutorial] Skybox",
+    "game": "RIVALS",
+    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
+  },
+  "rules": [
+    {
+      "id": "rule-001",
+      "name": "Beautfil [From tutorial] · Blue · BK",
+      "enabled": true,
+      "targets": [
+        14147881792
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 116672032304016
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-002",
+      "name": "Beautfil [From tutorial] · Blue · DN",
+      "enabled": true,
+      "targets": [
+        14147882149
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 95474895156007
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-003",
+      "name": "Beautfil [From tutorial] · Blue · FT",
+      "enabled": true,
+      "targets": [
+        14147882761
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 117254687878540
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-004",
+      "name": "Beautfil [From tutorial] · Blue · LF",
+      "enabled": true,
+      "targets": [
+        14147883091
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 123939119810944
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-005",
+      "name": "Beautfil [From tutorial] · Blue · RT",
+      "enabled": true,
+      "targets": [
+        14147882405
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 79800107437752
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-006",
+      "name": "Beautfil [From tutorial] · Blue · UP",
+      "enabled": true,
+      "targets": [
+        14147881297
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 111449085724360
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-007",
+      "name": "Beautfil [From tutorial] · Station · BK",
+      "enabled": true,
+      "targets": [
+        2108482005
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 116672032304016
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-008",
+      "name": "Beautfil [From tutorial] · Station · DN",
+      "enabled": true,
+      "targets": [
+        2108545280
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 95474895156007
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-009",
+      "name": "Beautfil [From tutorial] · Station · FT",
+      "enabled": true,
+      "targets": [
+        2108482231
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 117254687878540
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-010",
+      "name": "Beautfil [From tutorial] · Station · LF",
+      "enabled": true,
+      "targets": [
+        2108482395
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 123939119810944
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-011",
+      "name": "Beautfil [From tutorial] · Station · RT",
+      "enabled": true,
+      "targets": [
+        2108482542
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 79800107437752
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-012",
+      "name": "Beautfil [From tutorial] · Station · UP",
+      "enabled": true,
+      "targets": [
+        2108482676
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 111449085724360
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-013",
+      "name": "Beautfil [From tutorial] · Space · BK",
+      "enabled": true,
+      "targets": [
+        10196550937
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 116672032304016
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-014",
+      "name": "Beautfil [From tutorial] · Space · DN",
+      "enabled": true,
+      "targets": [
+        10196550667
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 95474895156007
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-015",
+      "name": "Beautfil [From tutorial] · Space · FT",
+      "enabled": true,
+      "targets": [
+        10196550367
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 117254687878540
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-016",
+      "name": "Beautfil [From tutorial] · Space · LF",
+      "enabled": true,
+      "targets": [
+        10196550128
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 123939119810944
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-017",
+      "name": "Beautfil [From tutorial] · Space · RT",
+      "enabled": true,
+      "targets": [
+        10196549902
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 79800107437752
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-018",
+      "name": "Beautfil [From tutorial] · Space · UP",
+      "enabled": true,
+      "targets": [
+        10196567794
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 111449085724360
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    }
+  ],
+  "sky_library": {
+    "id": "beautfil-from-tutorial",
+    "name": "Beautfil [From tutorial]",
+    "archive": "Skyboxes/Beautfil [From tutorial].zip",
+    "archive_type": "zip",
+    "catalog_name": "Beautiful",
+    "status": "ready",
+    "available_faces": 6,
+    "required_faces": 6,
+    "supported_maps": [
+      "Blue",
+      "Station",
+      "Space"
+    ],
+    "missing_reason": null
+  },
+  "faces": {
+    "BK": 116672032304016,
+    "DN": 95474895156007,
+    "FT": 117254687878540,
+    "LF": 123939119810944,
+    "RT": 79800107437752,
+    "UP": 111449085724360
+  }
+}

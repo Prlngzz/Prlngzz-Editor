@@ -1,0 +1,27 @@
+{
+  "format": "prlngzz-editor",
+  "schema_version": 1,
+  "profile": {
+    "name": "Vibrant Blue Skies Skybox Skybox",
+    "game": "RIVALS",
+    "description": "Sky entry retained from Skyboxes/Vibrant Blue Skies Skybox.zip; six-face asset mapping is not in the embedded catalog, so Apply is disabled until source face IDs are supplied."
+  },
+  "rules": [],
+  "sky_library": {
+    "id": "vibrant-blue-skies-skybox",
+    "name": "Vibrant Blue Skies Skybox",
+    "archive": "Skyboxes/Vibrant Blue Skies Skybox.zip",
+    "archive_type": "zip",
+    "catalog_name": null,
+    "status": "needs_face_assets",
+    "available_faces": 0,
+    "required_faces": 6,
+    "supported_maps": [
+      "Blue",
+      "Station",
+      "Space"
+    ],
+    "missing_reason": "Six verified replacement face IDs were not found for this sky in the embedded asset catalog."
+  },
+  "faces": {}
+}

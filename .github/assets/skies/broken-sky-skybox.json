@@ -1,0 +1,269 @@
+{
+  "format": "prlngzz-editor",
+  "schema_version": 1,
+  "profile": {
+    "name": "broken sky skybox Skybox",
+    "game": "RIVALS",
+    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
+  },
+  "rules": [
+    {
+      "id": "rule-001",
+      "name": "broken sky skybox · Blue · BK",
+      "enabled": true,
+      "targets": [
+        14147881792
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 140318382500274
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-002",
+      "name": "broken sky skybox · Blue · DN",
+      "enabled": true,
+      "targets": [
+        14147882149
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 70376747543189
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-003",
+      "name": "broken sky skybox · Blue · FT",
+      "enabled": true,
+      "targets": [
+        14147882761
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 122572758833753
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-004",
+      "name": "broken sky skybox · Blue · LF",
+      "enabled": true,
+      "targets": [
+        14147883091
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 81796529025721
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-005",
+      "name": "broken sky skybox · Blue · RT",
+      "enabled": true,
+      "targets": [
+        14147882405
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 130970680489698
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-006",
+      "name": "broken sky skybox · Blue · UP",
+      "enabled": true,
+      "targets": [
+        14147881297
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 127489560502180
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-007",
+      "name": "broken sky skybox · Station · BK",
+      "enabled": true,
+      "targets": [
+        2108482005
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 140318382500274
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-008",
+      "name": "broken sky skybox · Station · DN",
+      "enabled": true,
+      "targets": [
+        2108545280
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 70376747543189
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-009",
+      "name": "broken sky skybox · Station · FT",
+      "enabled": true,
+      "targets": [
+        2108482231
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 122572758833753
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-010",
+      "name": "broken sky skybox · Station · LF",
+      "enabled": true,
+      "targets": [
+        2108482395
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 81796529025721
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-011",
+      "name": "broken sky skybox · Station · RT",
+      "enabled": true,
+      "targets": [
+        2108482542
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 130970680489698
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-012",
+      "name": "broken sky skybox · Station · UP",
+      "enabled": true,
+      "targets": [
+        2108482676
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 127489560502180
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-013",
+      "name": "broken sky skybox · Space · BK",
+      "enabled": true,
+      "targets": [
+        10196550937
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 140318382500274
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-014",
+      "name": "broken sky skybox · Space · DN",
+      "enabled": true,
+      "targets": [
+        10196550667
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 70376747543189
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-015",
+      "name": "broken sky skybox · Space · FT",
+      "enabled": true,
+      "targets": [
+        10196550367
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 122572758833753
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-016",
+      "name": "broken sky skybox · Space · LF",
+      "enabled": true,
+      "targets": [
+        10196550128
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 81796529025721
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-017",
+      "name": "broken sky skybox · Space · RT",
+      "enabled": true,
+      "targets": [
+        10196549902
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 130970680489698
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-018",
+      "name": "broken sky skybox · Space · UP",
+      "enabled": true,
+      "targets": [
+        10196567794
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 127489560502180
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    }
+  ],
+  "sky_library": {
+    "id": "broken-sky-skybox",
+    "name": "broken sky skybox",
+    "archive": "Skyboxes/broken sky skybox.zip",
+    "archive_type": "zip",
+    "catalog_name": "Broken Sky",
+    "status": "ready",
+    "available_faces": 6,
+    "required_faces": 6,
+    "supported_maps": [
+      "Blue",
+      "Station",
+      "Space"
+    ],
+    "missing_reason": null
+  },
+  "faces": {
+    "BK": 140318382500274,
+    "DN": 70376747543189,
+    "FT": 122572758833753,
+    "LF": 81796529025721,
+    "RT": 130970680489698,
+    "UP": 127489560502180
+  }
+}

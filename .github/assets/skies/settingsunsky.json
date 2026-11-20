@@ -1,0 +1,269 @@
+{
+  "format": "prlngzz-editor",
+  "schema_version": 1,
+  "profile": {
+    "name": "SettingSunSky Skybox",
+    "game": "RIVALS",
+    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
+  },
+  "rules": [
+    {
+      "id": "rule-001",
+      "name": "SettingSunSky · Blue · BK",
+      "enabled": true,
+      "targets": [
+        14147881792
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 111401606618381
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-002",
+      "name": "SettingSunSky · Blue · DN",
+      "enabled": true,
+      "targets": [
+        14147882149
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 123413205062436
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-003",
+      "name": "SettingSunSky · Blue · FT",
+      "enabled": true,
+      "targets": [
+        14147882761
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 123294723748917
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-004",
+      "name": "SettingSunSky · Blue · LF",
+      "enabled": true,
+      "targets": [
+        14147883091
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 111859405551319
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-005",
+      "name": "SettingSunSky · Blue · RT",
+      "enabled": true,
+      "targets": [
+        14147882405
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 136486797861154
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-006",
+      "name": "SettingSunSky · Blue · UP",
+      "enabled": true,
+      "targets": [
+        14147881297
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 105783476050536
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-007",
+      "name": "SettingSunSky · Station · BK",
+      "enabled": true,
+      "targets": [
+        2108482005
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 111401606618381
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-008",
+      "name": "SettingSunSky · Station · DN",
+      "enabled": true,
+      "targets": [
+        2108545280
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 123413205062436
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-009",
+      "name": "SettingSunSky · Station · FT",
+      "enabled": true,
+      "targets": [
+        2108482231
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 123294723748917
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-010",
+      "name": "SettingSunSky · Station · LF",
+      "enabled": true,
+      "targets": [
+        2108482395
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 111859405551319
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-011",
+      "name": "SettingSunSky · Station · RT",
+      "enabled": true,
+      "targets": [
+        2108482542
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 136486797861154
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-012",
+      "name": "SettingSunSky · Station · UP",
+      "enabled": true,
+      "targets": [
+        2108482676
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 105783476050536
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-013",
+      "name": "SettingSunSky · Space · BK",
+      "enabled": true,
+      "targets": [
+        10196550937
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 111401606618381
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-014",
+      "name": "SettingSunSky · Space · DN",
+      "enabled": true,
+      "targets": [
+        10196550667
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 123413205062436
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-015",
+      "name": "SettingSunSky · Space · FT",
+      "enabled": true,
+      "targets": [
+        10196550367
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 123294723748917
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-016",
+      "name": "SettingSunSky · Space · LF",
+      "enabled": true,
+      "targets": [
+        10196550128
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 111859405551319
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-017",
+      "name": "SettingSunSky · Space · RT",
+      "enabled": true,
+      "targets": [
+        10196549902
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 136486797861154
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-018",
+      "name": "SettingSunSky · Space · UP",
+      "enabled": true,
+      "targets": [
+        10196567794
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 105783476050536
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    }
+  ],
+  "sky_library": {
+    "id": "settingsunsky",
+    "name": "SettingSunSky",
+    "archive": "Skyboxes/SettingSunSky.zip",
+    "archive_type": "zip",
+    "catalog_name": "Setting Sun",
+    "status": "ready",
+    "available_faces": 6,
+    "required_faces": 6,
+    "supported_maps": [
+      "Blue",
+      "Station",
+      "Space"
+    ],
+    "missing_reason": null
+  },
+  "faces": {
+    "BK": 111401606618381,
+    "DN": 123413205062436,
+    "FT": 123294723748917,
+    "LF": 111859405551319,
+    "RT": 136486797861154,
+    "UP": 105783476050536
+  }
+}

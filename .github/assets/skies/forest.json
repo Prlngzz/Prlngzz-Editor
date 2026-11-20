@@ -1,0 +1,269 @@
+{
+  "format": "prlngzz-editor",
+  "schema_version": 1,
+  "profile": {
+    "name": "forest Skybox",
+    "game": "RIVALS",
+    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
+  },
+  "rules": [
+    {
+      "id": "rule-001",
+      "name": "forest · Blue · BK",
+      "enabled": true,
+      "targets": [
+        14147881792
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 130105943383590
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-002",
+      "name": "forest · Blue · DN",
+      "enabled": true,
+      "targets": [
+        14147882149
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 87400440640257
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-003",
+      "name": "forest · Blue · FT",
+      "enabled": true,
+      "targets": [
+        14147882761
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 128128579477883
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-004",
+      "name": "forest · Blue · LF",
+      "enabled": true,
+      "targets": [
+        14147883091
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 71462749755980
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-005",
+      "name": "forest · Blue · RT",
+      "enabled": true,
+      "targets": [
+        14147882405
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 88253495750932
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-006",
+      "name": "forest · Blue · UP",
+      "enabled": true,
+      "targets": [
+        14147881297
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 134930785824238
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-007",
+      "name": "forest · Station · BK",
+      "enabled": true,
+      "targets": [
+        2108482005
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 130105943383590
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-008",
+      "name": "forest · Station · DN",
+      "enabled": true,
+      "targets": [
+        2108545280
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 87400440640257
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-009",
+      "name": "forest · Station · FT",
+      "enabled": true,
+      "targets": [
+        2108482231
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 128128579477883
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-010",
+      "name": "forest · Station · LF",
+      "enabled": true,
+      "targets": [
+        2108482395
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 71462749755980
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-011",
+      "name": "forest · Station · RT",
+      "enabled": true,
+      "targets": [
+        2108482542
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 88253495750932
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-012",
+      "name": "forest · Station · UP",
+      "enabled": true,
+      "targets": [
+        2108482676
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 134930785824238
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-013",
+      "name": "forest · Space · BK",
+      "enabled": true,
+      "targets": [
+        10196550937
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 130105943383590
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-014",
+      "name": "forest · Space · DN",
+      "enabled": true,
+      "targets": [
+        10196550667
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 87400440640257
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-015",
+      "name": "forest · Space · FT",
+      "enabled": true,
+      "targets": [
+        10196550367
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 128128579477883
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-016",
+      "name": "forest · Space · LF",
+      "enabled": true,
+      "targets": [
+        10196550128
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 71462749755980
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-017",
+      "name": "forest · Space · RT",
+      "enabled": true,
+      "targets": [
+        10196549902
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 88253495750932
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-018",
+      "name": "forest · Space · UP",
+      "enabled": true,
+      "targets": [
+        10196567794
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 134930785824238
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    }
+  ],
+  "sky_library": {
+    "id": "forest",
+    "name": "forest",
+    "archive": "Skyboxes/forest.zip",
+    "archive_type": "zip",
+    "catalog_name": "Forest",
+    "status": "ready",
+    "available_faces": 6,
+    "required_faces": 6,
+    "supported_maps": [
+      "Blue",
+      "Station",
+      "Space"
+    ],
+    "missing_reason": null
+  },
+  "faces": {
+    "BK": 130105943383590,
+    "DN": 87400440640257,
+    "FT": 128128579477883,
+    "LF": 71462749755980,
+    "RT": 88253495750932,
+    "UP": 134930785824238
+  }
+}

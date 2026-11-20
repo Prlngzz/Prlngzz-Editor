@@ -1,0 +1,269 @@
+{
+  "format": "prlngzz-editor",
+  "schema_version": 1,
+  "profile": {
+    "name": "sky_22 Skybox",
+    "game": "RIVALS",
+    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
+  },
+  "rules": [
+    {
+      "id": "rule-001",
+      "name": "sky_22 · Blue · BK",
+      "enabled": true,
+      "targets": [
+        14147881792
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 136007365598982
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-002",
+      "name": "sky_22 · Blue · DN",
+      "enabled": true,
+      "targets": [
+        14147882149
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 113090853463695
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-003",
+      "name": "sky_22 · Blue · FT",
+      "enabled": true,
+      "targets": [
+        14147882761
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 102781864501443
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-004",
+      "name": "sky_22 · Blue · LF",
+      "enabled": true,
+      "targets": [
+        14147883091
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 86334871447680
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-005",
+      "name": "sky_22 · Blue · RT",
+      "enabled": true,
+      "targets": [
+        14147882405
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 129595274224805
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-006",
+      "name": "sky_22 · Blue · UP",
+      "enabled": true,
+      "targets": [
+        14147881297
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 87293939325159
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-007",
+      "name": "sky_22 · Station · BK",
+      "enabled": true,
+      "targets": [
+        2108482005
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 136007365598982
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-008",
+      "name": "sky_22 · Station · DN",
+      "enabled": true,
+      "targets": [
+        2108545280
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 113090853463695
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-009",
+      "name": "sky_22 · Station · FT",
+      "enabled": true,
+      "targets": [
+        2108482231
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 102781864501443
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-010",
+      "name": "sky_22 · Station · LF",
+      "enabled": true,
+      "targets": [
+        2108482395
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 86334871447680
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-011",
+      "name": "sky_22 · Station · RT",
+      "enabled": true,
+      "targets": [
+        2108482542
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 129595274224805
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-012",
+      "name": "sky_22 · Station · UP",
+      "enabled": true,
+      "targets": [
+        2108482676
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 87293939325159
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-013",
+      "name": "sky_22 · Space · BK",
+      "enabled": true,
+      "targets": [
+        10196550937
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 136007365598982
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-014",
+      "name": "sky_22 · Space · DN",
+      "enabled": true,
+      "targets": [
+        10196550667
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 113090853463695
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-015",
+      "name": "sky_22 · Space · FT",
+      "enabled": true,
+      "targets": [
+        10196550367
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 102781864501443
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-016",
+      "name": "sky_22 · Space · LF",
+      "enabled": true,
+      "targets": [
+        10196550128
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 86334871447680
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-017",
+      "name": "sky_22 · Space · RT",
+      "enabled": true,
+      "targets": [
+        10196549902
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 129595274224805
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    },
+    {
+      "id": "rule-018",
+      "name": "sky_22 · Space · UP",
+      "enabled": true,
+      "targets": [
+        10196567794
+      ],
+      "action": {
+        "type": "asset_id",
+        "asset_id": 87293939325159
+      },
+      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
+    }
+  ],
+  "sky_library": {
+    "id": "sky-22",
+    "name": "sky_22",
+    "archive": "Skyboxes/sky_22.zip",
+    "archive_type": "zip",
+    "catalog_name": "Sky 22",
+    "status": "ready",
+    "available_faces": 6,
+    "required_faces": 6,
+    "supported_maps": [
+      "Blue",
+      "Station",
+      "Space"
+    ],
+    "missing_reason": null
+  },
+  "faces": {
+    "BK": 136007365598982,
+    "DN": 113090853463695,
+    "FT": 102781864501443,
+    "LF": 86334871447680,
+    "RT": 129595274224805,
+    "UP": 87293939325159
+  }
+}

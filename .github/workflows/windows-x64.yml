@@ -93,7 +93,8 @@ jobs:
             (Join-Path $project "Cargo.lock"),
             (Join-Path $project "changelog.json"),
             (Join-Path $project "rivals_asset_catalog.json"),
-            (Join-Path $project "rivals_asset_ids.json")
+            (Join-Path $project "rivals_asset_ids.json"),
+            (Join-Path $project "sky_profiles")
           )
           Compress-Archive -Path $paths -DestinationPath $snapshot -Force
           if (!(Test-Path $snapshot)) { throw "Source snapshot was not created" }

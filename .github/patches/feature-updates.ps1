@@ -1679,3 +1679,152 @@ $theme = Replace-Once $theme 'CornerRadius::same(6)).inner_margin(Margin::symmet
 Save-Source $themePath $theme
 
 Write-Host "Applied the glossy button system, all button wrappers, home launch hero and cinematic intro."
+
+
+# Copy and embed every per-sky JSON. The selected JSON is parsed as a native profile and automatically enabled.
+$skySource = Join-Path $PSScriptRoot "..\assets\skies"
+$skyDestination = Join-Path $Project "sky_profiles"
+$skyFiles = @(Get-ChildItem -LiteralPath $skySource -File -Filter "*.json" | Sort-Object Name)
+if ($skyFiles.Count -ne 65) { throw "Expected exactly 65 individual sky JSON profiles in $skySource; found $($skyFiles.Count)" }
+if (Test-Path $skyDestination) { Remove-Item -LiteralPath $skyDestination -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $skyDestination | Out-Null
+foreach ($skyFile in $skyFiles) { Copy-Item -LiteralPath $skyFile.FullName -Destination $skyDestination }
+
+$skyIncludes = ($skyFiles | ForEach-Object { '    include_str!("../sky_profiles/' + $_.Name + '"),' }) -join [Environment]::NewLine
+$skyHelpers = @'
+const SKY_LIBRARY_JSON: &[&str] = &[
+__SKY_JSON_INCLUDES__
+];
+
+struct SkyLibraryEntry {
+    name: String,
+    archive: String,
+    status: String,
+    json: &'static str,
+    faces: BTreeMap<String, u64>,
+}
+
+fn sky_library_entries() -> &'static [SkyLibraryEntry] {
+    static ENTRIES: std::sync::OnceLock<Vec<SkyLibraryEntry>> = std::sync::OnceLock::new();
+    ENTRIES.get_or_init(|| {
+        SKY_LIBRARY_JSON.iter().map(|raw| {
+            let json = *raw;
+            let value: serde_json::Value = serde_json::from_str(json)
+                .expect("embedded sky library JSON must be valid");
+            let metadata = value.get("sky_library").expect("sky JSON must contain sky_library metadata");
+            let name = metadata.get("name").and_then(serde_json::Value::as_str)
+                .unwrap_or("Unnamed sky").to_owned();
+            let archive = metadata.get("archive").and_then(serde_json::Value::as_str)
+                .unwrap_or("").to_owned();
+            let status = metadata.get("status").and_then(serde_json::Value::as_str)
+                .unwrap_or("needs_face_assets").to_owned();
+            let faces = value.get("faces").and_then(serde_json::Value::as_object)
+                .map(|object| object.iter().filter_map(|(face, id)| {
+                    id.as_u64().map(|value| (face.clone(), value))
+                }).collect())
+                .unwrap_or_default();
+            SkyLibraryEntry { name, archive, status, json, faces }
+        }).collect()
+    }).as_slice()
+}
+
+'@;
+$skyHelpers = $skyHelpers.Replace("__SKY_JSON_INCLUDES__", $skyIncludes)
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui 'impl Tab {' ($skyHelpers + 'impl Tab {') "individual JSON sky library loader"
+
+$skyUi = @'
+        let skies = sky_library_entries();
+        let sky_count = skies.len();
+        let matching_skies = skies.iter().filter(|entry| {
+            query.is_empty() || entry.name.to_lowercase().contains(&query)
+                || entry.faces.values().any(|id| id.to_string().contains(&query))
+        }).count();
+        egui::CollapsingHeader::new(format!("COMMUNITY SKYBOXES · {sky_count} individual JSON profiles ({matching_skies} match)"))
+            .default_open(!query.is_empty())
+            .show(ui, |ui| {
+                ui.label(egui::RichText::new("Each sky has its own JSON profile. Apply JSON loads that exact profile, validates its six face IDs, creates 18 RIVALS map-face rules and automatically enables the resulting config. Preview opens the selected face asset.")
+                    .color(theme::MUTED).small());
+                egui::ScrollArea::vertical().max_height(430.0).show(ui, |ui| {
+                    for entry in skies {
+                        if !query.is_empty() && !entry.name.to_lowercase().contains(&query)
+                            && !entry.faces.values().any(|id| id.to_string().contains(&query)) { continue; }
+                        let name = entry.name.as_str();
+                        let faces = &entry.faces;
+                        let order = ["FT", "BK", "RT", "LF", "UP", "DN"];
+                        let complete = entry.status == "ready" && order.iter().all(|face| faces.contains_key(*face));
+                        egui::Frame::group(ui.style()).show(ui, |ui| {
+                            ui.horizontal_wrapped(|ui| {
+                                ui.label(egui::RichText::new(name).strong());
+                                theme::pill(ui, &format!("{}/6 faces", faces.len()), if complete { theme::OK } else { theme::WARN });
+                                if complete && bubbly_small_button(ui, "Apply JSON · enable sky").clicked() {
+                                    match crate::studio::ProfileDocument::parse_native(entry.json) {
+                                        Ok(profile) => {
+                                            let validation = profile.validation();
+                                            if validation.errors.is_empty() && validation.enabled_rules == 18 {
+                                                actions.push(Action::ApplyGeneratedProfile(profile));
+                                            } else {
+                                                self.studio_status = format!("{} JSON failed its 18-rule profile check: {}", name, validation.errors.join("; "));
+                                            }
+                                        }
+                                        Err(error) => self.studio_status = format!("Could not load {} JSON: {error:#}", name),
+                                    }
+                                }
+                            });
+                            ui.horizontal_wrapped(|ui| {
+                                for face in order {
+                                    if let Some(id) = faces.get(face) {
+                                        if bubbly_small_button(ui, format!("Preview {face}")).clicked() {
+                                            actions.push(Action::PreviewCatalog(*id));
+                                        }
+                                    }
+                                }
+                            });
+                            if !complete {
+                                ui.label(egui::RichText::new(format!("Face IDs needed · {}", entry.archive))
+                                    .color(theme::WARN).small());
+                            } else {
+                                ui.label(egui::RichText::new(entry.archive.clone()).color(theme::MUTED).small());
+                            }
+                        });
+                    }
+                });
+            });
+        ui.label(egui::RichText::new("All 65 JSON files are individual library entries. Entries with missing face IDs stay visible but cannot be applied until their source assets are added.")
+            .color(theme::WARN).small());
+        let matches: Vec<usize> = assets
+'@;
+$gui = Replace-RegexOnce $gui '        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new\(\);[\s\S]*?        let matches: Vec<usize> = assets' $skyUi "replace grouped catalogue skies with individual JSON profiles"
+
+$gui = Replace-Once $gui @'
+    #[test]
+    fn sky_front_face_targets_match_the_curated_rivals_map_references() {
+'@ @'
+    #[test]
+    fn all_individual_sky_json_profiles_are_embedded_and_validated() {
+        let skies = sky_library_entries();
+        assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
+        let mut applyable = 0usize;
+        for sky in skies {
+            let order = ["BK", "DN", "FT", "LF", "RT", "UP"];
+            if sky.status == "ready" {
+                applyable += 1;
+                assert_eq!(sky.faces.len(), 6, "{} must have six face IDs", sky.name);
+                assert!(order.iter().all(|face| sky.faces.contains_key(*face)), "{} has an incomplete face map", sky.name);
+                let profile = crate::studio::ProfileDocument::parse_native(sky.json).unwrap();
+                let validation = profile.validation();
+                assert!(validation.errors.is_empty(), "{} profile errors: {:?}", sky.name, validation.errors);
+                assert_eq!(validation.enabled_rules, 18, "{} must enable 18 map-face rules", sky.name);
+            } else {
+                assert!(sky.faces.len() < 6, "{} is marked incomplete but has all faces", sky.name);
+            }
+        }
+        assert_eq!(applyable, 63, "all catalog-complete skies should be one-click applyable");
+    }
+
+    #[test]
+    fn sky_front_face_targets_match_the_curated_rivals_map_references() {
+'@ "65 individual JSON profile regression test"
+[IO.File]::WriteAllText($guiPath,$gui,[Text.UTF8Encoding]::new($false))
+Write-Host "Embedded all individual sky JSON profiles."
