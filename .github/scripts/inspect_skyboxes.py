@@ -150,7 +150,11 @@ def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     with zipfile.ZipFile(ARCHIVE) as outer:
-        outer_entries = {norm(name): name for name in outer.namelist()}
+        outer_names = outer.namelist()
+        pathlib.Path("skybox-outer-entries.txt").write_text("\\n".join(outer_names) + "\\n", encoding="utf-8")
+        for outer_name in outer_names:
+            print(f"OUTER|{outer_name}")
+        outer_entries = {norm(name): name for name in outer_names}
         print(f"Outer sky archive: {ARCHIVE.stat().st_size:,} bytes; {len(outer_entries)} entries")
         for item in index["items"]:
             name = item["name"]
