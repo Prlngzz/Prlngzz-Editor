@@ -938,7 +938,7 @@ $intro = @'
             }
         }
 
-'@ll.
+'@# Insert the intro immediately after the existing splash call.
 $gui = Replace-Once $gui '        self.show_splash(ctx);' ('        self.show_splash(ctx);' + [char]10 + $intro.TrimEnd())
 Save-Source $guiPath $gui
 
@@ -1790,8 +1790,8 @@ $skyUi = @'
                     });
                 }
             });
-            if skies.len() != 65 {
-                ui.label(egui::RichText::new(format!("Expected 65 sky configurations; found {}", skies.len()))
+            if sky_count != 65 {
+                ui.label(egui::RichText::new(format!("Expected 65 sky configurations; found {sky_count}"))
                     .color(theme::WARN).small());
             }
             let map_targets: Vec<String> = assets.iter()
@@ -1806,66 +1806,7 @@ $skyUi = @'
             });
         }
         let matches: Vec<usize> = assets
-        let sky_count = skies.len();
-        let matching_skies = skies.iter().filter(|entry| {
-            query.is_empty() || entry.name.to_lowercase().contains(&query)
-                || entry.faces.values().any(|id| id.to_string().contains(&query))
-        }).count();
-        egui::CollapsingHeader::new(format!("COMMUNITY SKYBOXES · {sky_count} individual JSON profiles ({matching_skies} match)"))
-            .default_open(!query.is_empty())
-            .show(ui, |ui| {
-                ui.label(egui::RichText::new("Each sky has its own JSON profile. Apply JSON loads that exact profile, validates its six face IDs, creates 18 RIVALS map-face rules and automatically enables the resulting config. Preview opens the selected face asset.")
-                    .color(theme::MUTED).small());
-                egui::ScrollArea::vertical().max_height(430.0).show(ui, |ui| {
-                    for entry in skies {
-                        if !query.is_empty() && !entry.name.to_lowercase().contains(&query)
-                            && !entry.faces.values().any(|id| id.to_string().contains(&query)) { continue; }
-                        let name = entry.name.as_str();
-                        let faces = &entry.faces;
-                        let order = ["FT", "BK", "RT", "LF", "UP", "DN"];
-                        let complete = entry.status == "ready" && order.iter().all(|face| faces.contains_key(*face));
-                        egui::Frame::group(ui.style()).show(ui, |ui| {
-                            ui.horizontal_wrapped(|ui| {
-                                ui.label(egui::RichText::new(name).strong());
-                                theme::pill(ui, &format!("{}/6 faces", faces.len()), if complete { theme::OK } else { theme::WARN });
-                                if complete && bubbly_small_button(ui, "Apply JSON · enable sky").clicked() {
-                                    match crate::studio::ProfileDocument::parse_native(entry.json) {
-                                        Ok(profile) => {
-                                            let validation = profile.validation();
-                                            if validation.errors.is_empty() && validation.enabled_rules == 18 {
-                                                actions.push(Action::ApplyGeneratedProfile(profile));
-                                            } else {
-                                                self.studio_status = format!("{} JSON failed its 18-rule profile check: {}", name, validation.errors.join("; "));
-                                            }
-                                        }
-                                        Err(error) => self.studio_status = format!("Could not load {} JSON: {error:#}", name),
-                                    }
-                                }
-                            });
-                            ui.horizontal_wrapped(|ui| {
-                                for face in order {
-                                    if let Some(id) = faces.get(face) {
-                                        if bubbly_small_button(ui, format!("Preview {face}")).clicked() {
-                                            actions.push(Action::PreviewCatalog(*id));
-                                        }
-                                    }
-                                }
-                            });
-                            if !complete {
-                                ui.label(egui::RichText::new(format!("Face IDs needed · {}", entry.archive))
-                                    .color(theme::WARN).small());
-                            } else {
-                                ui.label(egui::RichText::new(entry.archive.clone()).color(theme::MUTED).small());
-                            }
-                        });
-                    }
-                });
-            });
-        ui.label(egui::RichText::new("All 65 JSON files are individual library entries. Entries with missing face IDs stay visible but cannot be applied until their source assets are added.")
-            .color(theme::WARN).small());
-        let matches: Vec<usize> = assets
-'@
-$gui = Replace-RegexOnce $gui '        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new\(\);[\s\S]*?        let matches: Vec<usize> = assets' $skyUi "replace grouped catalogue skies with individual JSON profiles"
+'@$gui = Replace-RegexOnce $gui '        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new\(\);[\s\S]*?        let matches: Vec<usize> = assets' $skyUi "replace grouped catalogue skies with individual JSON profiles"
 
 $gui = Replace-Once $gui @'
     #[test]
