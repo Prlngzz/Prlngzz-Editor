@@ -163,6 +163,22 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item $binary "dist/Prlngzz-Editor-Windows-x64.exe" -Force
 
+
+      - name: Commit converted sky JSON profiles
+        if: success() && startsWith(github.ref, 'refs/heads/codex/')
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/assets/skies
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Convert sky library JSONs to multi-ID CDN rules"
+            if ($LASTEXITCODE -ne 0) { throw "Could not commit converted sky JSON profiles" }
+            git push origin "HEAD:$env:GITHUB_REF_NAME"
+            if ($LASTEXITCODE -ne 0) { throw "Could not push converted sky JSON profiles" }
+          }
+
       - name: Upload Windows x64 executable
         uses: actions/upload-artifact@v4
         with:

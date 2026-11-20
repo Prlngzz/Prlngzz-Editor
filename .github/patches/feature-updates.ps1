@@ -1828,3 +1828,202 @@ $gui = Replace-Once $gui @'
 '@ "65 individual JSON profile regression test"
 [IO.File]::WriteAllText($guiPath,$gui,[Text.UTF8Encoding]::new($false))
 Write-Host "Embedded all individual sky JSON profiles."
+
+
+# Fleasion-compatible six-face CDN JSONs.
+# All six rules use the exact default RIVALS target IDs; each side is replaced by one HTTPS CDN image.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = $gui.Replace('crate::studio::ProfileDocument::parse_native(entry.json)', 'crate::studio::ProfileDocument::import_fleasion(entry.json)')
+$gui = $gui.Replace('crate::studio::ProfileDocument::parse_native(sky.json)', 'crate::studio::ProfileDocument::import_fleasion(sky.json)')
+$gui = Replace-Once $gui 'let complete = entry.status == "ready" && order.iter().all(|face| faces.contains_key(*face));' 'let complete = entry.status == "ready";' "CDN-complete apply gate"
+$gui = Replace-Once $gui 'theme::pill(ui, &format!("{}/6 faces", faces.len()), if complete { theme::OK } else { theme::WARN });' 'theme::pill(ui, if complete { "CDN 6/6" } else { "CDN pending" }, if complete { theme::OK } else { theme::WARN });' "CDN availability badge"
+$gui = Replace-Once $gui 'Face IDs needed · {}' 'CDN image files needed · {}' "CDN missing asset message"
+$gui = Replace-Once $gui 'Each sky has its own JSON profile. Apply JSON loads that exact profile, validates its six face IDs, creates 18 RIVALS map-face rules and automatically enables the resulting config. Preview opens the selected face asset.' 'Each sky has its own Fleasion-compatible JSON. Apply JSON imports six Sk* CDN rules; every rule targets all six default RIVALS IDs, then the checked profile is automatically enabled. Preview opens the selected Roblox face asset.' "CDN rule explanation"
+$gui = Replace-Once $gui 'All 65 JSON files are individual library entries. Entries with missing face IDs stay visible but cannot be applied until their source assets are added.' 'All 65 JSON files use six multi-ID CDN rules. Apply is enabled when all six image files exist in Prlngzz-Textures; entries missing CDN files remain visible but cannot be applied yet.' "CDN library explanation"
+$gui = $gui.Replace('the six face IDs', 'the six CDN face URLs')
+$gui = $gui.Replace('18-rule profile check', 'six-rule CDN profile check')
+$gui = $gui.Replace('validation.enabled_rules == 18', 'validation.enabled_rules == 6')
+Save-Source $guiPath $gui
+
+# Rewrite the 65 repository JSON files into the Fleasion replacement_rules schema.
+$skySource = Join-Path $PSScriptRoot "..\assets\skies"
+$textureRoot = "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/"
+$faceSpecs = @(
+    [ordered]@{ name = "SkBack"; side = "Back"; face = "BK"; ids = [long[]]@(2108482005, 14147881792, 135908632589654, 84214501374682, 10196550937, 12261809766) },
+    [ordered]@{ name = "SkDown"; side = "Down"; face = "DN"; ids = [long[]]@(2108545280, 10196550667, 14147882149, 103020541883227, 89972436184102, 12261813110) },
+    [ordered]@{ name = "SkFront"; side = "Front"; face = "FT"; ids = [long[]]@(14147882761, 12261809766, 135908632589654, 84214501374682, 10196550367, 2108482231) },
+    [ordered]@{ name = "SkLeft"; side = "Left"; face = "LF"; ids = [long[]]@(14147883091, 135908632589654, 84214501374682, 2108482395, 12261809766, 10196550128) },
+    [ordered]@{ name = "SkRight"; side = "Right"; face = "RT"; ids = [long[]]@(14147882405, 135908632589654, 84214501374682, 2108482542, 12261809766, 10196549902) },
+    [ordered]@{ name = "SkUp"; side = "Up"; face = "UP"; ids = [long[]]@(14147881297, 72960281658487, 92138082970751, 2108482676, 10196567794, 12261813678) }
+)
+
+# These filenames were confirmed in the Prlngzz-Textures main-branch tree.
+# Unknown filenames are still recorded using the conventional "<Sky Name> <Side>.png" path,
+# but their Apply button stays disabled until the image is actually added to the CDN repository.
+$hostedSkyFiles = @{
+    "Beautfil [From tutorial]" = @{ Back = "backmembu.png"; Down = "ddownmembu.png"; Front = "beautifulmembuFront.png"; Left = "leftmembu.png"; Right = "rtmembu.png"; Up = "upmembu.png" }
+    "Blue" = @{ Back = "blueCloudback.png.png"; Down = "blueClouddown.png.png"; Front = "blueCloudfront.png.png"; Left = "blueCloudleft.png.png"; Right = "blueCloudright.png.png"; Up = "blueCloudup.png.png" }
+    "Chill pink" = @{ Back = "Chill Pink Back.png"; Down = "Chill Pink Down.png"; Front = "Chill Pink Front.png"; Left = "Chill Pink Left.png"; Right = "Chill Pink Right.png"; Up = "Chill Pink Up.png" }
+    "Hades" = @{ Back = "HadesBack.png"; Down = "HadesDown.png"; Front = "HadesFront.png"; Left = "HadesLeft.png"; Right = "HadesRight.png"; Up = "HadesUp.png" }
+    "Light pink" = @{ Back = "BK pink.png"; Down = "DN pink.png"; Front = "FT  pink.png"; Left = "LF pink.png"; Right = "RT pink.png"; Up = "UP pink.png" }
+    "PeacefullMorningSky" = @{ Back = "peaceefulbk.png"; Down = "peacefuldn.png"; Front = "peacefulft.png"; Left = "peacefulLf.png"; Right = "peacefulrt.png"; Up = "peacefulUp.png" }
+    "Pink Sunrise" = @{ Back = "PinkSunriseBack.png"; Down = "PinkSunriseDown.png"; Front = "PinkSunriseFront.png"; Left = "PinkSunriseLeft.png"; Right = "PinkSunriseRight.png"; Up = "PinkSunriseUp.png" }
+    "sky_05" = @{ Back = "Sky05Back.png"; Down = "Sky05Down.png"; Front = "Sky05Front.png"; Left = "Sky05Left.png"; Right = "Sky05Right.png"; Up = "Sky05Up.png" }
+    "sky_13" = @{ Back = "Sky13Back.png"; Down = "Sky13Down.png"; Front = "Sky13Front.png"; Left = "Sky13Left.png"; Right = "Sky13Right.png"; Up = "Sky13Up.png" }
+    "sky_31" = @{ Back = "Sky31Back.png"; Down = "Sky31Down.png"; Front = "Sky31Front.png"; Left = "Sky31Left.png"; Right = "Sky31Right.png"; Up = "Sky31Up.png" }
+    "sky_38" = @{ Back = "Sky38Back.png"; Down = "Sky38Down.png"; Front = "Sky38Front.png"; Left = "Sky38Left.png"; Right = "Sky38Right.png"; Up = "Sky38Up.png" }
+    "sky_purple" = @{ Back = "PurpleFlowback.png"; Down = "PurpleFlowDown.png"; Front = "PurpleFlowFront.png"; Left = "PurpleFlowLeft.png"; Right = "PurpleFlowRight.png"; Up = "PurpleFlowUp.png" }
+    "sky_sunset" = @{ Back = "SunsetBack.png"; Down = "SunsetDown.png"; Front = "SunsetFront.png"; Left = "SunsetLeft.png"; Right = "SunsetRight.png"; Up = "SunsetUp.png" }
+    "Spooky" = @{ Back = "stizspookyccbk.png"; Down = "stizspookydn.png"; Front = "stizspookyftez.png"; Left = "stizspookylf.png"; Right = "stizspookyrt.png"; Up = "stizspookyup.png" }
+    "Space Blue" = @{ Back = "BlueSpaceBack.png"; Down = "BlueSpaceDown.png"; Left = "BlueSpaceLeft.png"; Right = "BlueSpaceRight.png"; Up = "BlueSpaceUp.png" }
+}
+
+$skyFiles = @(Get-ChildItem -LiteralPath $skySource -File -Filter "*.json" | Sort-Object Name)
+if ($skyFiles.Count -ne 65) { throw "Expected 65 sky JSON files before conversion; found $($skyFiles.Count)" }
+$applyReady = 0
+foreach ($skyFile in $skyFiles) {
+    $old = [IO.File]::ReadAllText($skyFile.FullName) | ConvertFrom-Json
+    $name = [string]$old.sky_library.name
+    if ([string]::IsNullOrWhiteSpace($name)) { throw "Sky JSON has no sky_library.name: $($skyFile.Name)" }
+    $existingFaces = $old.faces
+    $replacementRules = @()
+    $missingCdnFaces = @()
+    $foundCdnFaces = 0
+
+    foreach ($spec in $faceSpecs) {
+        $fileName = $null
+        if ($hostedSkyFiles.ContainsKey($name) -and $hostedSkyFiles[$name].ContainsKey($spec.side)) {
+            $fileName = [string]$hostedSkyFiles[$name][$spec.side]
+            $foundCdnFaces++
+        } else {
+            $fileName = "$name $($spec.side).png"
+            $missingCdnFaces += $spec.side
+        }
+        $encodedFileName = [uri]::EscapeDataString($fileName)
+        $cdnUrl = $textureRoot + $encodedFileName
+        $replacementRules += [ordered]@{
+            name = $spec.name
+            replace_ids = $spec.ids
+            mode = "cdn"
+            enabled = $true
+            cdn_url = $cdnUrl
+        }
+    }
+
+    $status = if ($missingCdnFaces.Count -eq 0) { "ready" } else { "needs_cdn_assets" }
+    if ($status -eq "ready") { $applyReady++ }
+    $availableFaces = 0
+    if ($existingFaces -and $existingFaces.PSObject) { $availableFaces = $existingFaces.PSObject.Properties.Count }
+    $meta = [ordered]@{
+        id = [string]$old.sky_library.id
+        name = $name
+        archive = [string]$old.sky_library.archive
+        archive_type = [string]$old.sky_library.archive_type
+        catalog_name = $old.sky_library.catalog_name
+        status = $status
+        available_faces = $availableFaces
+        required_faces = 6
+        cdn_files_found = $foundCdnFaces
+        cdn_files_missing = @($missingCdnFaces)
+        replacement_rule_count = 6
+    }
+    $newDocument = [ordered]@{
+        name = "$name Skybox"
+        game = "RIVALS"
+        description = "Six CDN skybox face rules. Each rule targets the six default RIVALS sky asset IDs and replaces them with this sky's corresponding image."
+        replacement_rules = @($replacementRules)
+        sky_library = $meta
+        faces = $existingFaces
+    }
+    $json = $newDocument | ConvertTo-Json -Depth 100
+    [IO.File]::WriteAllText($skyFile.FullName, $json + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
+}
+if ($applyReady -ne 14) { throw "Expected 14 skies with six confirmed CDN files; found $applyReady" }
+
+# Re-copy the converted Fleasion JSONs so include_str! embeds the final, exact files.
+$skyDestination = Join-Path $Project "sky_profiles"
+if (Test-Path $skyDestination) { Remove-Item -LiteralPath $skyDestination -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $skyDestination | Out-Null
+foreach ($skyFile in $skyFiles) { Copy-Item -LiteralPath $skyFile.FullName -Destination $skyDestination }
+
+# Replace the earlier native-profile regression with checks against the actual Fleasion CDN parser.
+$gui = [IO.File]::ReadAllText($guiPath)
+$oldTest = @'
+    #[test]
+    fn all_individual_sky_json_profiles_are_embedded_and_validated() {
+        let skies = sky_library_entries();
+        assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
+        let mut applyable = 0usize;
+        for sky in skies {
+            let order = ["BK", "DN", "FT", "LF", "RT", "UP"];
+            if sky.status == "ready" {
+                applyable += 1;
+                assert_eq!(sky.faces.len(), 6, "{} must have six face IDs", sky.name);
+                assert!(order.iter().all(|face| sky.faces.contains_key(*face)), "{} has an incomplete face map", sky.name);
+                let profile = crate::studio::ProfileDocument::parse_native(sky.json).unwrap();
+                let validation = profile.validation();
+                assert!(validation.errors.is_empty(), "{} profile errors: {:?}", sky.name, validation.errors);
+                assert_eq!(validation.enabled_rules, 18, "{} must enable 18 map-face rules", sky.name);
+            } else {
+                assert!(sky.faces.len() < 6, "{} is marked incomplete but has all faces", sky.name);
+            }
+        }
+        assert_eq!(applyable, 63, "all catalog-complete skies should be one-click applyable");
+    }
+'@
+$newTest = @'
+    #[test]
+    fn all_individual_sky_json_profiles_use_six_multi_id_cdn_rules() {
+        const NAMES: [&str; 6] = ["SkBack", "SkDown", "SkFront", "SkLeft", "SkRight", "SkUp"];
+        const TARGETS: [[u64; 6]; 6] = [
+            [2108482005, 14147881792, 135908632589654, 84214501374682, 10196550937, 12261809766],
+            [2108545280, 10196550667, 14147882149, 103020541883227, 89972436184102, 12261813110],
+            [14147882761, 12261809766, 135908632589654, 84214501374682, 10196550367, 2108482231],
+            [14147883091, 135908632589654, 84214501374682, 2108482395, 12261809766, 10196550128],
+            [14147882405, 135908632589654, 84214501374682, 2108482542, 12261809766, 10196549902],
+            [14147881297, 72960281658487, 92138082970751, 2108482676, 10196567794, 12261813678],
+        ];
+        let skies = sky_library_entries();
+        assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
+        let mut applyable = 0usize;
+        for sky in skies {
+            let raw: serde_json::Value = serde_json::from_str(sky.json).unwrap();
+            let source_rules = raw.get("replacement_rules").and_then(serde_json::Value::as_array).unwrap();
+            assert_eq!(source_rules.len(), 6, "{} must have six CDN side rules", sky.name);
+            for (index, source_rule) in source_rules.iter().enumerate() {
+                assert_eq!(source_rule["name"].as_str(), Some(NAMES[index]));
+                assert_eq!(source_rule["mode"].as_str(), Some("cdn"));
+                assert_eq!(source_rule["enabled"].as_bool(), Some(true));
+                let ids = source_rule["replace_ids"].as_array().unwrap()
+                    .iter().map(|id| id.as_u64().unwrap()).collect::<Vec<_>>();
+                assert_eq!(ids, TARGETS[index].to_vec(), "{} {} target IDs", sky.name, NAMES[index]);
+                assert!(source_rule["cdn_url"].as_str().unwrap().starts_with(
+                    "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/"
+                ));
+            }
+
+            let profile = crate::studio::ProfileDocument::import_fleasion(sky.json).unwrap();
+            let validation = profile.validation();
+            assert!(validation.errors.is_empty(), "{} profile errors: {:?}", sky.name, validation.errors);
+            assert_eq!(validation.enabled_rules, 6, "{} must enable six side rules", sky.name);
+            let parsed = crate::config::parse(sky.json, std::path::Path::new(".")).unwrap();
+            assert_eq!(parsed.len(), 6, "{} must parse to six active CDN rules", sky.name);
+            for (rule, expected) in parsed.iter().zip(TARGETS) {
+                let expected_targets = expected.iter().copied()
+                    .map(crate::config::Target::Asset).collect::<Vec<_>>();
+                assert_eq!(rule.targets, expected_targets, "{} must replace all six default IDs", sky.name);
+                assert!(matches!(&rule.action, crate::config::Action::Cdn(_)));
+            }
+            if sky.status == "ready" {
+                applyable += 1;
+                assert_eq!(sky.faces.len(), 6, "{} ready sky must retain six preview IDs", sky.name);
+            }
+        }
+        assert_eq!(applyable, 14, "only skies with all six confirmed CDN images should be applyable");
+    }
+'@
+$gui = Replace-Once $gui $oldTest $newTest "six-rule Fleasion sky JSON regression"
+Save-Source $guiPath $gui
+
+Write-Host "Converted 65 sky JSONs to Fleasion CDN schema; six multi-ID rules per sky; 14 have all six CDN image files."
