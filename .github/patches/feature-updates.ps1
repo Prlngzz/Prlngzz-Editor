@@ -1348,3 +1348,10 @@ $gui = Replace-Once $gui @'
 
 Save-Source $guiPath $gui
 Write-Host "Fixed preset application: arena examples now build and enable standalone cache profiles; complete community skyboxes map to verified Blue, Station and Space target faces only."
+
+
+# The six replacement values are now read directly from the face map when the one-click profile is built.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui '                        let replacement_ids: Vec<String> = order.iter().filter_map(|face| faces.get(*face).map(u64::to_string)).collect();' '' "remove obsolete skybox ID textbox staging"
+Save-Source $guiPath $gui
