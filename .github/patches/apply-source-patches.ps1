@@ -1037,9 +1037,9 @@ pub fn apply_accent(ctx: &egui::Context) {
     let visuals = &mut style.visuals;
     visuals.hyperlink_color = accent;
     visuals.selection.bg_fill = alpha(accent, 0.26);
-    visuals.widgets.hovered.bg_stroke = Stroke::new(1.0, alpha(accent, 0.72));
+    visuals.widgets.hovered.bg_stroke = Stroke::new(1.0_f32, alpha(accent, 0.72));
     visuals.widgets.active.bg_fill = alpha(accent, 0.55);
-    visuals.widgets.active.bg_stroke = Stroke::new(1.0, accent);
+    visuals.widgets.active.bg_stroke = Stroke::new(1.0_f32, accent);
     visuals.widgets.open.bg_stroke = Stroke::new(1.0, alpha(accent, 0.72));
     ctx.set_style(style);
 }
@@ -1119,7 +1119,6 @@ $newRows = @'
             (Tab::Overview, "Overview", "Your workspace"),
             (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),
             (Tab::All, "Asset Library", "RIVALS catalogue"),
-            (Tab::Packs, "Game Library", "Community and local packs"),
             (Tab::Customization, "Customization", "Theme, layout and motion"),
             (Tab::Settings, "Settings", "Cache behavior and application"),
         ];
@@ -1136,7 +1135,6 @@ $gui = Replace-Once $gui '            let x = rect.left() + 23.0;' @'
                 Tab::Overview => "⌂",
                 Tab::AssetIds => "#",
                 Tab::All => "▦",
-                Tab::Packs => "◇",
                 Tab::Customization => "✦",
                 Tab::Settings => "⚙",
                 _ => "•",
@@ -1361,7 +1359,11 @@ $noHandsTests = @'
     }
 
 '@
-$config = Replace-Once $config '    fn accepts_a_bare_list_and_rejects_garbage() {' ($noHandsTests + '    fn accepts_a_bare_list_and_rejects_garbage() {') "config compatibility regression tests"
+$oldBareTest = @'
+    #[test]
+    fn accepts_a_bare_list_and_rejects_garbage() {
+'@
+$config = Replace-Once $config $oldBareTest ($noHandsTests + $oldBareTest) "config compatibility regression tests"
 Save-Source $configPath $config
 
 # Add a first-class Remove target action for no-hands-style local cache profiles.
