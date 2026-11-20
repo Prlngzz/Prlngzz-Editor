@@ -1355,3 +1355,146 @@ $guiPath = Join-Path $Project "src/gui.rs"
 $gui = [IO.File]::ReadAllText($guiPath)
 $gui = Replace-Once $gui '                        let replacement_ids: Vec<String> = order.iter().filter_map(|face| faces.get(*face).map(u64::to_string)).collect();' '' "remove obsolete skybox ID textbox staging"
 Save-Source $guiPath $gui
+
+
+# Build skybox replacement profiles in one tested helper. Target ids are the RIVALS map's original face IDs;
+# replacement ids come from the selected community skybox. The mapping order is explicit, not positional guessing.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$skyProfileHelper = @'
+fn build_skybox_profile(name: &str, faces: &BTreeMap<String, u64>) -> anyhow::Result<crate::studio::ProfileDocument> {
+    const REQUIRED: [&str; 6] = ["BK", "DN", "FT", "LF", "RT", "UP"];
+    for face in REQUIRED {
+        anyhow::ensure!(faces.contains_key(face), "The {name} skybox is missing its {face} replacement face");
+    }
+    let mut profile = crate::studio::ProfileDocument::new(&format!("{name} Skybox"), "RIVALS");
+    let mut count = 0usize;
+    for (map_name, target_faces) in RIVALS_SKY_FACE_TARGETS {
+        for (face, target_id) in target_faces {
+            let replacement_id = *faces.get(face).expect("all six faces were checked above");
+            let rule_name = format!("{name} · {map_name} · {face}");
+            profile.add_named_rule(&rule_name, target_id, replacement_id)?;
+            count += 1;
+        }
+    }
+    anyhow::ensure!(count == 18, "A supported skybox must create exactly 18 cache replacement rules");
+    let validation = profile.validation();
+    anyhow::ensure!(validation.errors.is_empty(), "The generated skybox profile is invalid: {}", validation.errors.join("; "));
+    Ok(profile)
+}
+
+'@
+$gui = Replace-Once $gui 'impl Tab {' ($skyProfileHelper + 'impl Tab {') "testable six-face skybox profile builder"
+
+$oldSkyApply = @'
+                                if complete && ui.small_button("Use Sky · apply to 3 maps").clicked() {
+                                    let mut profile = crate::studio::ProfileDocument::new(&format!("{name} Skybox"), "RIVALS");
+                                    let mut failure = None;
+                                    for (map_name, target_faces) in RIVALS_SKY_FACE_TARGETS {
+                                        for (face, target_id) in target_faces {
+                                            let Some(replacement_id) = faces.get(face).copied() else {
+                                                failure = Some(format!("{name} is missing its {face} face"));
+                                                break;
+                                            };
+                                            let rule_name = format!("{name} · {map_name} · {face}");
+                                            if let Err(error) = profile.add_named_rule(&rule_name, target_id, replacement_id) {
+                                                failure = Some(format!("{map_name} {face}: {error:#}"));
+                                                break;
+                                            }
+                                        }
+                                        if failure.is_some() { break; }
+                                    }
+                                    if let Some(error) = failure {
+                                        self.studio_status = format!("Could not prepare skybox: {error}");
+                                    } else {
+                                        actions.push(Action::ApplyGeneratedProfile(profile));
+                                    }
+                                }
+'@
+$newSkyApply = @'
+                                if complete && ui.small_button("Use Sky · apply to 3 maps").clicked() {
+                                    match build_skybox_profile(name, faces) {
+                                        Ok(profile) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                                        Err(error) => self.studio_status = format!("Could not prepare skybox: {error:#}"),
+                                    }
+                                }
+'@
+$gui = Replace-Once $gui $oldSkyApply $newSkyApply "one-click skybox uses tested face mapping"
+
+# Tests prove that all six replacement faces are paired with the intended original RIVALS target face,
+# survive native -> Fleasion conversion, and are still understood by the live cache replacement parser.
+$gui = Replace-Once $gui @'
+    #[test]
+    fn advertised_sky_maps_have_six_distinct_target_ids() {
+'@ @'
+    #[test]
+    fn sky_front_face_targets_match_the_curated_rivals_map_references() {
+        let catalog: serde_json::Value = serde_json::from_str(include_str!("../rivals_asset_catalog.json")).unwrap();
+        let assets = catalog["assets"].as_array().unwrap();
+        for (map_name, faces) in RIVALS_SKY_FACE_TARGETS {
+            let front = faces.iter().find(|(face, _)| *face == "FT").unwrap().1;
+            let reference = assets.iter().find(|asset| {
+                asset["category"].as_str() == Some("RIVALS map sky texture")
+                    && asset["name"].as_str().is_some_and(|name| name.eq_ignore_ascii_case(map_name))
+            }).unwrap_or_else(|| panic!("Missing curated RIVALS {map_name} front-face reference"));
+            assert_eq!(reference["id"].as_str().unwrap().parse::<u64>().unwrap(), front, "{map_name} FT target");
+        }
+    }
+
+    #[test]
+    fn complete_community_sky_creates_18_correctly_directed_cache_rules() {
+        let replacements = BTreeMap::from([
+            ("BK".to_string(), 9001), ("DN".to_string(), 9002), ("FT".to_string(), 9003),
+            ("LF".to_string(), 9004), ("RT".to_string(), 9005), ("UP".to_string(), 9006),
+        ]);
+        let profile = build_skybox_profile("Regression sky", &replacements).unwrap();
+        assert_eq!(profile.validation().enabled_rules, 18);
+        let exported = profile.to_fleasion_json().unwrap();
+        let rules = crate::config::parse(&exported, std::path::Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 18);
+        for (map_name, target_faces) in RIVALS_SKY_FACE_TARGETS {
+            for (face, target_id) in target_faces {
+                let expected_name = format!("Regression sky · {map_name} · {face}");
+                let rule = rules.iter().find(|rule| rule.name == expected_name).unwrap();
+                assert_eq!(rule.targets, [crate::config::Target::Asset(target_id)]);
+                assert_eq!(
+                    rule.action,
+                    crate::config::Action::With(crate::config::Target::Asset(replacements[face]))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn advertised_sky_maps_have_six_distinct_target_ids() {
+'@ "sky target and generated profile regressions"
+Save-Source $guiPath $gui
+
+$configPath = Join-Path $Project "src/config.rs"
+$config = [IO.File]::ReadAllText($configPath)
+$config += @'
+
+#[cfg(test)]
+mod arena_texture_preset_regressions {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn supplied_tism_preset_replaces_the_original_rivals_texture_id() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"arena2.0","replace_ids":[7658055825],"mode":"id","enabled":true,"with_id":6372755229}]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].targets, [Target::Asset(7658055825)]);
+        assert_eq!(rules[0].action, Action::With(Target::Asset(6372755229)));
+    }
+
+    #[test]
+    fn supplied_no_textures_preset_removes_the_original_rivals_texture_id() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"No Textures","replace_ids":[7658055825],"mode":"id","enabled":true}]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].targets, [Target::Asset(7658055825)]);
+        assert_eq!(rules[0].action, Action::Remove);
+    }
+}
+'@
+Save-Source $configPath $config
+Write-Host "Added exact target/replacement round-trip tests for arena presets and six-face sky profiles."
