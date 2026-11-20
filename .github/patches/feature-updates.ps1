@@ -1593,6 +1593,8 @@ $gui = [regex]::Replace($gui, '\bui\.small_button\(([^()\r\n]*)\)', 'bubbly_smal
 $gui = Replace-Once $gui 'ui.small_button(format!("Preview {face}"))' 'bubbly_small_button(ui, format!("Preview {face}"))' "dynamic sky preview button"
 
 $gui = Replace-Once $gui 'egui::Button::new("Skip intro")' 'primary_button("Skip intro")' "bubbly intro skip button"
+$gui = Replace-Once $gui 'surface.right() - 112.0, surface.bottom() - 54.0' 'surface.right() - 194.0, surface.bottom() - 62.0' "intro skip button position"
+$gui = Replace-Once $gui 'Vec2::new(92.0, 30.0)' 'Vec2::new(180.0, 48.0)' "intro skip button hit area"
 $gui = Replace-Once $gui 'Vec2::new(ui.available_width(), 36.0), primary_button("Launch Roblox")' 'Vec2::new(ui.available_width(), 48.0), primary_button("Launch Roblox")' "larger sidebar launch button"
 
 $homeAnchor = @'
@@ -1612,7 +1614,7 @@ $homeHero = @'
                     ui.label(egui::RichText::new(if self.roblox_running { "Roblox is already running" } else { "Roblox desktop player will be checked when you launch" }).color(theme::MUTED).small());
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.add_sized(Vec2::new(212.0, 54.0), primary_button("LAUNCH ROBLOX  ›")).clicked() {
+                    if ui.add_sized(Vec2::new(212.0, 54.0), primary_button("LAUNCH ROBLOX")).clicked() {
                         actions.push(Action::LaunchRoblox);
                     }
                 });
