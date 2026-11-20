@@ -347,7 +347,11 @@ $libraryMethod = @'
 
 '@
 $gui = Replace-Once $gui '    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {' ($libraryMethod + '    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {') "grouped sky and asset preview method"
-$gui = Replace-RegexOnce $gui '(?s)        if self\.tab == Tab::All \{.*?            return;\r?\n        \}\r?\n        let mut clicked: Option<usize> = None;' '        if self.tab == Tab::All { self.asset_library_page(ui, actions); return; }' + [char]10 + '        let mut clicked: Option<usize> = None;' "Asset Library page switch"
+$assetLibraryRoute = @'
+        if self.tab == Tab::All { self.asset_library_page(ui, actions); return; }
+        let mut clicked: Option<usize> = None;
+'@
+$gui = Replace-RegexOnce $gui '(?s)        if self\.tab == Tab::All \{.*?            return;\r?\n        \}\r?\n        let mut clicked: Option<usize> = None;' $assetLibraryRoute "Asset Library page switch"
 
 # Preview image assets on demand; audio assets open the existing player/lookup page.
 $gui = Replace-Once $gui @'
