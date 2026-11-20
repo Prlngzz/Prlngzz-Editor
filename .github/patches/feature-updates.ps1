@@ -1029,7 +1029,13 @@ const RIVALS_SKY_FACE_TARGETS: [(&str, [(&str, u64); 6]); 3] = [
 ];
 
 '@
-$gui = Replace-Once $gui 'enum Tab {' ($skyTargets + 'enum Tab {') "verified six-face RIVALS sky targets"
+$gui = Replace-Once $gui @'
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum Tab {
+'@ ($skyTargets + @'
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum Tab {
+'@) "verified six-face RIVALS sky targets"
 
 # One-click preset profiles are explicit actions and never overwrite the user's in-progress Studio document.
 $gui = Replace-Once $gui @'
