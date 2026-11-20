@@ -1008,7 +1008,6 @@ use eframe::egui::{self, Color32, CornerRadius, FontId, Margin, Rect, Shape, Str
 use std::sync::atomic::{AtomicU32, Ordering};
 '@ "runtime palette imports"
 $theme = Replace-Once $theme @'
-/// color at a opacity (0..1).
 pub fn alpha(color: Color32, a: f32) -> Color32 {
 '@ @'
 static ACCENT_RGB: AtomicU32 = AtomicU32::new(0xA970FF);
@@ -1065,7 +1064,6 @@ pub fn apply_density(ctx: &egui::Context, compact: bool) {
     ctx.set_style(style);
 }
 
-/// color at a opacity (0..1).
 pub fn alpha(color: Color32, a: f32) -> Color32 {
 '@ "accent and density helpers"
 $applyStart = $theme.IndexOf("pub fn apply(ctx: &egui::Context) {")
