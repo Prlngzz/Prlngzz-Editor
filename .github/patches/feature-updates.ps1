@@ -43,13 +43,76 @@ Save-Source $changelogPath $changelog
 
 $buildScript = @'
 #[cfg(windows)]
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+#[cfg(windows)]
+fn locate_resource_compiler() -> Result<PathBuf, String> {
+    let mut candidates = Vec::new();
+
+    if let Some(explicit) = std::env::var_os("RC") {
+        candidates.push(PathBuf::from(explicit));
+    }
+
+    if let Some(path) = std::env::var_os("PATH") {
+        candidates.extend(std::env::split_paths(&path).map(|dir| dir.join("rc.exe")));
+    }
+
+    if let Ok(output) = std::process::Command::new("where.exe").arg("rc.exe").output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            candidates.extend(stdout.lines().map(str::trim).filter(|line| !line.is_empty()).map(PathBuf::from));
+        }
+    }
+
+    let mut sdk_roots = Vec::new();
+    for key in ["WindowsSdkDir", "WindowsSDKDir"] {
+        if let Some(value) = std::env::var_os(key) {
+            sdk_roots.push(PathBuf::from(value));
+        }
+    }
+    if let Some(value) = std::env::var_os("WindowsSdkVerBinPath") {
+        let path = PathBuf::from(value);
+        candidates.push(path.join("x64").join("rc.exe"));
+        candidates.push(path.join("x86").join("rc.exe"));
+    }
+    if let Some(program_files) = std::env::var_os("ProgramFiles(x86)") {
+        sdk_roots.push(PathBuf::from(program_files).join("Windows Kits").join("10"));
+    }
+    if let Some(program_files) = std::env::var_os("ProgramFiles") {
+        sdk_roots.push(PathBuf::from(program_files).join("Windows Kits").join("10"));
+    }
+
+    for root in sdk_roots {
+        let bin = if root.file_name().is_some_and(|name| name.eq_ignore_ascii_case("bin")) {
+            root
+        } else {
+            root.join("bin")
+        };
+        if let Ok(entries) = std::fs::read_dir(&bin) {
+            let mut versions: Vec<PathBuf> = entries.filter_map(Result::ok)
+                .map(|entry| entry.path()).filter(|path| path.is_dir()).collect();
+            versions.sort_by_key(|path| std::cmp::Reverse(path.file_name().map(|name| name.to_os_string()).unwrap_or_default()));
+            for version in versions {
+                candidates.push(version.join("x64").join("rc.exe"));
+                candidates.push(version.join("x86").join("rc.exe"));
+            }
+        }
+        candidates.push(bin.join("x64").join("rc.exe"));
+        candidates.push(bin.join("x86").join("rc.exe"));
+        candidates.push(root.join("rc.exe"));
+    }
+
+    candidates.into_iter().find(|path| path.is_file())
+        .ok_or_else(|| format!(
+            "Could not locate rc.exe. Checked RC, PATH, WindowsSdkDir/WindowsSdkVerBinPath and Windows Kits SDK folders. PATH={}",
+            std::env::var("PATH").unwrap_or_default()
+        ))
+}
 
 fn main() {
     println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
     #[cfg(windows)]
     {
-        use std::process::Command;
         let version = std::env::var("CARGO_PKG_VERSION").expect("Cargo package version is missing");
         let numbers: Vec<u32> = version.split(['.', '-', '+']).take(4)
             .map(|part| part.parse::<u32>().unwrap_or(0)).collect();
@@ -88,9 +151,10 @@ BEGIN
 END
 "#);
         std::fs::write(&rc_path, resource).expect("could not write Windows version resource");
-        let status = Command::new("rc.exe").arg("/nologo").arg("/fo").arg(&res_path).arg(&rc_path).status()
-            .expect("Windows resource compiler rc.exe was not found");
-        assert!(status.success(), "Windows version resource compilation failed");
+        let rc = locate_resource_compiler().unwrap_or_else(|error| panic!("{error}"));
+        let status = std::process::Command::new(&rc).arg("/nologo").arg("/fo").arg(&res_path).arg(&rc_path).status()
+            .unwrap_or_else(|error| panic!("Could not start Windows resource compiler {}: {error}", rc.display()));
+        assert!(status.success(), "Windows version resource compilation failed using {}", rc.display());
         println!("cargo:rustc-link-arg-bins={}", res_path.display());
     }
 }
