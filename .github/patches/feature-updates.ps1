@@ -20,7 +20,7 @@ function Save-Source([string]$Path, [string]$Text) {
 # Version identity and Windows file properties.
 $cargoPath = Join-Path $Project "Cargo.toml"
 $cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.2.0"' "package version"
+$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.3.0"' "package version"
 Save-Source $cargoPath $cargo
 
 $lockPath = Join-Path $Project "Cargo.lock"
@@ -30,13 +30,13 @@ name = "prlngzz-editor"
 version = "0.1.0"
 '@ @'
 name = "prlngzz-editor"
-version = "0.2.0"
+version = "0.3.0"
 '@ "Cargo.lock package version"
 Save-Source $lockPath $lock
 
 $changelogPath = Join-Path $Project "changelog.json"
 $changelog = [IO.File]::ReadAllText($changelogPath)
-$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.2.0"' "changelog version"
+$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.3.0"' "changelog version"
 $changelog = $changelog.Replace('"Retains the Rust local cache browser, previews, replacement engine, original backups and cache monitoring from the supplied rbxcache foundation."', '"Groups six-face community skies, adds on-demand asset previews and improves texture preview resolution."')
 $changelog = $changelog.Replace('"Adds optional HTTPS-only community catalog, release and changelog endpoint configuration."', '"Adds multi-ID replacement pairing, reload-before-launch, extra accent choices and embedded Windows version metadata."')
 Save-Source $changelogPath $changelog
@@ -187,6 +187,7 @@ $gui = Replace-Once $gui @'
 '@ @'
     rivals_catalog_search: String,
     catalog_preview_id: Option<u64>,
+    library_tab: LibraryTab,
     focus: Option<Id>,
 '@ "catalogue preview state"
 $gui = Replace-Once $gui @'
@@ -203,6 +204,7 @@ $gui = Replace-Once $gui @'
 '@ @'
             rivals_catalog_search: String::new(),
             catalog_preview_id: None,
+            library_tab: LibraryTab::Skies,
             focus: None,
 '@ "catalogue preview initialization"
 $gui = Replace-Once $gui @'
@@ -218,13 +220,24 @@ $gui = Replace-Once $gui @'
 $libraryMethod = @'
     fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
         ui.horizontal(|ui| {
-            ui.label(egui::RichText::new("RIVALS ASSET LIBRARY").strong());
+            ui.label(egui::RichText::new("ASSET LIBRARY").strong());
             ui.add_space(8.0);
             ui.add(egui::TextEdit::singleline(&mut self.rivals_catalog_search)
-                .desired_width(280.0).hint_text("Search skins, skies, sounds or ID…"));
+                .desired_width(260.0).hint_text("Search this collection…"));
         });
-        ui.label(egui::RichText::new("Community skybox, weapon icon and sound IDs below are replacement assets. The separately labelled map-sky references are target IDs being replaced.")
-            .color(theme::MUTED).small());
+        ui.horizontal_wrapped(|ui| {
+            ui.selectable_value(&mut self.library_tab, LibraryTab::All, "All");
+            ui.selectable_value(&mut self.library_tab, LibraryTab::Skies, "Skies");
+            ui.selectable_value(&mut self.library_tab, LibraryTab::Textures, "Textures");
+            ui.selectable_value(&mut self.library_tab, LibraryTab::Sounds, "Sounds");
+        });
+        let tab_description = match self.library_tab {
+            LibraryTab::All => "Browse every collection in one place.",
+            LibraryTab::Skies => "65 individual six-face sky configurations.",
+            LibraryTab::Textures => "Community weapon textures and icons.",
+            LibraryTab::Sounds => "Community sound assets.",
+        };
+        ui.label(egui::RichText::new(tab_description).color(theme::MUTED).small());
 
         let query = self.rivals_catalog_search.trim().to_lowercase();
         let assets = rivals_asset_catalog();
@@ -304,12 +317,19 @@ $libraryMethod = @'
         });
 
         let matches: Vec<usize> = assets.iter().enumerate().filter_map(|(index, asset)| {
-            if asset.get("category").and_then(serde_json::Value::as_str) == Some("Community skybox") { return None; }
+            let category = asset.get("category").and_then(serde_json::Value::as_str);
+            let visible = match self.library_tab {
+                LibraryTab::All => category != Some("Community skybox"),
+                LibraryTab::Skies => false,
+                LibraryTab::Textures => category == Some("Weapon icon"),
+                LibraryTab::Sounds => category == Some("Community sound"),
+            };
+            if !visible { return None; }
             let search = rivals_catalog_search_text().get(index).map(String::as_str).unwrap_or("");
             (query.is_empty() || search.contains(&query)).then_some(index)
         }).collect();
         ui.add_space(8.0);
-        ui.label(egui::RichText::new(format!("{} other curated assets · {} shown", assets.len().saturating_sub(546), matches.len())).color(theme::MUTED).small());
+        ui.label(egui::RichText::new(format!("{} assets shown", matches.len())).color(theme::MUTED).small());
         egui::ScrollArea::vertical().auto_shrink([false, false]).show_rows(ui, 38.0, matches.len(), |ui, visible| {
             for row in visible {
                 let asset = &assets[matches[row]];
@@ -872,11 +892,11 @@ $gui = Replace-Once $gui @'
 $intro = @'
         if self.settings.animations && !self.startup_intro_skipped {
             let elapsed = (now - self.startup_intro_started) as f32;
-            let duration = 4.5_f32;
+            let duration = 3.2_f32;
             if elapsed < duration {
                 let t = (elapsed / duration).clamp(0.0, 1.0);
-                let fade_in = (t / 0.18).clamp(0.0, 1.0);
-                let fade_out = ((1.0 - t) / 0.18).clamp(0.0, 1.0);
+                let fade_in = (t / 0.22).clamp(0.0, 1.0);
+                let fade_out = ((1.0 - t) / 0.22).clamp(0.0, 1.0);
                 let opacity = fade_in.min(fade_out);
                 let rect = ctx.screen_rect();
                 egui::Area::new(egui::Id::new("prlngzz-startup-intro"))
@@ -884,26 +904,33 @@ $intro = @'
                     .fixed_pos(rect.min)
                     .show(ctx, |ui| {
                         ui.set_min_size(rect.size());
-                        let (surface, _) = ui.allocate_exact_size(rect.size(), egui::Sense::click());
+                        let (surface, _) = ui.allocate_exact_size(rect.size(), egui::Sense::hover());
                         let painter = ui.painter_at(surface);
-                        theme::splash_gradient(&painter, surface, 0.985 * opacity);
+                        theme::splash_gradient(&painter, surface, 0.975 * opacity);
                         let center = surface.center();
-                        let pulse = 1.0 + 0.035 * (elapsed * 2.2).sin();
-                        let radius = 74.0 * pulse;
-                        painter.circle_stroke(center, radius + 18.0, Stroke::new(1.2_f32, alpha(theme::accent(), 0.20 * opacity)));
-                        painter.circle_stroke(center, radius + 7.0, Stroke::new(2.0_f32, alpha(theme::accent(), 0.45 * opacity)));
-                        painter.circle_filled(center, radius, alpha(theme::CARD, 0.94 * opacity));
-                        painter.text(center, egui::Align2::CENTER_CENTER, "P", egui::FontId::new(76.0, egui::FontFamily::Proportional), alpha(theme::SPLASH_INK, opacity));
-                        let title_pos = egui::pos2(center.x, center.y + 112.0);
-                        painter.text(title_pos, egui::Align2::CENTER_CENTER, "PRLNGZZ EDITOR", egui::FontId::new(30.0, theme::wordmark_font()), alpha(theme::SPLASH_INK, opacity));
-                        painter.text(egui::pos2(center.x, title_pos.y + 34.0), egui::Align2::CENTER_CENTER, "RIVALS CUSTOMIZATION WORKSPACE", egui::FontId::proportional(12.0), alpha(theme::SPLASH_MUTED, opacity));
-                        let width = (surface.width() * 0.34).clamp(220.0, 420.0);
-                        let bar = Rect::from_center_size(egui::pos2(center.x, surface.bottom() - 66.0), Vec2::new(width, 3.0));
+                        let radius = 48.0;
+                        painter.circle_stroke(center, radius + 12.0,
+                            Stroke::new(1.0_f32, alpha(theme::accent(), 0.18 * opacity)));
+                        painter.circle_filled(center, radius, alpha(theme::CARD, 0.92 * opacity));
+                        painter.text(center, egui::Align2::CENTER_CENTER, "P",
+                            egui::FontId::new(52.0, egui::FontFamily::Proportional),
+                            alpha(theme::SPLASH_INK, opacity));
+                        let wordmark = egui::pos2(center.x, center.y + 82.0);
+                        painter.text(wordmark, egui::Align2::CENTER_CENTER, "PRLNGZZ EDITOR",
+                            egui::FontId::new(24.0, theme::wordmark_font()),
+                            alpha(theme::SPLASH_INK, opacity));
+                        painter.text(egui::pos2(center.x, wordmark.y + 28.0),
+                            egui::Align2::CENTER_CENTER, "A CLEANER ROBLOX WORKSPACE",
+                            egui::FontId::proportional(10.5),
+                            alpha(theme::SPLASH_MUTED, opacity));
+                        let width = (surface.width() * 0.28).clamp(180.0, 320.0);
+                        let bar = Rect::from_center_size(
+                            egui::pos2(center.x, surface.bottom() - 56.0),
+                            Vec2::new(width, 2.5));
                         painter.rect_filled(bar, CornerRadius::same(2), alpha(theme::BORDER, opacity));
-                        painter.rect_filled(Rect::from_min_size(bar.min, Vec2::new(width * t, bar.height())), CornerRadius::same(2), alpha(theme::SPLASH_BAR, opacity));
-                        if ui.put(Rect::from_min_size(egui::pos2(surface.right() - 112.0, surface.bottom() - 54.0), Vec2::new(92.0, 30.0)), egui::Button::new("Skip intro")).clicked() {
-                            self.startup_intro_skipped = true;
-                        }
+                        painter.rect_filled(
+                            Rect::from_min_size(bar.min, Vec2::new(width * t, bar.height())),
+                            CornerRadius::same(2), alpha(theme::SPLASH_BAR, opacity));
                     });
                 ctx.request_repaint_after(std::time::Duration::from_millis(16));
             } else {
@@ -911,8 +938,7 @@ $intro = @'
             }
         }
 
-'@
-# Place the intro immediately after the existing splash call.
+'@ll.
 $gui = Replace-Once $gui '        self.show_splash(ctx);' ('        self.show_splash(ctx);' + [char]10 + $intro.TrimEnd())
 Save-Source $guiPath $gui
 
@@ -1028,6 +1054,9 @@ const RIVALS_SKY_FACE_TARGETS: [(&str, [(&str, u64); 6]); 3] = [
         ("LF", 10196550128), ("RT", 10196549902), ("UP", 10196567794),
     ]),
 ];
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LibraryTab { All, Skies, Textures, Sounds }
 
 '@
 $gui = Replace-Once $gui @'
@@ -1594,9 +1623,6 @@ if ($smallButtonMatches -ne 10) { throw "Expected 10 simple small buttons to con
 $gui = [regex]::Replace($gui, '\bui\.small_button\(([^()\r\n]*)\)', 'bubbly_small_button(ui, $1)')
 $gui = Replace-Once $gui 'ui.small_button(format!("Preview {face}"))' 'bubbly_small_button(ui, format!("Preview {face}"))' "dynamic sky preview button"
 
-$gui = Replace-Once $gui 'egui::Button::new("Skip intro")' 'primary_button("Skip intro")' "bubbly intro skip button"
-$gui = Replace-Once $gui 'surface.right() - 112.0, surface.bottom() - 54.0' 'surface.right() - 194.0, surface.bottom() - 62.0' "intro skip button position"
-$gui = Replace-Once $gui 'Vec2::new(92.0, 30.0)' 'Vec2::new(180.0, 48.0)' "intro skip button hit area"
 $gui = Replace-Once $gui 'Vec2::new(ui.available_width(), 36.0), primary_button("Launch Roblox")' 'Vec2::new(ui.available_width(), 48.0), primary_button("Launch Roblox")' "larger sidebar launch button"
 
 $homeAnchor = @'
@@ -1627,28 +1653,7 @@ $homeHero = @'
 '@
 $gui = Replace-Once $gui $homeAnchor $homeHero "home page launch hero"
 
-$gui = Replace-Once $gui 'let duration = 4.5_f32;' 'let duration = 5.2_f32;' "cinematic intro duration"
-$introOrbitPattern = '(?m)^([ \t]*)let center = surface\.center\(\);\r?\n[ \t]*let pulse = 1\.0 \+ 0\.035 \* \(elapsed \* 2\.2\)\.sin\(\);'
-$introOrbitMatches = [regex]::Matches($gui, $introOrbitPattern).Count
-if ($introOrbitMatches -ne 1) { throw "Expected one logo pulse anchor for the intro; found $introOrbitMatches" }
-$gui = [regex]::Replace($gui, $introOrbitPattern, {
-    param($match)
-    $indent = $match.Groups[1].Value
-    @(
-        $indent + 'let center = surface.center();',
-        $indent + 'let orbit = 118.0 + 8.0 * (elapsed * 0.9).sin();',
-        $indent + 'for particle in 0..9 {',
-        $indent + '    let angle = elapsed * 0.42 + particle as f32 * std::f32::consts::TAU / 9.0;',
-        $indent + '    let position = center + egui::vec2(angle.cos() * orbit, angle.sin() * orbit * 0.58);',
-        $indent + '    let particle_radius = 2.5 + (particle % 3) as f32 * 1.1;',
-        $indent + '    painter.circle_filled(position, particle_radius + 3.0, alpha(theme::accent(), 0.045 * opacity));',
-        $indent + '    painter.circle_filled(position, particle_radius, alpha(theme::SPLASH_INK, 0.30 * opacity));',
-        $indent + '}',
-        $indent + 'let pulse = 1.0 + 0.045 * (elapsed * 2.2).sin();'
-    ) -join [Environment]::NewLine
-})
-$gui = Replace-Once $gui '"RIVALS CUSTOMIZATION WORKSPACE"' '"YOUR ROBLOX WORKSPACE, REFINED"' "intro brand subtitle"
-$gui = Replace-Once $gui 'Vec2::new(width, 3.0)' 'Vec2::new(width, 4.0)' "intro progress bar thickness"
+# The new intro stays intentionally minimal: a soft fade, restrained mark and slim progress line.
 
 Save-Source $guiPath $gui
 
@@ -1737,7 +1742,70 @@ $gui = [IO.File]::ReadAllText($guiPath)
 $gui = Replace-Once $gui 'impl Tab {' ($skyHelpers + 'impl Tab {') "individual JSON sky library loader"
 
 $skyUi = @'
-        let skies = sky_library_entries();
+        if self.library_tab == LibraryTab::Skies {
+            let skies = sky_library_entries();
+            let sky_count = skies.len();
+            let matching_skies = skies.iter().filter(|entry| {
+                query.is_empty() || entry.name.to_lowercase().contains(&query)
+                    || entry.faces.values().any(|id| id.to_string().contains(&query))
+            }).count();
+            ui.label(egui::RichText::new(format!("SKY CONFIGURATIONS · {sky_count} profiles · {matching_skies} shown"))
+                .strong());
+            ui.label(egui::RichText::new("Each sky has its own six-rule JSON profile. Apply loads and enables that sky configuration.")
+                .color(theme::MUTED).small());
+            egui::ScrollArea::vertical().max_height(430.0).show(ui, |ui| {
+                for entry in skies {
+                    if !query.is_empty() && !entry.name.to_lowercase().contains(&query)
+                        && !entry.faces.values().any(|id| id.to_string().contains(&query)) { continue; }
+                    let name = entry.name.as_str();
+                    let faces = &entry.faces;
+                    let order = ["FT", "BK", "RT", "LF", "UP", "DN"];
+                    let complete = entry.status == "ready" && order.iter().all(|face| faces.contains_key(*face));
+                    egui::Frame::group(ui.style()).show(ui, |ui| {
+                        ui.horizontal_wrapped(|ui| {
+                            ui.label(egui::RichText::new(name).strong());
+                            theme::pill(ui, &format!("{}/6 faces", faces.len()), if complete { theme::OK } else { theme::WARN });
+                            if complete && bubbly_small_button(ui, "Apply").clicked() {
+                                match crate::studio::ProfileDocument::parse_native(entry.json) {
+                                    Ok(profile) => {
+                                        let validation = profile.validation();
+                                        if validation.errors.is_empty() && validation.enabled_rules == 6 {
+                                            actions.push(Action::ApplyGeneratedProfile(profile));
+                                        } else {
+                                            self.studio_status = format!("{} JSON failed validation: {}", name, validation.errors.join("; "));
+                                        }
+                                    }
+                                    Err(error) => self.studio_status = format!("Could not load {} JSON: {error:#}", name),
+                                }
+                            }
+                        });
+                        ui.horizontal_wrapped(|ui| {
+                            for face in order {
+                                if faces.contains_key(face) {
+                                    ui.label(egui::RichText::new(face).color(theme::MUTED).small());
+                                }
+                            }
+                        });
+                        ui.label(egui::RichText::new(entry.archive.clone()).color(theme::MUTED).small());
+                    });
+                }
+            });
+            if skies.len() != 65 {
+                ui.label(egui::RichText::new(format!("Expected 65 sky configurations; found {}", skies.len()))
+                    .color(theme::WARN).small());
+            }
+            let map_targets: Vec<String> = assets.iter()
+                .filter(|asset| asset.get("category").and_then(serde_json::Value::as_str) == Some("RIVALS map sky texture"))
+                .filter_map(|asset| asset.get("id").and_then(serde_json::Value::as_str).map(str::to_owned)).collect();
+            ui.horizontal_wrapped(|ui| {
+                ui.label(egui::RichText::new(format!("{} map-sky target IDs", map_targets.len())).color(theme::MUTED).small());
+                if !map_targets.is_empty() && ui.small_button("Load as target IDs").clicked() {
+                    self.studio_target_input = map_targets.join("\\n");
+                    self.show_tab(Tab::Studio, ui.ctx());
+                }
+            });
+        }
+        let matches: Vec<usize> = assets
         let sky_count = skies.len();
         let matching_skies = skies.iter().filter(|entry| {
             query.is_empty() || entry.name.to_lowercase().contains(&query)
