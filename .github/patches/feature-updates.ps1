@@ -418,7 +418,7 @@ $newMethod = @'
 $gui = $gui.Substring(0, $methodStart) + $newMethod + $gui.Substring($methodEnd)
 $labelOld = 'ui.label(egui::RichText::new("Replacement asset ID").color(theme::MUTED).small());'
 $gui = $gui.Replace($labelOld, 'ui.label(egui::RichText::new("Replacement asset ID(s) · one per target, or one for all").color(theme::MUTED).small());')
-$gui = Replace-Once $gui 'ui.label(egui::RichText::new("Replacement asset ID").color(theme::MUTED).small());' 'ui.label(egui::RichText::new("Replacement asset ID(s) · one per target, or one for all").color(theme::MUTED).small());' "replacement list label"
+$gui = $gui.Replace('ui.label(egui::RichText::new("Replacement asset ID").color(theme::MUTED).small());', 'ui.label(egui::RichText::new("Replacement asset ID(s) · one per target, or one for all").color(theme::MUTED).small());')
 $gui = $gui.Replace('ui.text_edit_singleline(&mut self.studio_replacement_input);', 'ui.add(egui::TextEdit::multiline(&mut self.studio_replacement_input).desired_rows(3).desired_width(260.0).hint_text("Replacement IDs, one per line"));')
 if (!$gui.Contains('egui::TextEdit::multiline(&mut self.studio_replacement_input)')) { throw "Replacement ID list fields were not updated" }
 
