@@ -20,7 +20,7 @@ function Save-Source([string]$Path, [string]$Text) {
 # Version identity and Windows file properties.
 $cargoPath = Join-Path $Project "Cargo.toml"
 $cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.3.1"' "package version"
+$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.3.2"' "package version"
 Save-Source $cargoPath $cargo
 
 $lockPath = Join-Path $Project "Cargo.lock"
@@ -30,13 +30,13 @@ name = "prlngzz-editor"
 version = "0.1.0"
 '@ @'
 name = "prlngzz-editor"
-version = "0.3.1"
+version = "0.3.2"
 '@ "Cargo.lock package version"
 Save-Source $lockPath $lock
 
 $changelogPath = Join-Path $Project "changelog.json"
 $changelog = [IO.File]::ReadAllText($changelogPath)
-$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.3.1"' "changelog version"
+$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.3.2"' "changelog version"
 $changelog = $changelog.Replace('"Retains the Rust local cache browser, previews, replacement engine, original backups and cache monitoring from the supplied rbxcache foundation."', '"Groups six-face community skies, adds on-demand asset previews and improves texture preview resolution."')
 $changelog = $changelog.Replace('"Adds optional HTTPS-only community catalog, release and changelog endpoint configuration."', '"Adds multi-ID replacement pairing, reload-before-launch, extra accent choices and embedded Windows version metadata."')
 Save-Source $changelogPath $changelog
@@ -1957,7 +1957,11 @@ $faceSpecs = @(
 $archiveFaceMapPath = Join-Path $env:GITHUB_WORKSPACE ".github/assets/sky-face-map.json"
 $archiveFaceMap = @{}
 if (Test-Path $archiveFaceMapPath) {
-    $archiveFaceMap = Get-Content -LiteralPath $archiveFaceMapPath -Raw | ConvertFrom-Json -AsHashtable
+    $archiveFaceMapJson = Get-Content -LiteralPath $archiveFaceMapPath -Raw | ConvertFrom-Json
+    $archiveFaceMap = @{}
+    foreach ($property in $archiveFaceMapJson.PSObject.Properties) {
+        $archiveFaceMap[$property.Name] = $property.Value
+    }
 }
 
 # Legacy verified texture-repository names remain a fallback when an original archive has no usable face.
