@@ -1,1 +1,332 @@
-<PLACEHOLDER>
+{
+  "version": 1,
+  "source": "PrlngzzSkies.zip",
+  "count": 65,
+  "items": [
+    {
+      "name": "Aurora",
+      "archive": "Skyboxes/Aurora.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Beautfil [From tutorial]",
+      "archive": "Skyboxes/Beautfil [From tutorial].zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "blackhole_skybox",
+      "archive": "Skyboxes/blackhole_skybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Blue",
+      "archive": "Skyboxes/Blue.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "broken sky skybox",
+      "archive": "Skyboxes/broken sky skybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "castle grounds skybox",
+      "archive": "Skyboxes/castle grounds skybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Chill gray",
+      "archive": "Skyboxes/Chill gray.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Chill pink",
+      "archive": "Skyboxes/Chill pink.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Clear Skies Skybox",
+      "archive": "Skyboxes/Clear Skies Skybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Cyan",
+      "archive": "Skyboxes/Cyan.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "DeadStarForestbyLiquidicy",
+      "archive": "Skyboxes/DeadStarForestbyLiquidicy.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "ElegentMorningSky",
+      "archive": "Skyboxes/ElegentMorningSky.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Emo",
+      "archive": "Skyboxes/Emo.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "FadeBlueSky",
+      "archive": "Skyboxes/FadeBlueSky.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "forest",
+      "archive": "Skyboxes/forest.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Goodnight",
+      "archive": "Skyboxes/Goodnight.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "grimnight",
+      "archive": "Skyboxes/grimnight.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Hades",
+      "archive": "Skyboxes/Hades.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Hazy",
+      "archive": "Skyboxes/Hazy.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "jungle_csgo",
+      "archive": "Skyboxes/jungle_csgo.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Light Blue",
+      "archive": "Skyboxes/Light Blue.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Light pink",
+      "archive": "Skyboxes/Light pink.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "MCEndSkybytoby109tt",
+      "archive": "Skyboxes/MCEndSkybytoby109tt.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "MCSkybox",
+      "archive": "Skyboxes/MCSkybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Moonlight",
+      "archive": "Skyboxes/Moonlight.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "NeonSky",
+      "archive": "Skyboxes/NeonSky.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "NeonSky2",
+      "archive": "Skyboxes/NeonSky2.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Night",
+      "archive": "Skyboxes/Night.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "NightSkyWMoon",
+      "archive": "Skyboxes/NightSkyWMoon.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Northern Lights Skybox",
+      "archive": "Skyboxes/Northern Lights Skybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Oblivion",
+      "archive": "Skyboxes/Oblivion.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Orange",
+      "archive": "Skyboxes/Orange.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "orcsky2",
+      "archive": "Skyboxes/orcsky2.zip",
+      "archive_type": "rar"
+    },
+    {
+      "name": "Overcast",
+      "archive": "Skyboxes/Overcast.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Pandora [From tutorial]",
+      "archive": "Skyboxes/Pandora [From tutorial].zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "PeacefullMorningSky",
+      "archive": "Skyboxes/PeacefullMorningSky.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Pink Sunrise",
+      "archive": "Skyboxes/Pink Sunrise.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Pumpkin Hill Skybox",
+      "archive": "Skyboxes/Pumpkin Hill Skybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Purple Nebula Skybox",
+      "archive": "Skyboxes/Purple Nebula Skybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Red",
+      "archive": "Skyboxes/Red.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "SettingSunSky",
+      "archive": "Skyboxes/SettingSunSky.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "SFOTH",
+      "archive": "Skyboxes/SFOTH.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Shiverfrost",
+      "archive": "Skyboxes/Shiverfrost.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky2006",
+      "archive": "Skyboxes/sky2006.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_05",
+      "archive": "Skyboxes/sky_05.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_13",
+      "archive": "Skyboxes/sky_13.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_22",
+      "archive": "Skyboxes/sky_22.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_31",
+      "archive": "Skyboxes/sky_31.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_38",
+      "archive": "Skyboxes/sky_38.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_47",
+      "archive": "Skyboxes/sky_47.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_Disaster",
+      "archive": "Skyboxes/sky_Disaster.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_nibiru_bl",
+      "archive": "Skyboxes/sky_nibiru_bl.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_purple",
+      "archive": "Skyboxes/sky_purple.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_sunset",
+      "archive": "Skyboxes/sky_sunset.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "sky_universe",
+      "archive": "Skyboxes/sky_universe.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Space Blue",
+      "archive": "Skyboxes/Space Blue.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Spooky",
+      "archive": "Skyboxes/Spooky.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Sunny Sky",
+      "archive": "Skyboxes/Sunny Sky.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Universe",
+      "archive": "Skyboxes/Universe.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Utter East",
+      "archive": "Skyboxes/Utter East.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Vibrant Blue Skies Skybox",
+      "archive": "Skyboxes/Vibrant Blue Skies Skybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "whomp fortress",
+      "archive": "Skyboxes/whomp fortress.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "Winterness",
+      "archive": "Skyboxes/Winterness.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "XenSkybox",
+      "archive": "Skyboxes/XenSkybox.zip",
+      "archive_type": "zip"
+    },
+    {
+      "name": "ZenEnd",
+      "archive": "Skyboxes/ZenEnd.zip",
+      "archive_type": "zip"
+    }
+  ]
+}
