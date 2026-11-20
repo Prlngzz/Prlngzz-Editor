@@ -1111,17 +1111,6 @@ $gui = Replace-Once $gui @'
 '@ "Customization page route"
 
 
-$oldRows = @'
-        let rows = [
-            (Tab::Overview, "Overview", "Your workspace"),
-            (Tab::Rivals, "RIVALS Workspace", "Game-specific profiles"),
-            (Tab::Studio, "Config Studio", "Build and edit JSON"),
-            (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),
-            (Tab::All, "Asset Library", "RIVALS-tagged assets only"),
-            (Tab::Packs, "Game Library", "Community and local packs"),
-            (Tab::Settings, "Settings", "Appearance and behavior"),
-        ];
-'@
 $newRows = @'
         let rows = [
             (Tab::Configs, "Config Manager", "Active skin and removal rules"),
@@ -1135,7 +1124,8 @@ $newRows = @'
             (Tab::Settings, "Settings", "Cache behavior and application"),
         ];
 '@
-$gui = Replace-Once $gui $oldRows $newRows "Config Manager first in sidebar"
+$gui = Replace-RegexOnce $gui '(?s)        let rows = \[.*?        \];(?=\r?\n        for \(index, \(tab, label, hint\)\) in rows\.iter\(\)\.enumerate\(\))' $newRows "Config Manager first in sidebar"
+
 
 # Add lightweight vector-font glyphs and adjust the sidebar for compact mode.
 $gui = Replace-Once $gui '            let x = rect.left() + 23.0;' @'
