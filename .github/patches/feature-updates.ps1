@@ -1728,7 +1728,7 @@ fn sky_library_entries() -> &'static [SkyLibraryEntry] {
     }).as_slice()
 }
 
-'@;
+'@
 $skyHelpers = $skyHelpers.Replace("__SKY_JSON_INCLUDES__", $skyIncludes)
 $guiPath = Join-Path $Project "src/gui.rs"
 $gui = [IO.File]::ReadAllText($guiPath)
@@ -1794,7 +1794,7 @@ $skyUi = @'
         ui.label(egui::RichText::new("All 65 JSON files are individual library entries. Entries with missing face IDs stay visible but cannot be applied until their source assets are added.")
             .color(theme::WARN).small());
         let matches: Vec<usize> = assets
-'@;
+'@
 $gui = Replace-RegexOnce $gui '        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new\(\);[\s\S]*?        let matches: Vec<usize> = assets' $skyUi "replace grouped catalogue skies with individual JSON profiles"
 
 $gui = Replace-Once $gui @'
