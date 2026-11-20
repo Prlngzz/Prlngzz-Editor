@@ -1961,7 +1961,7 @@ $oldTest = @'
                 applyable += 1;
                 assert_eq!(sky.faces.len(), 6, "{} must have six face IDs", sky.name);
                 assert!(order.iter().all(|face| sky.faces.contains_key(*face)), "{} has an incomplete face map", sky.name);
-                let profile = crate::studio::ProfileDocument::parse_native(sky.json).unwrap();
+                let profile = crate::studio::ProfileDocument::import_fleasion(sky.json).unwrap();
                 let validation = profile.validation();
                 assert!(validation.errors.is_empty(), "{} profile errors: {:?}", sky.name, validation.errors);
                 assert_eq!(validation.enabled_rules, 18, "{} must enable 18 map-face rules", sky.name);
