@@ -321,7 +321,7 @@ $libraryMethod = @'
             let visible = match self.library_tab {
                 LibraryTab::All => category != Some("Community skybox"),
                 LibraryTab::Skies => false,
-                LibraryTab::Textures => category == Some("Weapon icon"),
+                LibraryTab::Textures => category == Some("Weapon icon") || category == Some("RIVALS map sky texture"),
                 LibraryTab::Sounds => category == Some("Community sound"),
             };
             if !visible { return None; }
@@ -1708,6 +1708,7 @@ struct SkyLibraryEntry {
     name: String,
     archive: String,
     status: String,
+    available_faces: usize,
     json: &'static str,
     faces: BTreeMap<String, u64>,
 }
@@ -1726,12 +1727,13 @@ fn sky_library_entries() -> &'static [SkyLibraryEntry] {
                 .unwrap_or("").to_owned();
             let status = metadata.get("status").and_then(serde_json::Value::as_str)
                 .unwrap_or("needs_face_assets").to_owned();
+            let available_faces = metadata.get("available_faces").and_then(serde_json::Value::as_u64).unwrap_or(0) as usize;
             let faces = value.get("faces").and_then(serde_json::Value::as_object)
                 .map(|object| object.iter().filter_map(|(face, id)| {
                     id.as_u64().map(|value| (face.clone(), value))
                 }).collect())
                 .unwrap_or_default();
-            SkyLibraryEntry { name, archive, status, json, faces }
+            SkyLibraryEntry { name, archive, status, available_faces, json, faces }
         }).collect()
     }).as_slice()
 }
@@ -1745,65 +1747,80 @@ $gui = Replace-Once $gui 'impl Tab {' ($skyHelpers + 'impl Tab {') "individual J
 $skyUi = @'
         if self.library_tab == LibraryTab::Skies {
             let skies = sky_library_entries();
-            let sky_count = skies.len();
-            let matching_skies = skies.iter().filter(|entry| {
+            let visible_skies: Vec<&SkyLibraryEntry> = skies.iter().filter(|entry| {
                 query.is_empty() || entry.name.to_lowercase().contains(&query)
                     || entry.faces.values().any(|id| id.to_string().contains(&query))
-            }).count();
-            ui.label(egui::RichText::new(format!("SKY CONFIGURATIONS · {sky_count} profiles · {matching_skies} shown"))
-                .strong());
-            ui.label(egui::RichText::new("Each sky has its own JSON profile. Apply JSON loads that exact profile, validates its six face IDs, creates 18 RIVALS map-face rules and automatically enables the resulting config. Preview opens the selected face asset.")
+            }).collect();
+            let ready_count = skies.iter().filter(|entry| entry.status == "ready" && entry.available_faces == 6).count();
+            ui.horizontal_wrapped(|ui| {
+                ui.label(egui::RichText::new("COMMUNITY SKYBOXES").strong());
+                theme::pill(ui, &format!("{ready_count} ready"), theme::OK);
+                theme::pill(ui, &format!("{} in library", skies.len()), theme::MUTED);
+            });
+            ui.label(egui::RichText::new("Choose a six-face look. Apply imports the same Fleasion-style replacement_rules JSON, then enables the saved config automatically.")
                 .color(theme::MUTED).small());
-            egui::ScrollArea::vertical().max_height(430.0).show(ui, |ui| {
-                for entry in skies {
-                    if !query.is_empty() && !entry.name.to_lowercase().contains(&query)
-                        && !entry.faces.values().any(|id| id.to_string().contains(&query)) { continue; }
-                    let name = entry.name.as_str();
-                    let faces = &entry.faces;
-                    let order = ["FT", "BK", "RT", "LF", "UP", "DN"];
-                    let complete = entry.status == "ready" && order.iter().all(|face| faces.contains_key(*face));
-                    egui::Frame::group(ui.style()).show(ui, |ui| {
-                        ui.horizontal_wrapped(|ui| {
-                            ui.label(egui::RichText::new(name).strong());
-                            theme::pill(ui, &format!("{}/6 faces", faces.len()), if complete { theme::OK } else { theme::WARN });
-                            if complete && bubbly_small_button(ui, "Apply").clicked() {
-                                match crate::studio::ProfileDocument::parse_native(entry.json) {
-                                    Ok(profile) => {
-                                        let validation = profile.validation();
-                                        if validation.errors.is_empty() && validation.enabled_rules == 6 {
-                                            actions.push(Action::ApplyGeneratedProfile(profile));
-                                        } else {
-                                            self.studio_status = format!("{} JSON failed validation: {}", name, validation.errors.join("; "));
+            ui.add_space(8.0);
+            ui.label(egui::RichText::new(format!("{} matching sky profiles", visible_skies.len()))
+                .color(theme::MUTED).small());
+            egui::ScrollArea::vertical().max_height(500.0).auto_shrink([false, false]).show(ui, |ui| {
+                ui.columns(3, |columns| {
+                    for (index, entry) in visible_skies.iter().enumerate() {
+                        let column = &mut columns[index % 3];
+                        column.push_id(("sky-library-card", &entry.name), |ui| {
+                            card(ui, 1.0, |ui| {
+                                ui.horizontal_wrapped(|ui| {
+                                    ui.label(egui::RichText::new(&entry.name).strong().size(15.0));
+                                    if entry.status == "ready" && entry.available_faces == 6 {
+                                        theme::pill(ui, "READY", theme::OK);
+                                    } else {
+                                        theme::pill(ui, format!("{}/6 CDN", entry.available_faces), theme::WARN);
+                                    }
+                                });
+                                ui.label(egui::RichText::new("RIVALS · SIX-FACE SKYBOX")
+                                    .color(theme::MUTED).small());
+                                ui.add_space(6.0);
+                                ui.horizontal_wrapped(|ui| {
+                                    for face in ["BK", "DN", "FT", "LF", "RT", "UP"] {
+                                        if let Some(id) = entry.faces.get(face) {
+                                            if ui.small_button(face).on_hover_text(format!("Preview replacement asset {id}")).clicked() {
+                                                actions.push(Action::PreviewCatalog(*id));
+                                            }
                                         }
                                     }
-                                    Err(error) => self.studio_status = format!("Could not load {} JSON: {error:#}", name),
+                                });
+                                ui.add_space(5.0);
+                                if entry.status == "ready" && entry.available_faces == 6 {
+                                    if bubbly_small_button(ui, "Apply sky").clicked() {
+                                        match crate::studio::ProfileDocument::import_fleasion(entry.json) {
+                                            Ok(profile) => {
+                                                let validation = profile.validation();
+                                                if validation.errors.is_empty() && validation.enabled_rules == 6 {
+                                                    actions.push(Action::ApplyGeneratedProfile(profile));
+                                                } else {
+                                                    self.studio_status = format!("{} JSON failed validation: {}", entry.name, validation.errors.join("; "));
+                                                }
+                                            }
+                                            Err(error) => self.studio_status = format!("Could not load {} JSON: {error:#}", entry.name),
+                                        }
+                                    }
+                                } else {
+                                    let missing = 6usize.saturating_sub(entry.available_faces);
+                                    ui.label(egui::RichText::new(format!("{missing} face image{} still need hosting", if missing == 1 { "" } else { "s" }))
+                                        .color(theme::WARN).small());
                                 }
-                            }
+                                ui.label(egui::RichText::new(&entry.archive).color(theme::MUTED).small());
+                            });
                         });
-                        ui.horizontal_wrapped(|ui| {
-                            for face in order {
-                                if faces.contains_key(face) {
-                                    ui.label(egui::RichText::new(face).color(theme::MUTED).small());
-                                }
-                            }
-                        });
-                        if !complete {
-                            ui.label(egui::RichText::new(format!("Face IDs needed · {}", entry.archive)).color(theme::WARN).small());
-                        } else {
-                            ui.label(egui::RichText::new(entry.archive.clone()).color(theme::MUTED).small());
-                        }
-                    });
-                }
+                    }
+                });
             });
-            ui.label(egui::RichText::new("All 65 JSON files are individual library entries. Entries with missing face IDs stay visible but cannot be applied until their source assets are added.")
-                .color(theme::WARN).small());
             let map_targets: Vec<String> = assets.iter()
                 .filter(|asset| asset.get("category").and_then(serde_json::Value::as_str) == Some("RIVALS map sky texture"))
                 .filter_map(|asset| asset.get("id").and_then(serde_json::Value::as_str).map(str::to_owned)).collect();
             ui.horizontal_wrapped(|ui| {
                 ui.label(egui::RichText::new(format!("{} map-sky target IDs", map_targets.len())).color(theme::MUTED).small());
                 if !map_targets.is_empty() && ui.small_button("Load as target IDs").clicked() {
-                    self.studio_target_input = map_targets.join("\\n");
+                    self.studio_target_input = map_targets.join("\n");
                     self.show_tab(Tab::Studio, ui.ctx());
                 }
             });
