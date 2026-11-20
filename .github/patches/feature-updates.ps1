@@ -1939,14 +1939,6 @@ $guiPath = Join-Path $Project "src/gui.rs"
 $gui = [IO.File]::ReadAllText($guiPath)
 $gui = $gui.Replace('crate::studio::ProfileDocument::parse_native(entry.json)', 'crate::studio::ProfileDocument::import_fleasion(entry.json)')
 $gui = $gui.Replace('crate::studio::ProfileDocument::parse_native(sky.json)', 'crate::studio::ProfileDocument::import_fleasion(sky.json)')
-$gui = Replace-Once $gui 'let complete = entry.status == "ready" && order.iter().all(|face| faces.contains_key(*face));' 'let complete = entry.status == "ready";' "CDN-complete apply gate"
-$gui = Replace-Once $gui 'theme::pill(ui, &format!("{}/6 faces", faces.len()), if complete { theme::OK } else { theme::WARN });' 'theme::pill(ui, if complete { "CDN 6/6" } else { "CDN pending" }, if complete { theme::OK } else { theme::WARN });' "CDN availability badge"
-$gui = Replace-Once $gui 'Face IDs needed · {}' 'CDN image files needed · {}' "CDN missing asset message"
-$gui = Replace-Once $gui 'Each sky has its own JSON profile. Apply JSON loads that exact profile, validates its six face IDs, creates 18 RIVALS map-face rules and automatically enables the resulting config. Preview opens the selected face asset.' 'Each sky has its own Fleasion-compatible JSON. Apply JSON imports six Sk* CDN rules; every rule targets all six default RIVALS IDs, then the checked profile is automatically enabled. Preview opens the selected Roblox face asset.' "CDN rule explanation"
-$gui = Replace-Once $gui 'All 65 JSON files are individual library entries. Entries with missing face IDs stay visible but cannot be applied until their source assets are added.' 'All 65 JSON files use six multi-ID CDN rules. Apply is enabled when all six image files exist in Prlngzz-Textures; entries missing CDN files remain visible but cannot be applied yet.' "CDN library explanation"
-$gui = $gui.Replace('the six face IDs', 'the six CDN face URLs')
-$gui = $gui.Replace('18-rule profile check', 'six-rule CDN profile check')
-$gui = $gui.Replace('validation.enabled_rules == 18', 'validation.enabled_rules == 6')
 Save-Source $guiPath $gui
 
 # Rewrite the 65 repository JSON files into the Fleasion replacement_rules schema.
