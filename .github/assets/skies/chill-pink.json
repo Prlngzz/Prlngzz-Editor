@@ -1,269 +1,114 @@
 {
-  "format": "prlngzz-editor",
-  "schema_version": 1,
-  "profile": {
-    "name": "Chill pink Skybox",
-    "game": "RIVALS",
-    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
-  },
-  "rules": [
-    {
-      "id": "rule-001",
-      "name": "Chill pink · Blue · BK",
-      "enabled": true,
-      "targets": [
-        14147881792
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 118254399894024
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-002",
-      "name": "Chill pink · Blue · DN",
-      "enabled": true,
-      "targets": [
-        14147882149
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 85716664023514
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-003",
-      "name": "Chill pink · Blue · FT",
-      "enabled": true,
-      "targets": [
-        14147882761
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 85009657482785
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-004",
-      "name": "Chill pink · Blue · LF",
-      "enabled": true,
-      "targets": [
-        14147883091
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 131849586353390
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-005",
-      "name": "Chill pink · Blue · RT",
-      "enabled": true,
-      "targets": [
-        14147882405
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 104031429125910
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-006",
-      "name": "Chill pink · Blue · UP",
-      "enabled": true,
-      "targets": [
-        14147881297
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 134439405617170
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-007",
-      "name": "Chill pink · Station · BK",
-      "enabled": true,
-      "targets": [
-        2108482005
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 118254399894024
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-008",
-      "name": "Chill pink · Station · DN",
-      "enabled": true,
-      "targets": [
-        2108545280
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 85716664023514
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-009",
-      "name": "Chill pink · Station · FT",
-      "enabled": true,
-      "targets": [
-        2108482231
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 85009657482785
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-010",
-      "name": "Chill pink · Station · LF",
-      "enabled": true,
-      "targets": [
-        2108482395
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 131849586353390
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-011",
-      "name": "Chill pink · Station · RT",
-      "enabled": true,
-      "targets": [
-        2108482542
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 104031429125910
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-012",
-      "name": "Chill pink · Station · UP",
-      "enabled": true,
-      "targets": [
-        2108482676
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 134439405617170
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-013",
-      "name": "Chill pink · Space · BK",
-      "enabled": true,
-      "targets": [
-        10196550937
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 118254399894024
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-014",
-      "name": "Chill pink · Space · DN",
-      "enabled": true,
-      "targets": [
-        10196550667
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 85716664023514
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-015",
-      "name": "Chill pink · Space · FT",
-      "enabled": true,
-      "targets": [
-        10196550367
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 85009657482785
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-016",
-      "name": "Chill pink · Space · LF",
-      "enabled": true,
-      "targets": [
-        10196550128
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 131849586353390
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-017",
-      "name": "Chill pink · Space · RT",
-      "enabled": true,
-      "targets": [
-        10196549902
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 104031429125910
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-018",
-      "name": "Chill pink · Space · UP",
-      "enabled": true,
-      "targets": [
-        10196567794
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 134439405617170
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    }
-  ],
-  "sky_library": {
-    "id": "chill-pink",
-    "name": "Chill pink",
-    "archive": "Skyboxes/Chill pink.zip",
-    "archive_type": "zip",
-    "catalog_name": "Chill Pink",
-    "status": "ready",
-    "available_faces": 6,
-    "required_faces": 6,
-    "supported_maps": [
-      "Blue",
-      "Station",
-      "Space"
-    ],
-    "missing_reason": null
-  },
-  "faces": {
-    "BK": 118254399894024,
-    "DN": 85716664023514,
-    "FT": 85009657482785,
-    "LF": 131849586353390,
-    "RT": 104031429125910,
-    "UP": 134439405617170
-  }
+    "name":  "Chill pink Skybox",
+    "game":  "RIVALS",
+    "description":  "Six CDN skybox face rules. Each rule targets the six default RIVALS sky asset IDs and replaces them with this sky\u0027s corresponding image.",
+    "replacement_rules":  [
+                              {
+                                  "name":  "SkBack",
+                                  "replace_ids":  [
+                                                      2108482005,
+                                                      14147881792,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550937,
+                                                      12261809766
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Chill%20Pink%20Back.png"
+                              },
+                              {
+                                  "name":  "SkDown",
+                                  "replace_ids":  [
+                                                      2108545280,
+                                                      10196550667,
+                                                      14147882149,
+                                                      103020541883227,
+                                                      89972436184102,
+                                                      12261813110
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Chill%20Pink%20Down.png"
+                              },
+                              {
+                                  "name":  "SkFront",
+                                  "replace_ids":  [
+                                                      14147882761,
+                                                      12261809766,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550367,
+                                                      2108482231
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Chill%20Pink%20Front.png"
+                              },
+                              {
+                                  "name":  "SkLeft",
+                                  "replace_ids":  [
+                                                      14147883091,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482395,
+                                                      12261809766,
+                                                      10196550128
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Chill%20Pink%20Left.png"
+                              },
+                              {
+                                  "name":  "SkRight",
+                                  "replace_ids":  [
+                                                      14147882405,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482542,
+                                                      12261809766,
+                                                      10196549902
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Chill%20Pink%20Right.png"
+                              },
+                              {
+                                  "name":  "SkUp",
+                                  "replace_ids":  [
+                                                      14147881297,
+                                                      72960281658487,
+                                                      92138082970751,
+                                                      2108482676,
+                                                      10196567794,
+                                                      12261813678
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Chill%20Pink%20Up.png"
+                              }
+                          ],
+    "sky_library":  {
+                        "id":  "chill-pink",
+                        "name":  "Chill pink",
+                        "archive":  "Skyboxes/Chill pink.zip",
+                        "archive_type":  "zip",
+                        "catalog_name":  "Chill Pink",
+                        "status":  "ready",
+                        "available_faces":  6,
+                        "required_faces":  6,
+                        "cdn_files_found":  6,
+                        "cdn_files_missing":  [
+
+                                              ],
+                        "replacement_rule_count":  6
+                    },
+    "faces":  {
+                  "BK":  118254399894024,
+                  "DN":  85716664023514,
+                  "FT":  85009657482785,
+                  "LF":  131849586353390,
+                  "RT":  104031429125910,
+                  "UP":  134439405617170
+              }
 }

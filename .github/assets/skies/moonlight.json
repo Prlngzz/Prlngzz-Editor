@@ -1,269 +1,114 @@
 {
-  "format": "prlngzz-editor",
-  "schema_version": 1,
-  "profile": {
-    "name": "Moonlight Skybox",
-    "game": "RIVALS",
-    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
-  },
-  "rules": [
-    {
-      "id": "rule-001",
-      "name": "Moonlight · Blue · BK",
-      "enabled": true,
-      "targets": [
-        14147881792
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 98895094117807
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-002",
-      "name": "Moonlight · Blue · DN",
-      "enabled": true,
-      "targets": [
-        14147882149
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 98962847961441
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-003",
-      "name": "Moonlight · Blue · FT",
-      "enabled": true,
-      "targets": [
-        14147882761
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 134374834765126
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-004",
-      "name": "Moonlight · Blue · LF",
-      "enabled": true,
-      "targets": [
-        14147883091
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 128874794490495
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-005",
-      "name": "Moonlight · Blue · RT",
-      "enabled": true,
-      "targets": [
-        14147882405
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 138146075324352
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-006",
-      "name": "Moonlight · Blue · UP",
-      "enabled": true,
-      "targets": [
-        14147881297
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 128466147827573
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-007",
-      "name": "Moonlight · Station · BK",
-      "enabled": true,
-      "targets": [
-        2108482005
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 98895094117807
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-008",
-      "name": "Moonlight · Station · DN",
-      "enabled": true,
-      "targets": [
-        2108545280
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 98962847961441
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-009",
-      "name": "Moonlight · Station · FT",
-      "enabled": true,
-      "targets": [
-        2108482231
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 134374834765126
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-010",
-      "name": "Moonlight · Station · LF",
-      "enabled": true,
-      "targets": [
-        2108482395
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 128874794490495
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-011",
-      "name": "Moonlight · Station · RT",
-      "enabled": true,
-      "targets": [
-        2108482542
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 138146075324352
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-012",
-      "name": "Moonlight · Station · UP",
-      "enabled": true,
-      "targets": [
-        2108482676
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 128466147827573
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-013",
-      "name": "Moonlight · Space · BK",
-      "enabled": true,
-      "targets": [
-        10196550937
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 98895094117807
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-014",
-      "name": "Moonlight · Space · DN",
-      "enabled": true,
-      "targets": [
-        10196550667
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 98962847961441
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-015",
-      "name": "Moonlight · Space · FT",
-      "enabled": true,
-      "targets": [
-        10196550367
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 134374834765126
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-016",
-      "name": "Moonlight · Space · LF",
-      "enabled": true,
-      "targets": [
-        10196550128
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 128874794490495
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-017",
-      "name": "Moonlight · Space · RT",
-      "enabled": true,
-      "targets": [
-        10196549902
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 138146075324352
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-018",
-      "name": "Moonlight · Space · UP",
-      "enabled": true,
-      "targets": [
-        10196567794
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 128466147827573
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    }
-  ],
-  "sky_library": {
-    "id": "moonlight",
-    "name": "Moonlight",
-    "archive": "Skyboxes/Moonlight.zip",
-    "archive_type": "zip",
-    "catalog_name": "Moonlight",
-    "status": "ready",
-    "available_faces": 6,
-    "required_faces": 6,
-    "supported_maps": [
-      "Blue",
-      "Station",
-      "Space"
-    ],
-    "missing_reason": null
-  },
-  "faces": {
-    "BK": 98895094117807,
-    "DN": 98962847961441,
-    "FT": 134374834765126,
-    "LF": 128874794490495,
-    "RT": 138146075324352,
-    "UP": 128466147827573
-  }
+    "name":  "Moonlight Skybox",
+    "game":  "RIVALS",
+    "description":  "Six CDN skybox face rules. Each rule targets the six default RIVALS sky asset IDs and replaces them with this sky\u0027s corresponding image.",
+    "replacement_rules":  [
+                              {
+                                  "name":  "SkBack",
+                                  "replace_ids":  [
+                                                      2108482005,
+                                                      14147881792,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550937,
+                                                      12261809766
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Moonlight%20Back.png"
+                              },
+                              {
+                                  "name":  "SkDown",
+                                  "replace_ids":  [
+                                                      2108545280,
+                                                      10196550667,
+                                                      14147882149,
+                                                      103020541883227,
+                                                      89972436184102,
+                                                      12261813110
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Moonlight%20Down.png"
+                              },
+                              {
+                                  "name":  "SkFront",
+                                  "replace_ids":  [
+                                                      14147882761,
+                                                      12261809766,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550367,
+                                                      2108482231
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Moonlight%20Front.png"
+                              },
+                              {
+                                  "name":  "SkLeft",
+                                  "replace_ids":  [
+                                                      14147883091,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482395,
+                                                      12261809766,
+                                                      10196550128
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Moonlight%20Left.png"
+                              },
+                              {
+                                  "name":  "SkRight",
+                                  "replace_ids":  [
+                                                      14147882405,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482542,
+                                                      12261809766,
+                                                      10196549902
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Moonlight%20Right.png"
+                              },
+                              {
+                                  "name":  "SkUp",
+                                  "replace_ids":  [
+                                                      14147881297,
+                                                      72960281658487,
+                                                      92138082970751,
+                                                      2108482676,
+                                                      10196567794,
+                                                      12261813678
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Moonlight%20Up.png"
+                              }
+                          ],
+    "sky_library":  {
+                        "id":  "moonlight",
+                        "name":  "Moonlight",
+                        "archive":  "Skyboxes/Moonlight.zip",
+                        "archive_type":  "zip",
+                        "catalog_name":  "Moonlight",
+                        "status":  "ready",
+                        "available_faces":  6,
+                        "required_faces":  6,
+                        "cdn_files_found":  6,
+                        "cdn_files_missing":  [
+
+                                              ],
+                        "replacement_rule_count":  6
+                    },
+    "faces":  {
+                  "BK":  98895094117807,
+                  "DN":  98962847961441,
+                  "FT":  134374834765126,
+                  "LF":  128874794490495,
+                  "RT":  138146075324352,
+                  "UP":  128466147827573
+              }
 }

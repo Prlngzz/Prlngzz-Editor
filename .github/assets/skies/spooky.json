@@ -1,269 +1,114 @@
 {
-  "format": "prlngzz-editor",
-  "schema_version": 1,
-  "profile": {
-    "name": "Spooky Skybox",
-    "game": "RIVALS",
-    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
-  },
-  "rules": [
-    {
-      "id": "rule-001",
-      "name": "Spooky · Blue · BK",
-      "enabled": true,
-      "targets": [
-        14147881792
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 91607656582731
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-002",
-      "name": "Spooky · Blue · DN",
-      "enabled": true,
-      "targets": [
-        14147882149
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 99188944117258
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-003",
-      "name": "Spooky · Blue · FT",
-      "enabled": true,
-      "targets": [
-        14147882761
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 72879878113173
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-004",
-      "name": "Spooky · Blue · LF",
-      "enabled": true,
-      "targets": [
-        14147883091
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 127320958969849
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-005",
-      "name": "Spooky · Blue · RT",
-      "enabled": true,
-      "targets": [
-        14147882405
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 85021430483699
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-006",
-      "name": "Spooky · Blue · UP",
-      "enabled": true,
-      "targets": [
-        14147881297
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 124093998930865
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-007",
-      "name": "Spooky · Station · BK",
-      "enabled": true,
-      "targets": [
-        2108482005
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 91607656582731
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-008",
-      "name": "Spooky · Station · DN",
-      "enabled": true,
-      "targets": [
-        2108545280
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 99188944117258
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-009",
-      "name": "Spooky · Station · FT",
-      "enabled": true,
-      "targets": [
-        2108482231
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 72879878113173
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-010",
-      "name": "Spooky · Station · LF",
-      "enabled": true,
-      "targets": [
-        2108482395
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 127320958969849
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-011",
-      "name": "Spooky · Station · RT",
-      "enabled": true,
-      "targets": [
-        2108482542
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 85021430483699
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-012",
-      "name": "Spooky · Station · UP",
-      "enabled": true,
-      "targets": [
-        2108482676
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 124093998930865
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-013",
-      "name": "Spooky · Space · BK",
-      "enabled": true,
-      "targets": [
-        10196550937
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 91607656582731
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-014",
-      "name": "Spooky · Space · DN",
-      "enabled": true,
-      "targets": [
-        10196550667
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 99188944117258
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-015",
-      "name": "Spooky · Space · FT",
-      "enabled": true,
-      "targets": [
-        10196550367
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 72879878113173
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-016",
-      "name": "Spooky · Space · LF",
-      "enabled": true,
-      "targets": [
-        10196550128
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 127320958969849
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-017",
-      "name": "Spooky · Space · RT",
-      "enabled": true,
-      "targets": [
-        10196549902
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 85021430483699
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-018",
-      "name": "Spooky · Space · UP",
-      "enabled": true,
-      "targets": [
-        10196567794
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 124093998930865
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    }
-  ],
-  "sky_library": {
-    "id": "spooky",
-    "name": "Spooky",
-    "archive": "Skyboxes/Spooky.zip",
-    "archive_type": "zip",
-    "catalog_name": "Spooky",
-    "status": "ready",
-    "available_faces": 6,
-    "required_faces": 6,
-    "supported_maps": [
-      "Blue",
-      "Station",
-      "Space"
-    ],
-    "missing_reason": null
-  },
-  "faces": {
-    "BK": 91607656582731,
-    "DN": 99188944117258,
-    "FT": 72879878113173,
-    "LF": 127320958969849,
-    "RT": 85021430483699,
-    "UP": 124093998930865
-  }
+    "name":  "Spooky Skybox",
+    "game":  "RIVALS",
+    "description":  "Six CDN skybox face rules. Each rule targets the six default RIVALS sky asset IDs and replaces them with this sky\u0027s corresponding image.",
+    "replacement_rules":  [
+                              {
+                                  "name":  "SkBack",
+                                  "replace_ids":  [
+                                                      2108482005,
+                                                      14147881792,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550937,
+                                                      12261809766
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/stizspookyccbk.png"
+                              },
+                              {
+                                  "name":  "SkDown",
+                                  "replace_ids":  [
+                                                      2108545280,
+                                                      10196550667,
+                                                      14147882149,
+                                                      103020541883227,
+                                                      89972436184102,
+                                                      12261813110
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/stizspookydn.png"
+                              },
+                              {
+                                  "name":  "SkFront",
+                                  "replace_ids":  [
+                                                      14147882761,
+                                                      12261809766,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550367,
+                                                      2108482231
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/stizspookyftez.png"
+                              },
+                              {
+                                  "name":  "SkLeft",
+                                  "replace_ids":  [
+                                                      14147883091,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482395,
+                                                      12261809766,
+                                                      10196550128
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/stizspookylf.png"
+                              },
+                              {
+                                  "name":  "SkRight",
+                                  "replace_ids":  [
+                                                      14147882405,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482542,
+                                                      12261809766,
+                                                      10196549902
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/stizspookyrt.png"
+                              },
+                              {
+                                  "name":  "SkUp",
+                                  "replace_ids":  [
+                                                      14147881297,
+                                                      72960281658487,
+                                                      92138082970751,
+                                                      2108482676,
+                                                      10196567794,
+                                                      12261813678
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/stizspookyup.png"
+                              }
+                          ],
+    "sky_library":  {
+                        "id":  "spooky",
+                        "name":  "Spooky",
+                        "archive":  "Skyboxes/Spooky.zip",
+                        "archive_type":  "zip",
+                        "catalog_name":  "Spooky",
+                        "status":  "ready",
+                        "available_faces":  6,
+                        "required_faces":  6,
+                        "cdn_files_found":  6,
+                        "cdn_files_missing":  [
+
+                                              ],
+                        "replacement_rule_count":  6
+                    },
+    "faces":  {
+                  "BK":  91607656582731,
+                  "DN":  99188944117258,
+                  "FT":  72879878113173,
+                  "LF":  127320958969849,
+                  "RT":  85021430483699,
+                  "UP":  124093998930865
+              }
 }

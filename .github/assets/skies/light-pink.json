@@ -1,269 +1,114 @@
 {
-  "format": "prlngzz-editor",
-  "schema_version": 1,
-  "profile": {
-    "name": "Light pink Skybox",
-    "game": "RIVALS",
-    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
-  },
-  "rules": [
-    {
-      "id": "rule-001",
-      "name": "Light pink · Blue · BK",
-      "enabled": true,
-      "targets": [
-        14147881792
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 139223053439707
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-002",
-      "name": "Light pink · Blue · DN",
-      "enabled": true,
-      "targets": [
-        14147882149
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 103995147942567
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-003",
-      "name": "Light pink · Blue · FT",
-      "enabled": true,
-      "targets": [
-        14147882761
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 99465211065402
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-004",
-      "name": "Light pink · Blue · LF",
-      "enabled": true,
-      "targets": [
-        14147883091
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 102235997947203
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-005",
-      "name": "Light pink · Blue · RT",
-      "enabled": true,
-      "targets": [
-        14147882405
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 110149967143852
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-006",
-      "name": "Light pink · Blue · UP",
-      "enabled": true,
-      "targets": [
-        14147881297
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 100057183813215
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-007",
-      "name": "Light pink · Station · BK",
-      "enabled": true,
-      "targets": [
-        2108482005
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 139223053439707
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-008",
-      "name": "Light pink · Station · DN",
-      "enabled": true,
-      "targets": [
-        2108545280
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 103995147942567
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-009",
-      "name": "Light pink · Station · FT",
-      "enabled": true,
-      "targets": [
-        2108482231
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 99465211065402
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-010",
-      "name": "Light pink · Station · LF",
-      "enabled": true,
-      "targets": [
-        2108482395
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 102235997947203
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-011",
-      "name": "Light pink · Station · RT",
-      "enabled": true,
-      "targets": [
-        2108482542
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 110149967143852
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-012",
-      "name": "Light pink · Station · UP",
-      "enabled": true,
-      "targets": [
-        2108482676
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 100057183813215
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-013",
-      "name": "Light pink · Space · BK",
-      "enabled": true,
-      "targets": [
-        10196550937
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 139223053439707
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-014",
-      "name": "Light pink · Space · DN",
-      "enabled": true,
-      "targets": [
-        10196550667
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 103995147942567
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-015",
-      "name": "Light pink · Space · FT",
-      "enabled": true,
-      "targets": [
-        10196550367
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 99465211065402
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-016",
-      "name": "Light pink · Space · LF",
-      "enabled": true,
-      "targets": [
-        10196550128
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 102235997947203
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-017",
-      "name": "Light pink · Space · RT",
-      "enabled": true,
-      "targets": [
-        10196549902
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 110149967143852
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-018",
-      "name": "Light pink · Space · UP",
-      "enabled": true,
-      "targets": [
-        10196567794
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 100057183813215
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    }
-  ],
-  "sky_library": {
-    "id": "light-pink",
-    "name": "Light pink",
-    "archive": "Skyboxes/Light pink.zip",
-    "archive_type": "zip",
-    "catalog_name": "Light Pink",
-    "status": "ready",
-    "available_faces": 6,
-    "required_faces": 6,
-    "supported_maps": [
-      "Blue",
-      "Station",
-      "Space"
-    ],
-    "missing_reason": null
-  },
-  "faces": {
-    "BK": 139223053439707,
-    "DN": 103995147942567,
-    "FT": 99465211065402,
-    "LF": 102235997947203,
-    "RT": 110149967143852,
-    "UP": 100057183813215
-  }
+    "name":  "Light pink Skybox",
+    "game":  "RIVALS",
+    "description":  "Six CDN skybox face rules. Each rule targets the six default RIVALS sky asset IDs and replaces them with this sky\u0027s corresponding image.",
+    "replacement_rules":  [
+                              {
+                                  "name":  "SkBack",
+                                  "replace_ids":  [
+                                                      2108482005,
+                                                      14147881792,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550937,
+                                                      12261809766
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/BK%20pink.png"
+                              },
+                              {
+                                  "name":  "SkDown",
+                                  "replace_ids":  [
+                                                      2108545280,
+                                                      10196550667,
+                                                      14147882149,
+                                                      103020541883227,
+                                                      89972436184102,
+                                                      12261813110
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/DN%20pink.png"
+                              },
+                              {
+                                  "name":  "SkFront",
+                                  "replace_ids":  [
+                                                      14147882761,
+                                                      12261809766,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550367,
+                                                      2108482231
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FT%20%20pink.png"
+                              },
+                              {
+                                  "name":  "SkLeft",
+                                  "replace_ids":  [
+                                                      14147883091,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482395,
+                                                      12261809766,
+                                                      10196550128
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/LF%20pink.png"
+                              },
+                              {
+                                  "name":  "SkRight",
+                                  "replace_ids":  [
+                                                      14147882405,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482542,
+                                                      12261809766,
+                                                      10196549902
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/RT%20pink.png"
+                              },
+                              {
+                                  "name":  "SkUp",
+                                  "replace_ids":  [
+                                                      14147881297,
+                                                      72960281658487,
+                                                      92138082970751,
+                                                      2108482676,
+                                                      10196567794,
+                                                      12261813678
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/UP%20pink.png"
+                              }
+                          ],
+    "sky_library":  {
+                        "id":  "light-pink",
+                        "name":  "Light pink",
+                        "archive":  "Skyboxes/Light pink.zip",
+                        "archive_type":  "zip",
+                        "catalog_name":  "Light Pink",
+                        "status":  "ready",
+                        "available_faces":  6,
+                        "required_faces":  6,
+                        "cdn_files_found":  6,
+                        "cdn_files_missing":  [
+
+                                              ],
+                        "replacement_rule_count":  6
+                    },
+    "faces":  {
+                  "BK":  139223053439707,
+                  "DN":  103995147942567,
+                  "FT":  99465211065402,
+                  "LF":  102235997947203,
+                  "RT":  110149967143852,
+                  "UP":  100057183813215
+              }
 }

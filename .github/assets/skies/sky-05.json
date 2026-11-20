@@ -1,269 +1,114 @@
 {
-  "format": "prlngzz-editor",
-  "schema_version": 1,
-  "profile": {
-    "name": "sky_05 Skybox",
-    "game": "RIVALS",
-    "description": "Six-face community skybox profile. Applies 18 correctly paired face replacements across Blue, Station and Space."
-  },
-  "rules": [
-    {
-      "id": "rule-001",
-      "name": "sky_05 · Blue · BK",
-      "enabled": true,
-      "targets": [
-        14147881792
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 115023392465265
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-002",
-      "name": "sky_05 · Blue · DN",
-      "enabled": true,
-      "targets": [
-        14147882149
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 75603771116960
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-003",
-      "name": "sky_05 · Blue · FT",
-      "enabled": true,
-      "targets": [
-        14147882761
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 78650451282536
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-004",
-      "name": "sky_05 · Blue · LF",
-      "enabled": true,
-      "targets": [
-        14147883091
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 139249932495923
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-005",
-      "name": "sky_05 · Blue · RT",
-      "enabled": true,
-      "targets": [
-        14147882405
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 109204323592662
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-006",
-      "name": "sky_05 · Blue · UP",
-      "enabled": true,
-      "targets": [
-        14147881297
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 78606335131166
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-007",
-      "name": "sky_05 · Station · BK",
-      "enabled": true,
-      "targets": [
-        2108482005
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 115023392465265
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-008",
-      "name": "sky_05 · Station · DN",
-      "enabled": true,
-      "targets": [
-        2108545280
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 75603771116960
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-009",
-      "name": "sky_05 · Station · FT",
-      "enabled": true,
-      "targets": [
-        2108482231
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 78650451282536
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-010",
-      "name": "sky_05 · Station · LF",
-      "enabled": true,
-      "targets": [
-        2108482395
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 139249932495923
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-011",
-      "name": "sky_05 · Station · RT",
-      "enabled": true,
-      "targets": [
-        2108482542
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 109204323592662
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-012",
-      "name": "sky_05 · Station · UP",
-      "enabled": true,
-      "targets": [
-        2108482676
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 78606335131166
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-013",
-      "name": "sky_05 · Space · BK",
-      "enabled": true,
-      "targets": [
-        10196550937
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 115023392465265
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-014",
-      "name": "sky_05 · Space · DN",
-      "enabled": true,
-      "targets": [
-        10196550667
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 75603771116960
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-015",
-      "name": "sky_05 · Space · FT",
-      "enabled": true,
-      "targets": [
-        10196550367
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 78650451282536
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-016",
-      "name": "sky_05 · Space · LF",
-      "enabled": true,
-      "targets": [
-        10196550128
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 139249932495923
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-017",
-      "name": "sky_05 · Space · RT",
-      "enabled": true,
-      "targets": [
-        10196549902
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 109204323592662
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    },
-    {
-      "id": "rule-018",
-      "name": "sky_05 · Space · UP",
-      "enabled": true,
-      "targets": [
-        10196567794
-      ],
-      "action": {
-        "type": "asset_id",
-        "asset_id": 78606335131166
-      },
-      "notes": "RIVALS cache replacement: original game asset target; selected skybox face asset replacement."
-    }
-  ],
-  "sky_library": {
-    "id": "sky-05",
-    "name": "sky_05",
-    "archive": "Skyboxes/sky_05.zip",
-    "archive_type": "zip",
-    "catalog_name": "Sky 05",
-    "status": "ready",
-    "available_faces": 6,
-    "required_faces": 6,
-    "supported_maps": [
-      "Blue",
-      "Station",
-      "Space"
-    ],
-    "missing_reason": null
-  },
-  "faces": {
-    "BK": 115023392465265,
-    "DN": 75603771116960,
-    "FT": 78650451282536,
-    "LF": 139249932495923,
-    "RT": 109204323592662,
-    "UP": 78606335131166
-  }
+    "name":  "sky_05 Skybox",
+    "game":  "RIVALS",
+    "description":  "Six CDN skybox face rules. Each rule targets the six default RIVALS sky asset IDs and replaces them with this sky\u0027s corresponding image.",
+    "replacement_rules":  [
+                              {
+                                  "name":  "SkBack",
+                                  "replace_ids":  [
+                                                      2108482005,
+                                                      14147881792,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550937,
+                                                      12261809766
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky05Back.png"
+                              },
+                              {
+                                  "name":  "SkDown",
+                                  "replace_ids":  [
+                                                      2108545280,
+                                                      10196550667,
+                                                      14147882149,
+                                                      103020541883227,
+                                                      89972436184102,
+                                                      12261813110
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky05Down.png"
+                              },
+                              {
+                                  "name":  "SkFront",
+                                  "replace_ids":  [
+                                                      14147882761,
+                                                      12261809766,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      10196550367,
+                                                      2108482231
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky05Front.png"
+                              },
+                              {
+                                  "name":  "SkLeft",
+                                  "replace_ids":  [
+                                                      14147883091,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482395,
+                                                      12261809766,
+                                                      10196550128
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky05Left.png"
+                              },
+                              {
+                                  "name":  "SkRight",
+                                  "replace_ids":  [
+                                                      14147882405,
+                                                      135908632589654,
+                                                      84214501374682,
+                                                      2108482542,
+                                                      12261809766,
+                                                      10196549902
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky05Right.png"
+                              },
+                              {
+                                  "name":  "SkUp",
+                                  "replace_ids":  [
+                                                      14147881297,
+                                                      72960281658487,
+                                                      92138082970751,
+                                                      2108482676,
+                                                      10196567794,
+                                                      12261813678
+                                                  ],
+                                  "mode":  "cdn",
+                                  "enabled":  true,
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky05Up.png"
+                              }
+                          ],
+    "sky_library":  {
+                        "id":  "sky-05",
+                        "name":  "sky_05",
+                        "archive":  "Skyboxes/sky_05.zip",
+                        "archive_type":  "zip",
+                        "catalog_name":  "Sky 05",
+                        "status":  "ready",
+                        "available_faces":  6,
+                        "required_faces":  6,
+                        "cdn_files_found":  6,
+                        "cdn_files_missing":  [
+
+                                              ],
+                        "replacement_rule_count":  6
+                    },
+    "faces":  {
+                  "BK":  115023392465265,
+                  "DN":  75603771116960,
+                  "FT":  78650451282536,
+                  "LF":  139249932495923,
+                  "RT":  109204323592662,
+                  "UP":  78606335131166
+              }
 }
