@@ -1283,3 +1283,316 @@ $gui = Replace-Once $gui @'
         theme::apply_density(&cc.egui_ctx, settings.compact_layout);
 '@ "restore saved theme and density on startup"
 Save-Source $guiPath $gui
+
+# Broaden config import compatibility and fail clearly on unknown structures.
+$configPath = Join-Path $Project "src/config.rs"
+$config = [IO.File]::ReadAllText($configPath)
+$oldTargets = @'
+        let targets: Vec<Target> =
+            obj.get("replace_ids").and_then(Value::as_array).map(|a| a.iter().filter_map(parse_target).collect()).unwrap_or_default();
+'@
+$newTargets = @'
+        let target_values = obj.get("replace_ids")
+            .or_else(|| obj.get("target_ids"))
+            .or_else(|| obj.get("asset_ids"))
+            .or_else(|| obj.get("targets"));
+        let targets: Vec<Target> = match target_values {
+            Some(Value::Array(values)) => values.iter().filter_map(parse_target).collect(),
+            Some(single) => parse_target(single).into_iter().collect(),
+            None => Vec::new(),
+        };
+'@
+$config = Replace-Once $config $oldTargets $newTargets "compatible target field parsing"
+$oldMode = @'
+        let mode = match (text("mode"), obj.get("remove").and_then(Value::as_bool)) {
+            (Some(m), _) => m.to_ascii_lowercase(),
+            (None, Some(true)) => "remove".to_string(),
+            _ => "id".to_string(),
+        };
+'@
+$newMode = @'
+        let native_action = obj.get("action").and_then(Value::as_object);
+        let native_action_type = native_action.and_then(|action| action.get("type")).and_then(Value::as_str);
+        let mode = match native_action_type {
+            Some("remove") => "remove".to_string(),
+            Some("local_file") => "local".to_string(),
+            Some("https") => "cdn".to_string(),
+            Some("asset_id") => "id".to_string(),
+            _ => match (text("mode"), obj.get("remove").and_then(Value::as_bool)) {
+                (Some(m), _) => m.to_ascii_lowercase(),
+                (None, Some(true)) => "remove".to_string(),
+                _ => "id".to_string(),
+            },
+        };
+'@
+$config = Replace-Once $config $oldMode $newMode "native action compatibility"
+$config = Replace-Once $config '            "remove" => Action::Remove,' @'
+            "remove" | "delete" | "remove_asset" => Action::Remove,
+'@ "remove action aliases"
+$config = Replace-Once $config @'
+            "local" => match text("local_path") {
+                Some(p) => Action::Local(absolute_or_beside(base, p)),
+'@ @'
+            "local" | "local_file" | "file" => match text("local_path").or_else(|| native_action.and_then(|action| action.get("path")).and_then(Value::as_str).map(str::trim).filter(|value| !value.is_empty())) {
+                Some(p) => Action::Local(absolute_or_beside(base, p)),
+'@ "local action aliases"
+$config = Replace-Once $config @'
+            "cdn" => match text("cdn_url") {
+                Some(url) if url.starts_with("https://") => Action::Cdn(url.to_string()),
+'@ @'
+            "cdn" | "url" | "https" => match text("cdn_url").or_else(|| native_action.and_then(|action| action.get("url")).and_then(Value::as_str).map(str::trim).filter(|value| !value.is_empty())) {
+                Some(url) if url.starts_with("https://") => Action::Cdn(url.to_string()),
+'@ "remote action aliases"
+$config = Replace-Once $config '            "id" => match obj.get("with_id") {' '            "id" | "asset_id" | "replace" => match obj.get("with_id").or_else(|| obj.get("replacement_id")).or_else(|| native_action.and_then(|action| action.get("asset_id"))) {' "replacement ID aliases"
+$config = Replace-Once $config @'
+        Value::Object(obj) => obj.get("replacement_rules").and_then(Value::as_array).map_or(&[][..], Vec::as_slice),
+'@ @'
+        Value::Object(obj) => obj.get("replacement_rules").or_else(|| obj.get("rules"))
+            .and_then(Value::as_array)
+            .context("the config object must contain a replacement_rules or rules array")?,
+'@ "clear config root validation"
+$noHandsTests = @'
+    #[test]
+    fn accepts_no_hands_remove_rules_with_multiple_targets() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"No Hands","replace_ids":[123,456],"mode":"remove"}]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].targets, [Target::Asset(123), Target::Asset(456)]);
+        assert_eq!(rules[0].action, Action::Remove);
+    }
+
+    #[test]
+    fn accepts_skinchanger_replacement_aliases_and_rules_root() {
+        let rules = parse(r#"{"rules":[{"name":"Skin swap","targets":[123,456],"mode":"asset_id","replacement_id":"789"}]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].targets, [Target::Asset(123), Target::Asset(456)]);
+        assert_eq!(rules[0].action, Action::With(Target::Asset(789)));
+    }
+
+    #[test]
+    fn rejects_unknown_config_objects_instead_of_treating_them_as_empty() {
+        assert!(parse(r#"{"name":"No Hands","items":[]}"#, Path::new(".")).is_err());
+    }
+
+'@
+$config = Replace-Once $config '    fn accepts_a_bare_list_and_rejects_garbage() {' ($noHandsTests + '    fn accepts_a_bare_list_and_rejects_garbage() {') "config compatibility regression tests"
+Save-Source $configPath $config
+
+# Add a first-class Remove target action for no-hands-style local cache profiles.
+$studioPath = Join-Path $Project "src/studio.rs"
+$studio = [IO.File]::ReadAllText($studioPath)
+$studio = Replace-Once $studio @'
+            Value::Object(object) => {
+                let items = object.get("replacement_rules").and_then(Value::as_array)
+                    .context("The Fleasion configuration has no replacement_rules array")?;
+'@ @'
+            Value::Object(object) => {
+                let items = object.get("replacement_rules").or_else(|| object.get("rules")).and_then(Value::as_array)
+                    .context("The configuration has no replacement_rules or rules array")?;
+'@ "profile import rules alias"
+$studio = Replace-Once $studio 'targets": object.get("replace_ids").and_then(Value::as_array).cloned().unwrap_or_default(),' 'targets": object.get("replace_ids").or_else(|| object.get("target_ids")).or_else(|| object.get("targets")).and_then(Value::as_array).cloned().unwrap_or_default(),' "profile import target aliases"
+$removeMethod = @'
+    /// Removes a Roblox asset ID or a specific 32-hex cache-entry key.
+    pub fn add_remove_rule(&mut self, target: &str) -> Result<()> {
+        let target = target.trim();
+        let target = match target.parse::<u64>() {
+            Ok(id) if id > 0 => json!(id),
+            _ => {
+                ensure!(target.len() == 32 && target.bytes().all(|b| b.is_ascii_hexdigit()),
+                    "Target must be a positive Roblox asset ID or a 32-character cache entry ID");
+                json!(target.to_ascii_lowercase())
+            }
+        };
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": "Remove target asset",
+            "enabled": true,
+            "targets": [target],
+            "action": { "type": "remove" },
+            "notes": "Local cache removal rule; Roblox may download the original again after a cache refresh."
+        }));
+        Ok(())
+    }
+
+'@
+$studio = Replace-Once $studio 'fn rule_id_exists(nodes: &[Value], id: &str) -> bool {' ($removeMethod + 'fn rule_id_exists(nodes: &[Value], id: &str) -> bool {') "native remove-rule constructor"
+Save-Source $studioPath $studio
+
+# Add a multi-ID removal action beside the local-file Config Builder.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$guiRemoveHelper = @'
+    fn add_studio_remove_rules(&mut self) -> anyhow::Result<usize> {
+        let raw = self.studio_target_input.trim();
+        let mut targets = Vec::new();
+        let mut seen = HashSet::new();
+        for token in raw.split(|ch: char| ch.is_whitespace() || ch == ',' || ch == ';') {
+            let token = token.trim().trim_matches('"');
+            if token.is_empty() { continue; }
+            if token.len() == 32 && token.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+                let key = token.to_ascii_lowercase();
+                if seen.insert(key.clone()) { targets.push(key); }
+            } else if let Ok(id) = token.parse::<u64>() {
+                if id > 0 {
+                    let value = id.to_string();
+                    if seen.insert(value.clone()) { targets.push(value); }
+                }
+            } else {
+                for id in crate::studio::extract_asset_ids(token) {
+                    if id > 0 {
+                        let value = id.to_string();
+                        if seen.insert(value.clone()) { targets.push(value); }
+                    }
+                }
+            }
+        }
+        anyhow::ensure!(!targets.is_empty(), "Paste one or more target asset IDs or cache-entry keys");
+        for target in &targets { self.studio_doc.add_remove_rule(target)?; }
+        self.studio_target_input.clear();
+        Ok(targets.len())
+    }
+
+'@
+$gui = Replace-Once $gui '    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {' ($guiRemoveHelper + '    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {') "multi-ID remove rule helper"
+$gui = Replace-Once $gui @'
+            if ui.add(primary_button("Add to Config")).clicked() {
+                match self.add_studio_local_rules() {
+                    Ok(count) => self.studio_status = format!("Added {count} local replacement rule(s)."),
+                    Err(error) => self.studio_status = format!("Could not add local rule: {error:#}"),
+                }
+            }
+'@ @'
+            ui.horizontal_wrapped(|ui| {
+                if ui.add(primary_button("Add to Config")).clicked() {
+                    match self.add_studio_local_rules() {
+                        Ok(count) => self.studio_status = format!("Added {count} local replacement rule(s)."),
+                        Err(error) => self.studio_status = format!("Could not add local rule: {error:#}"),
+                    }
+                }
+                if ui.button("Remove target(s)").on_hover_text("Create a no-hands-style rule that removes every pasted target from the local cache").clicked() {
+                    match self.add_studio_remove_rules() {
+                        Ok(count) => self.studio_status = format!("Added {count} removal rule(s). Preview / Apply to cache to apply them."),
+                        Err(error) => self.studio_status = format!("Could not add removal rule: {error:#}"),
+                    }
+                }
+            });
+'@ "No Hands removal action in Config Builder"
+
+# Explain cache-only application and stale target IDs in the Config Manager.
+$gui = Replace-Once $gui @'
+        self.page_header(
+            ui,
+            "Applied Configurations",
+            "Replacement rules that stay applied. What is switched on is put on whatever Roblox downloads; what is switched off is put back.",
+        );
+'@ @'
+        self.page_header(
+            ui,
+            "Config Manager",
+            "Manage skin swaps, local file replacements and removal profiles. Enabled rules are applied to matching entries in the local Roblox cache.",
+        );
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("CACHE APPLY NOTES").strong().color(theme::accent()));
+            ui.label(egui::RichText::new("Close Roblox before applying when possible, then relaunch it to see the changes. RIVALS can change asset IDs after updates. A rule that shows 0 matches needs current target IDs or a cache entry selected directly in Asset ID Editor.").color(theme::MUTED).small());
+        });
+        ui.add_space(8.0);
+'@ "Config Manager cache and stale-ID guidance"
+
+# Cache and virtualize the RIVALS catalogue rather than reparsing/cloning it on every frame.
+$catalogHelpers = @'
+fn rivals_asset_catalog() -> &'static [serde_json::Value] {
+    static CATALOG: std::sync::OnceLock<Vec<serde_json::Value>> = std::sync::OnceLock::new();
+    CATALOG.get_or_init(|| {
+        let catalog: serde_json::Value = serde_json::from_str(include_str!("../rivals_asset_catalog.json")).unwrap_or_default();
+        catalog.get("assets").and_then(serde_json::Value::as_array).cloned().unwrap_or_default()
+    }).as_slice()
+}
+
+fn rivals_catalog_search_text() -> &'static [String] {
+    static SEARCH: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    SEARCH.get_or_init(|| {
+        rivals_asset_catalog().iter().map(|asset| {
+            let id = asset.get("id").and_then(serde_json::Value::as_str).unwrap_or("");
+            let name = asset.get("name").and_then(serde_json::Value::as_str).unwrap_or("");
+            let category = asset.get("category").and_then(serde_json::Value::as_str).unwrap_or("");
+            let variant = asset.get("variant").and_then(serde_json::Value::as_str).unwrap_or("");
+            format!("{category} {name} {variant} {id}").to_lowercase()
+        }).collect()
+    }).as_slice()
+}
+
+'@
+$gui = Replace-Once $gui 'fn rivals_asset_ids() -> &' ($catalogHelpers + 'fn rivals_asset_ids() -> &') "cached RIVALS catalogue helpers"
+$oldAssets = @'
+            let catalog: serde_json::Value = serde_json::from_str(include_str!("../rivals_asset_catalog.json")).unwrap_or_default();
+            let assets = catalog.get("assets").and_then(serde_json::Value::as_array).cloned().unwrap_or_default();
+            let total = assets.len();
+'@
+$newAssets = @'
+            let assets = rivals_asset_catalog();
+            let total = assets.len();
+            let matches: Vec<usize> = rivals_catalog_search_text().iter().enumerate()
+                .filter_map(|(index, text)| (query.is_empty() || text.contains(&query)).then_some(index))
+                .collect();
+'@
+$gui = Replace-Once $gui $oldAssets $newAssets "one-time catalogue parse and cached search"
+$oldRows = @'
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                ui.label(egui::RichText::new(format!("{total} curated RIVALS asset IDs")).color(theme::MUTED).small());
+                for asset in assets {
+                    let id = asset.get("id").and_then(serde_json::Value::as_str).unwrap_or("");
+                    let name = asset.get("name").and_then(serde_json::Value::as_str).unwrap_or("RIVALS asset");
+                    let category = asset.get("category").and_then(serde_json::Value::as_str).unwrap_or("RIVALS");
+                    let variant = asset.get("variant").and_then(serde_json::Value::as_str).unwrap_or("");
+                    let haystack = format!("{category} {name} {variant} {id}").to_lowercase();
+                    if !query.is_empty() && !haystack.contains(&query) { continue; }
+                    let row_enter = ui.ctx().animate_value_with_time(egui::Id::new(("rivals-catalog-entry-enter", id)), 1.0, 0.20);
+                    ui.add_space((1.0 - row_enter) * 4.0);
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new(category).color(theme::MUTED).small());
+                        ui.label(name);
+                        if !variant.is_empty() { ui.label(egui::RichText::new(variant).color(theme::MUTED).small()); }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.small_button("Use in Config").clicked() { selected_id = Some(id.to_owned()); }
+                            ui.monospace(id);
+                        });
+                    });
+                    ui.separator();
+                }
+            });
+'@
+$newRows = @'
+            ui.label(egui::RichText::new(format!("{total} curated IDs · {} shown", matches.len())).color(theme::MUTED).small());
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show_rows(ui, 34.0, matches.len(), |ui, visible| {
+                for row in visible {
+                    let asset = &assets[matches[row]];
+                    let id = asset.get("id").and_then(serde_json::Value::as_str).unwrap_or("");
+                    let name = asset.get("name").and_then(serde_json::Value::as_str).unwrap_or("RIVALS asset");
+                    let category = asset.get("category").and_then(serde_json::Value::as_str).unwrap_or("RIVALS");
+                    let variant = asset.get("variant").and_then(serde_json::Value::as_str).unwrap_or("");
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new(category).color(theme::MUTED).small());
+                        ui.label(name);
+                        if !variant.is_empty() { ui.label(egui::RichText::new(variant).color(theme::MUTED).small()); }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.small_button("Use in Config").clicked() { selected_id = Some(id.to_owned()); }
+                            ui.monospace(id);
+                        });
+                    });
+                    ui.separator();
+                }
+            });
+'@
+$gui = Replace-Once $gui $oldRows $newRows "virtualized RIVALS catalogue rows"
+$gui = $gui.Replace('theme::ACCENT', 'theme::accent()')
+Save-Source $guiPath $gui
+
+# Use the dynamic accent in other Rust modules too.
+Get-ChildItem (Join-Path $Project "src") -Recurse -Filter "*.rs" | Where-Object { $_.Name -ne "theme.rs" -and $_.Name -ne "gui.rs" } | ForEach-Object {
+    $source = [IO.File]::ReadAllText($_.FullName)
+    if ($source.Contains("theme::ACCENT")) {
+        Save-Source $_.FullName ($source.Replace("theme::ACCENT", "theme::accent()"))
+    }
+}
