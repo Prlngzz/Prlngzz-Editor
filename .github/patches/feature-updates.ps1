@@ -1498,3 +1498,168 @@ mod arena_texture_preset_regressions {
 '@
 Save-Source $configPath $config
 Write-Host "Added exact target/replacement round-trip tests for arena presets and six-face sky profiles."
+
+
+# Polished interaction pass: shared glossy, dimensional buttons across the app.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$oldPrimary = @'
+/// A card-shaped placeholder with a band of light passing over it, shown while a list loads.
+fn primary_button(text: &str) -> egui::Button<'_> {
+    egui::Button::new(egui::RichText::new(text).color(Color32::WHITE)).fill(alpha(theme::accent(), 0.75))
+}
+'@
+$newPrimary = @'
+/// A custom 3D button with a soft drop edge, glossy top highlight and a responsive press.
+struct BubblyButton<'a> {
+    text: &'a str,
+    primary: bool,
+    compact: bool,
+}
+
+impl egui::Widget for BubblyButton<'_> {
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        let text_color = if self.primary { Color32::WHITE } else { theme::TEXT };
+        let font = egui::FontId::proportional(if self.compact { 12.5 } else if self.primary { 15.5 } else { 14.0 });
+        let galley = ui.painter().layout_no_wrap(self.text.to_owned(), font, text_color);
+        let horizontal_padding = if self.compact { 10.0 } else if self.primary { 22.0 } else { 16.0 };
+        let height: f32 = if self.compact { 29.0 } else if self.primary { 48.0 } else { 36.0 };
+        let minimum_width: f32 = if self.primary { 176.0 } else if self.compact { 46.0 } else { 68.0 };
+        let size = Vec2::new((galley.size().x + horizontal_padding * 2.0).max(minimum_width), height);
+        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+        let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
+        let hover = ui.ctx().animate_bool_with_time(response.id, response.hovered(), 0.14);
+        let pressed = response.is_pointer_button_down_on();
+        let rounding = CornerRadius::same(if self.compact { 14 } else { 18 });
+        let lift = if pressed { 0.0 } else { hover * 1.5 };
+        let button_rect = rect.translate(Vec2::new(0.0, -lift));
+        let shadow_depth = if pressed { 1.0 } else { 4.0 - hover * 1.1 };
+        let painter = ui.painter();
+        painter.rect_filled(
+            button_rect.translate(Vec2::new(0.0, shadow_depth)),
+            rounding,
+            alpha(Color32::BLACK, if self.primary { 0.52 } else { 0.38 }),
+        );
+
+        let base = if self.primary { theme::accent() } else { theme::RAISED };
+        let hover_fill = if self.primary {
+            base.lerp_to_gamma(Color32::WHITE, 0.18)
+        } else {
+            base.lerp_to_gamma(Color32::WHITE, 0.10)
+        };
+        let mut fill = base.lerp_to_gamma(hover_fill, hover);
+        if pressed { fill = fill.gamma_multiply(0.86); }
+        let border = if self.primary { alpha(Color32::WHITE, 0.38) } else { alpha(theme::accent(), 0.38 + hover * 0.30) };
+        painter.rect_filled(button_rect, rounding, fill);
+        let shine = Rect::from_min_max(
+            button_rect.min + Vec2::new(1.5, 1.0),
+            egui::pos2(button_rect.right() - 1.5, button_rect.center().y),
+        );
+        painter.rect_filled(shine, rounding, alpha(Color32::WHITE, if self.primary { 0.13 } else { 0.065 }));
+        painter.rect_stroke(button_rect, rounding, Stroke::new(1.0_f32, border), egui::StrokeKind::Inside);
+        painter.line_segment(
+            [
+                egui::pos2(button_rect.left() + 20.0, button_rect.bottom() - 1.5),
+                egui::pos2(button_rect.right() - 20.0, button_rect.bottom() - 1.5),
+            ],
+            Stroke::new(1.0_f32, alpha(Color32::BLACK, 0.22)),
+        );
+        painter.galley(button_rect.center() - galley.size() * 0.5, galley, text_color);
+        response
+    }
+}
+
+fn primary_button(text: &str) -> BubblyButton<'_> {
+    BubblyButton { text, primary: true, compact: false }
+}
+
+fn bubbly_button(ui: &mut egui::Ui, text: impl AsRef<str>) -> egui::Response {
+    ui.add(BubblyButton { text: text.as_ref(), primary: false, compact: false })
+}
+
+fn bubbly_small_button(ui: &mut egui::Ui, text: impl AsRef<str>) -> egui::Response {
+    ui.add(BubblyButton { text: text.as_ref(), primary: false, compact: true })
+}
+'@
+$gui = Replace-Once $gui $oldPrimary $newPrimary "shared 3D button widget"
+
+$regularButtonMatches = [regex]::Matches($gui, '\bui\.button\(([^()\r\n]*)\)').Count
+if ($regularButtonMatches -ne 48) { throw "Expected 48 simple buttons to convert to bubbly controls; found $regularButtonMatches" }
+$gui = [regex]::Replace($gui, '\bui\.button\(([^()\r\n]*)\)', 'bubbly_button(ui, $1)')
+
+$smallButtonMatches = [regex]::Matches($gui, '\bui\.small_button\(([^()\r\n]*)\)').Count
+if ($smallButtonMatches -ne 10) { throw "Expected 10 simple small buttons to convert; found $smallButtonMatches" }
+$gui = [regex]::Replace($gui, '\bui\.small_button\(([^()\r\n]*)\)', 'bubbly_small_button(ui, $1)')
+$gui = Replace-Once $gui 'ui.small_button(format!("Preview {face}"))' 'bubbly_small_button(ui, format!("Preview {face}"))' "dynamic sky preview button"
+
+$gui = Replace-Once $gui 'egui::Button::new("Skip intro")' 'primary_button("Skip intro")' "bubbly intro skip button"
+$gui = Replace-Once $gui 'Vec2::new(ui.available_width(), 36.0), primary_button("Launch Roblox")' 'Vec2::new(ui.available_width(), 48.0), primary_button("Launch Roblox")' "larger sidebar launch button"
+
+$homeAnchor = @'
+        ui.add_space(18.0);
+        ui.label(egui::RichText::new("QUICK ACCESS").strong().color(theme::MUTED).small());
+'@
+$homeHero = @'
+        ui.add_space(18.0);
+        card(ui, 1.0, |ui| {
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    theme::pill(ui, "READY WHEN YOU ARE", theme::OK);
+                    ui.add_space(4.0);
+                    ui.label(egui::RichText::new("Jump back into Roblox").size(21.0).strong());
+                    ui.label(egui::RichText::new("Refreshes your saved configs before opening the desktop player.").color(theme::MUTED).small());
+                    ui.add_space(4.0);
+                    ui.label(egui::RichText::new(if self.roblox_running { "Roblox is already running" } else { "Roblox desktop player will be checked when you launch" }).color(theme::MUTED).small());
+                });
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.add_sized(Vec2::new(212.0, 54.0), primary_button("LAUNCH ROBLOX  ›")).clicked() {
+                        actions.push(Action::LaunchRoblox);
+                    }
+                });
+            });
+        });
+        ui.add_space(14.0);
+        ui.label(egui::RichText::new("QUICK ACCESS").strong().color(theme::MUTED).small());
+'@
+$gui = Replace-Once $gui $homeAnchor $homeHero "home page launch hero"
+
+$gui = Replace-Once $gui 'let duration = 4.5_f32;' 'let duration = 5.2_f32;' "cinematic intro duration"
+$introAnchor = @'
+                    let center = surface.center();
+                    let pulse = 1.0 + 0.035 * (elapsed * 2.2).sin();
+'@
+$introOrbit = @'
+                    let center = surface.center();
+                    let orbit = 118.0 + 8.0 * (elapsed * 0.9).sin();
+                    for particle in 0..9 {
+                        let angle = elapsed * 0.42 + particle as f32 * std::f32::consts::TAU / 9.0;
+                        let position = center + egui::vec2(angle.cos() * orbit, angle.sin() * orbit * 0.58);
+                        let particle_radius = 2.5 + (particle % 3) as f32 * 1.1;
+                        painter.circle_filled(position, particle_radius + 3.0, alpha(theme::accent(), 0.045 * opacity));
+                        painter.circle_filled(position, particle_radius, alpha(theme::SPLASH_INK, 0.30 * opacity));
+                    }
+                    let pulse = 1.0 + 0.045 * (elapsed * 2.2).sin();
+'@
+$gui = Replace-Once $gui $introAnchor $introOrbit "intro orbiting particles and logo pulse"
+$gui = Replace-Once $gui '"RIVALS CUSTOMIZATION WORKSPACE"' '"YOUR ROBLOX WORKSPACE, REFINED"' "intro brand subtitle"
+$gui = Replace-Once $gui 'Vec2::new(width, 3.0)' 'Vec2::new(width, 4.0)' "intro progress bar thickness"
+
+Save-Source $guiPath $gui
+
+# Reinforce the rounded, raised, springy feel on native egui controls and status pills.
+$themePath = Join-Path $Project "src/theme.rs"
+$theme = [IO.File]::ReadAllText($themePath)
+$theme = Replace-Once $theme 'let radius = CornerRadius::same(10);' 'let radius = CornerRadius::same(16);' "larger global control radius"
+$theme = Replace-Once $theme 'w.inactive.bg_stroke = Stroke::NONE;' 'w.inactive.bg_stroke = Stroke::new(1.0_f32, alpha(Color32::WHITE, 0.13));' "raised native button border"
+$theme = Replace-Once $theme 'w.hovered.bg_fill = Color32::from_rgb(56, 42, 82);' 'w.hovered.bg_fill = Color32::from_rgb(68, 49, 101);' "lifted native hover surface"
+$theme = Replace-Once $theme 'w.hovered.weak_bg_fill = Color32::from_rgb(56, 42, 82);' 'w.hovered.weak_bg_fill = Color32::from_rgb(68, 49, 101);' "lifted native weak hover surface"
+$theme = Replace-Once $theme 'w.active.bg_fill = alpha(accent, 0.55);' 'w.active.bg_fill = accent.gamma_multiply(0.78);' "pressed native button face"
+$theme = Replace-Once $theme 'w.active.weak_bg_fill = alpha(accent, 0.55);' 'w.active.weak_bg_fill = accent.gamma_multiply(0.78);' "pressed native weak button face"
+$theme = Replace-Once $theme '    w.hovered.expansion = 0.0;' '    w.hovered.expansion = 1.4;' "native hover lift"
+$theme = Replace-Once $theme '    w.inactive.expansion = 0.0;' '    w.inactive.expansion = 0.8;' "native idle elevation"
+$theme = Replace-Once $theme '    w.active.expansion = 0.0;' '    w.active.expansion = 0.0;' "native pressed depth"
+$theme = Replace-Once $theme '    w.open.expansion = 0.0;' '    w.open.expansion = 0.8;' "native open elevation"
+$theme = Replace-Once $theme 'CornerRadius::same(6)).inner_margin(Margin::symmetric(7, 1))' 'CornerRadius::same(9)).inner_margin(Margin::symmetric(8, 2))' "bubbly status pills"
+Save-Source $themePath $theme
+
+Write-Host "Applied the glossy button system, all button wrappers, home launch hero and cinematic intro."
