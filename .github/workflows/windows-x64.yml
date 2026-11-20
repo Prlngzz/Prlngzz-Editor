@@ -64,6 +64,23 @@ jobs:
           if (!(Test-Path (Join-Path $project "src/gui.rs")) -or !(Test-Path (Join-Path $project "src/config.rs"))) { throw "Source repair did not leave the required Rust files in place" }
           $global:LASTEXITCODE = 0
 
+      - name: Inspect config compatibility and navigation source
+        shell: pwsh
+        run: |
+          $project = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source\\Prlngzz-Editor"
+          Write-Output "===== PROJECT FILES ====="
+          Get-ChildItem $project -Force | Select-Object Name,Length,Mode | Format-Table -AutoSize | Out-String | Write-Output
+          $guiPath = Join-Path $project "src/gui.rs"
+          $gui = Get-Content $guiPath
+          Write-Output "===== GUI NAVIGATION / SETTINGS / STUDIO ====="
+          Select-String -Path $guiPath -Pattern 'enum Tab|enum Action|Tab::Studio|Tab::Settings|fn .*settings|fn .*studio|Config Studio|Config Manager|Config Manager|sidebar|navigation' -Context 2,6 | ForEach-Object { $_.ToString(); $_.Context.PreContext; $_.Context.PostContext }
+          Write-Output "===== STUDIO PARSER ====="
+          Get-Content (Join-Path $project "src/studio.rs") | ForEach-Object { $_ }
+          Write-Output "===== CONFIG ENGINE MATCHES ====="
+          Select-String -Path (Join-Path $project "src/config.rs") -Pattern 'enum Action|struct Rule|enum Selector|fn resolve|fn apply|fn plan|local_file|asset_id|remove|remove_asset|action.get|targets' -Context 2,8 | ForEach-Object { $_.ToString(); $_.Context.PreContext; $_.Context.PostContext }
+          Write-Output "===== SKIN / NO-HANDS FILES ====="
+          Get-ChildItem $project -Recurse -File -Include *.json,*.toml,*.md | Select-String -Pattern 'no.?hands|skinchanger|skin.?changer|handless|hands' -CaseSensitive:$false | ForEach-Object { "$($_.Path):$($_.LineNumber): $($_.Line)" }
+
       - name: Check formatting
         shell: pwsh
         run: |
