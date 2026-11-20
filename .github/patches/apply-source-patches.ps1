@@ -1582,3 +1582,6 @@ $gui = $gui.Replace('theme::ACCENT', 'theme::accent()')
 Save-Source $guiPath $gui
 
 # Non-GUI surfaces retain the brand's default accent; the interactive editor uses the selected palette.
+
+# Apply the requested grouped asset library, previews, version metadata, launcher and customization update.
+& (Join-Path $PSScriptRoot "feature-updates.ps1") -Project $Project
