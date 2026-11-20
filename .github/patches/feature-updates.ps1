@@ -921,25 +921,6 @@ $gui = Replace-Once $gui @'
         self.show_toast(ctx);
         self.show_splash(ctx);
 '@ "startup intro insertion anchor"
-# Insert after the existing splash, but before queued actions are dispatched.
-$gui = Replace-Once $gui @'
-        self.show_toast(ctx);
-        self.show_splash(ctx);
-
-        for action in actions {
-'@ @'
-        self.show_toast(ctx);
-        self.show_splash(ctx);
-'@ "startup intro frame order"
-$gui = Replace-Once $gui @'
-        self.show_toast(ctx);
-        self.show_splash(ctx);
-
-        for action in actions {
-'@ @'
-        self.show_toast(ctx);
-        self.show_splash(ctx);
-'@ "startup intro overlay anchor stable"
 # Place the intro immediately after the existing splash call.
 $gui = Replace-Once $gui '        self.show_splash(ctx);' ('        self.show_splash(ctx);' + [char]10 + $intro.TrimEnd())
 Save-Source $guiPath $gui
