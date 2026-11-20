@@ -2056,6 +2056,14 @@ $oldTest = @'
     fn all_individual_sky_json_profiles_are_embedded_and_validated() {
         let skies = sky_library_entries();
         assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
+        const TARGETS: [[u64; 6]; 6] = [
+            [2108482005, 14147881792, 135908632589654, 84214501374682, 10196550937, 12261809766],
+            [2108545280, 10196550667, 14147882149, 103020541883227, 89972436184102, 12261813110],
+            [14147882761, 12261809766, 135908632589654, 84214501374682, 10196550367, 2108482231],
+            [14147883091, 135908632589654, 84214501374682, 2108482395, 12261809766, 10196550128],
+            [14147882405, 135908632589654, 84214501374682, 2108482542, 12261809766, 10196549902],
+            [14147881297, 72960281658487, 92138082970751, 2108482676, 10196567794, 12261813678],
+        ];
         let mut applyable = 0usize;
         for sky in skies {
             let raw: serde_json::Value = serde_json::from_str(sky.json).unwrap();
@@ -2074,7 +2082,7 @@ $oldTest = @'
                 assert_eq!(source_rule["enabled"].as_bool(), Some(true));
                 let ids = source_rule["replace_ids"].as_array().unwrap()
                     .iter().map(|id| id.as_u64().unwrap()).collect::<Vec<_>>();
-                assert_eq!(ids.len(), 6, "{} face rules must use the user's six-target config schema", sky.name);
+                assert_eq!(ids, TARGETS[index].to_vec(), "{} face rule must preserve the original six target IDs", sky.name);
                 assert!(source_rule["cdn_url"].as_str().unwrap().starts_with(
                     "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/"
                 ));
@@ -2106,7 +2114,7 @@ $gui = [IO.File]::ReadAllText($guiPath)
 $gui = Replace-RegexOnce $gui '(?s)\s+let glyph = match tab \{.*?ui\.painter\(\)\.text\(\s*egui::pos2\(x, rect\.center\(\)\.y - 6\.0\),' @'
             let x = rect.left() + 23.0;
             ui.painter().text(
-                egui::pos2(x, rect.center().y - 6.0,
+                egui::pos2(x, rect.center().y - 6.0),
 '@ "text-only sidebar navigation"
 $gui = $gui.Replace('            preferences_changed |= ui.checkbox(&mut self.settings.show_nav_icons, "Show sidebar icons").changed();', '')
 Save-Source $guiPath $gui
