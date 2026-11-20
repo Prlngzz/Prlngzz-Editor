@@ -1191,8 +1191,6 @@ $newSelection = @'
             }
 '@
 $gui = Replace-Once $gui $oldSelection $newSelection "animated sidebar selection and hover"
-'@;
-
 
 # The Customization page is the single place for visual preferences.
 $customPage = @'
