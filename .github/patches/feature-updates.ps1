@@ -43,7 +43,7 @@ Save-Source $changelogPath $changelog
 
 $buildScript = @'
 #[cfg(windows)]
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[cfg(windows)]
 fn locate_resource_compiler() -> Result<PathBuf, String> {
