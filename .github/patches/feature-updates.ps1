@@ -2049,13 +2049,35 @@ if (Test-Path $skyDestination) { Remove-Item -LiteralPath $skyDestination -Recur
 New-Item -ItemType Directory -Force -Path $skyDestination | Out-Null
 foreach ($skyFile in $skyFiles) { Copy-Item -LiteralPath $skyFile.FullName -Destination $skyDestination }
 
-# Replace the earlier native-profile regression with checks against the actual Fleasion CDN parser.
+# Replace the earlier native-profile regression with exact Fleasion CDN schema checks.
 $gui = [IO.File]::ReadAllText($guiPath)
 $oldTest = @'
     #[test]
     fn all_individual_sky_json_profiles_are_embedded_and_validated() {
         let skies = sky_library_entries();
         assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
+        let mut applyable = 0usize;
+        for sky in skies {
+            let order = ["BK", "DN", "FT", "LF", "RT", "UP"];
+            if sky.status == "ready" {
+                applyable += 1;
+                assert_eq!(sky.faces.len(), 6, "{} must have six face IDs", sky.name);
+                assert!(order.iter().all(|face| sky.faces.contains_key(*face)), "{} has an incomplete face map", sky.name);
+                let profile = crate::studio::ProfileDocument::import_fleasion(sky.json).unwrap();
+                let validation = profile.validation();
+                assert!(validation.errors.is_empty(), "{} profile errors: {:?}", sky.name, validation.errors);
+                assert_eq!(validation.enabled_rules, 18, "{} must enable 18 map-face rules", sky.name);
+            } else {
+                assert!(sky.faces.len() < 6, "{} is marked incomplete but has all faces", sky.name);
+            }
+        }
+        assert_eq!(applyable, 63, "all catalog-complete skies should be one-click applyable");
+    }
+'@
+$newTest = @'
+    #[test]
+    fn all_individual_sky_json_profiles_use_six_multi_id_cdn_rules() {
+        const NAMES: [&str; 6] = ["SkBack", "SkDown", "SkFront", "SkLeft", "SkRight", "SkUp"];
         const TARGETS: [[u64; 6]; 6] = [
             [2108482005, 14147881792, 135908632589654, 84214501374682, 10196550937, 12261809766],
             [2108545280, 10196550667, 14147882149, 103020541883227, 89972436184102, 12261813110],
@@ -2064,6 +2086,8 @@ $oldTest = @'
             [14147882405, 135908632589654, 84214501374682, 2108482542, 12261809766, 10196549902],
             [14147881297, 72960281658487, 92138082970751, 2108482676, 10196567794, 12261813678],
         ];
+        let skies = sky_library_entries();
+        assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
         let mut applyable = 0usize;
         for sky in skies {
             let raw: serde_json::Value = serde_json::from_str(sky.json).unwrap();
@@ -2077,7 +2101,7 @@ $oldTest = @'
             assert_eq!(parsed.len(), sky.available_faces, "{} parsed rules", sky.name);
 
             for (index, source_rule) in source_rules.iter().enumerate() {
-                assert_eq!(source_rule["name"].as_str(), Some(["SkBack", "SkDown", "SkFront", "SkLeft", "SkRight", "SkUp"][index]));
+                assert_eq!(source_rule["name"].as_str(), Some(NAMES[index]));
                 assert_eq!(source_rule["mode"].as_str(), Some("cdn"));
                 assert_eq!(source_rule["enabled"].as_bool(), Some(true));
                 let ids = source_rule["replace_ids"].as_array().unwrap()
