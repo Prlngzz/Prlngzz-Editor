@@ -20,6 +20,12 @@ jobs:
         with:
           lfs: true
 
+      - name: Materialize the downloaded Git LFS archive
+        shell: bash
+        run: |
+          git lfs checkout SkyboxImages/SKyboxes.zip
+          ls -lh SkyboxImages/SKyboxes.zip
+
       - name: Inspect all 65 original sky archives
         shell: bash
         run: |
