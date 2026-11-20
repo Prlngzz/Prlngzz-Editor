@@ -1011,6 +1011,7 @@ $theme = Replace-Once $theme @'
 pub fn alpha(color: Color32, a: f32) -> Color32 {
 '@ @'
 static ACCENT_RGB: AtomicU32 = AtomicU32::new(0xA970FF);
+$theme = Replace-RegexOnce $theme '(?m)^pub const ACCENT: Color32 = Color32::from_rgb\(169, 112, 255\);\r?\n' '' "remove superseded fixed accent constant"
 
 /// The active accent colour, selected by the user in Customization.
 pub fn accent() -> Color32 {
@@ -1077,6 +1078,7 @@ $apply = $apply.Replace("alpha(ACCENT, 0.7)", "alpha(accent, 0.7)")
 $apply = $apply.Replace("alpha(ACCENT, 0.55)", "alpha(accent, 0.55)")
 $apply = $apply.Replace("Stroke::new(1.0_f32, ACCENT)", "Stroke::new(1.0_f32, accent)")
 $theme = $theme.Substring(0, $applyStart) + $apply + $theme.Substring($kindStart)
+$theme = Replace-Once $theme 'visuals.widgets.open.bg_stroke = Stroke::new(1.0, alpha(accent, 0.72));' 'visuals.widgets.open.bg_stroke = Stroke::new(1.0_f32, alpha(accent, 0.72));' "strict Clippy float literal"
 Save-Source $themePath $theme
 
 # Move Config Manager into the first sidebar slot, add iconography and Customization.
