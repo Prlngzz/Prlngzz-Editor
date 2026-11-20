@@ -5,7 +5,7 @@ on:
     branches: [development]
     tags: ["editor-v*"]
   pull_request:
-    branches: [main]
+    branches: [main, development]
   workflow_dispatch:
 
 permissions:
@@ -64,6 +64,48 @@ jobs:
           if (!(Test-Path (Join-Path $project "src/gui.rs")) -or !(Test-Path (Join-Path $project "src/config.rs"))) { throw "Source repair did not leave the required Rust files in place" }
           $global:LASTEXITCODE = 0
 
+      - name: Inspect config compatibility and navigation source
+        shell: pwsh
+        run: |
+          $project = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source\\Prlngzz-Editor"
+          Write-Output "===== PROJECT FILES ====="
+          Get-ChildItem $project -Force | Select-Object Name,Length,Mode | Format-Table -AutoSize | Out-String | Write-Output
+          $guiPath = Join-Path $project "src/gui.rs"
+          $gui = Get-Content $guiPath
+          Write-Output "===== GUI NAVIGATION / SETTINGS / STUDIO ====="
+          Select-String -Path $guiPath -Pattern 'enum Tab|enum Action|Tab::Studio|Tab::Settings|fn .*settings|fn .*studio|Config Studio|Config Manager|Config Manager|sidebar|navigation' -Context 2,6 | ForEach-Object { $_.ToString(); $_.Context.PreContext; $_.Context.PostContext }
+          Write-Output "===== STUDIO PARSER ====="
+          Get-Content (Join-Path $project "src/studio.rs") | ForEach-Object { $_ }
+          Write-Output "===== CONFIG ENGINE MATCHES ====="
+          Select-String -Path (Join-Path $project "src/config.rs") -Pattern 'enum Action|struct Rule|enum Selector|fn resolve|fn apply|fn plan|local_file|asset_id|remove|remove_asset|action.get|targets' -Context 2,8 | ForEach-Object { $_.ToString(); $_.Context.PreContext; $_.Context.PostContext }
+          Write-Output "===== SKIN / NO-HANDS FILES ====="
+          Get-ChildItem $project -Recurse -File -Include *.json,*.toml,*.md | Select-String -Pattern 'no.?hands|skinchanger|skin.?changer|handless|hands' -CaseSensitive:$false | ForEach-Object { "$($_.Path):$($_.LineNumber): $($_.Line)" }
+
+      - name: Package restored source snapshot for feature update
+        shell: pwsh
+        run: |
+          $project = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source\\Prlngzz-Editor"
+          $snapshot = Join-Path $env:RUNNER_TEMP "Prlngzz-Editor-source-snapshot.zip"
+          $paths = @(
+            (Join-Path $project "src"),
+            (Join-Path $project "assets"),
+            (Join-Path $project "Cargo.toml"),
+            (Join-Path $project "Cargo.lock"),
+            (Join-Path $project "changelog.json"),
+            (Join-Path $project "rivals_asset_catalog.json"),
+            (Join-Path $project "rivals_asset_ids.json")
+          )
+          Compress-Archive -Path $paths -DestinationPath $snapshot -Force
+          if (!(Test-Path $snapshot)) { throw "Source snapshot was not created" }
+
+      - name: Upload restored source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: Prlngzz-Editor-source-snapshot
+          path: ${{ runner.temp }}/Prlngzz-Editor-source-snapshot.zip
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Check formatting
         shell: pwsh
         run: |
@@ -108,7 +150,9 @@ jobs:
           if (!(Test-Path $binary)) { throw "Expected executable not found: $binary" }
           $versionOutput = & $binary --version
           if ($LASTEXITCODE -ne 0) { throw "Executable --version invocation failed" }
-          if ($versionOutput.Trim() -ne "prlngzz-editor 0.1.0") { throw "Unexpected version: $versionOutput" }
+          if ($versionOutput.Trim() -ne "prlngzz-editor 0.2.0") { throw "Unexpected version: $versionOutput" }
+          $versionInfo = (Get-Item $binary).VersionInfo
+          if ($versionInfo.FileVersion -ne "0.2.0" -or $versionInfo.ProductVersion -ne "0.2.0") { throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)" }
           $bytes = [IO.File]::ReadAllBytes($binary)
           if ($bytes.Length -lt 256 -or $bytes[0] -ne 0x4d -or $bytes[1] -ne 0x5a) { throw "Invalid PE file" }
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)

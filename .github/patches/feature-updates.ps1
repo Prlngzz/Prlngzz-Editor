@@ -1,0 +1,1500 @@
+param([Parameter(Mandatory=$true)][string]$Project)
+$ErrorActionPreference = "Stop"
+function Replace-Once([string]$Text, [string]$Old, [string]$New, [string]$What) {
+    $Text = $Text.Replace(([string][char]13 + [char]10), [string][char]10)
+    $Old = $Old.Replace(([string][char]13 + [char]10), [string][char]10)
+    $New = $New.Replace(([string][char]13 + [char]10), [string][char]10)
+    $count = [regex]::Matches($Text, [regex]::Escape($Old)).Count
+    if ($count -ne 1) { throw "Expected exactly one '$What' block; found $count" }
+    return $Text.Replace($Old, $New)
+}
+function Replace-RegexOnce([string]$Text, [string]$Pattern, [string]$New, [string]$What) {
+    $count = [regex]::Matches($Text, $Pattern).Count
+    if ($count -ne 1) { throw "Expected exactly one '$What' source match; found $count" }
+    return [regex]::Replace($Text, $Pattern, $New)
+}
+function Save-Source([string]$Path, [string]$Text) {
+    [IO.File]::WriteAllText($Path, $Text, [Text.UTF8Encoding]::new($false))
+}
+
+# Version identity and Windows file properties.
+$cargoPath = Join-Path $Project "Cargo.toml"
+$cargo = [IO.File]::ReadAllText($cargoPath)
+$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.2.0"' "package version"
+Save-Source $cargoPath $cargo
+
+$lockPath = Join-Path $Project "Cargo.lock"
+$lock = [IO.File]::ReadAllText($lockPath)
+$lock = Replace-Once $lock @'
+name = "prlngzz-editor"
+version = "0.1.0"
+'@ @'
+name = "prlngzz-editor"
+version = "0.2.0"
+'@ "Cargo.lock package version"
+Save-Source $lockPath $lock
+
+$changelogPath = Join-Path $Project "changelog.json"
+$changelog = [IO.File]::ReadAllText($changelogPath)
+$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.2.0"' "changelog version"
+$changelog = $changelog.Replace('"Retains the Rust local cache browser, previews, replacement engine, original backups and cache monitoring from the supplied rbxcache foundation."', '"Groups six-face community skies, adds on-demand asset previews and improves texture preview resolution."')
+$changelog = $changelog.Replace('"Adds optional HTTPS-only community catalog, release and changelog endpoint configuration."', '"Adds multi-ID replacement pairing, reload-before-launch, extra accent choices and embedded Windows version metadata."')
+Save-Source $changelogPath $changelog
+
+$buildScript = @'
+#[cfg(windows)]
+use std::path::PathBuf;
+
+#[cfg(windows)]
+fn locate_resource_compiler() -> Result<PathBuf, String> {
+    let mut candidates = Vec::new();
+
+    if let Some(explicit) = std::env::var_os("RC") {
+        candidates.push(PathBuf::from(explicit));
+    }
+
+    if let Some(path) = std::env::var_os("PATH") {
+        candidates.extend(std::env::split_paths(&path).map(|dir| dir.join("rc.exe")));
+    }
+
+    if let Ok(output) = std::process::Command::new("where.exe").arg("rc.exe").output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            candidates.extend(stdout.lines().map(str::trim).filter(|line| !line.is_empty()).map(PathBuf::from));
+        }
+    }
+
+    let mut sdk_roots = Vec::new();
+    for key in ["WindowsSdkDir", "WindowsSDKDir"] {
+        if let Some(value) = std::env::var_os(key) {
+            sdk_roots.push(PathBuf::from(value));
+        }
+    }
+    if let Some(value) = std::env::var_os("WindowsSdkVerBinPath") {
+        let path = PathBuf::from(value);
+        candidates.push(path.join("x64").join("rc.exe"));
+        candidates.push(path.join("x86").join("rc.exe"));
+    }
+    if let Some(program_files) = std::env::var_os("ProgramFiles(x86)") {
+        sdk_roots.push(PathBuf::from(program_files).join("Windows Kits").join("10"));
+    }
+    if let Some(program_files) = std::env::var_os("ProgramFiles") {
+        sdk_roots.push(PathBuf::from(program_files).join("Windows Kits").join("10"));
+    }
+
+    for root in sdk_roots {
+        let bin = if root.file_name().is_some_and(|name| name.eq_ignore_ascii_case("bin")) {
+            root.clone()
+        } else {
+            root.join("bin")
+        };
+        if let Ok(entries) = std::fs::read_dir(&bin) {
+            let mut versions: Vec<PathBuf> = entries.filter_map(Result::ok)
+                .map(|entry| entry.path()).filter(|path| path.is_dir()).collect();
+            versions.sort_by_key(|path| std::cmp::Reverse(path.file_name().map(|name| name.to_os_string()).unwrap_or_default()));
+            for version in versions {
+                candidates.push(version.join("x64").join("rc.exe"));
+                candidates.push(version.join("x86").join("rc.exe"));
+            }
+        }
+        candidates.push(bin.join("x64").join("rc.exe"));
+        candidates.push(bin.join("x86").join("rc.exe"));
+        candidates.push(root.join("rc.exe"));
+    }
+
+    candidates.into_iter().find(|path| path.is_file())
+        .ok_or_else(|| format!(
+            "Could not locate rc.exe. Checked RC, PATH, WindowsSdkDir/WindowsSdkVerBinPath and Windows Kits SDK folders. PATH={}",
+            std::env::var("PATH").unwrap_or_default()
+        ))
+}
+
+fn main() {
+    println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
+    #[cfg(windows)]
+    {
+        let version = std::env::var("CARGO_PKG_VERSION").expect("Cargo package version is missing");
+        let numbers: Vec<u32> = version.split(['.', '-', '+']).take(4)
+            .map(|part| part.parse::<u32>().unwrap_or(0)).collect();
+        let component = |index: usize| numbers.get(index).copied().unwrap_or(0);
+        let file_version = format!("{},{},{},{}", component(0), component(1), component(2), component(3));
+        let output = PathBuf::from(std::env::var_os("OUT_DIR").expect("OUT_DIR is missing"));
+        let rc_path = output.join("prlngzz-version.rc");
+        let res_path = output.join("prlngzz-version.res");
+        let resource = format!(r#"
+1 VERSIONINFO
+ FILEVERSION {file_version}
+ PRODUCTVERSION {file_version}
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "Prlngzz\0"
+      VALUE "FileDescription", "Prlngzz Editor\0"
+      VALUE "FileVersion", "{version}\0"
+      VALUE "InternalName", "prlngzz-editor\0"
+      VALUE "OriginalFilename", "Prlngzz-Editor-Windows-x64.exe\0"
+      VALUE "ProductName", "Prlngzz Editor\0"
+      VALUE "ProductVersion", "{version}\0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0409, 1200
+  END
+END
+"#);
+        std::fs::write(&rc_path, resource).expect("could not write Windows version resource");
+        let rc = locate_resource_compiler().unwrap_or_else(|error| panic!("{error}"));
+        let status = std::process::Command::new(&rc).arg("/nologo").arg("/fo").arg(&res_path).arg(&rc_path).status()
+            .unwrap_or_else(|error| panic!("Could not start Windows resource compiler {}: {error}", rc.display()));
+        assert!(status.success(), "Windows version resource compilation failed using {}", rc.display());
+        println!("cargo:rustc-link-arg-bins={}", res_path.display());
+    }
+}
+'@
+Save-Source (Join-Path $Project "build.rs") $buildScript
+
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui @'
+    eframe::run_native(
+        "Prlngzz Editor",
+'@ @'
+    let window_title = format!("Prlngzz Editor v{}", update::CURRENT);
+    eframe::run_native(
+        &window_title,
+'@ "versioned window title"
+
+$gui = Replace-Once $gui @'
+enum Action {
+    Reload,
+'@ @'
+enum Action {
+    LaunchRoblox,
+    PreviewCatalog(u64),
+    Reload,
+'@ "launch and preview actions"
+$gui = Replace-Once $gui @'
+    rivals_catalog_search: String,
+    focus: Option<Id>,
+'@ @'
+    rivals_catalog_search: String,
+    catalog_preview_id: Option<u64>,
+    focus: Option<Id>,
+'@ "catalogue preview state"
+$gui = Replace-Once $gui @'
+    sync_wanted: bool,
+    /// True while the work going on was started by a switch on the Configs page, which should not take over the window.
+'@ @'
+    sync_wanted: bool,
+    launch_after_apply: bool,
+    /// True while the work going on was started by a switch on the Configs page, which should not take over the window.
+'@ "launch-after-apply state"
+$gui = Replace-Once $gui @'
+            rivals_catalog_search: String::new(),
+            focus: None,
+'@ @'
+            rivals_catalog_search: String::new(),
+            catalog_preview_id: None,
+            focus: None,
+'@ "catalogue preview initialization"
+$gui = Replace-Once $gui @'
+            sync_wanted: false,
+            reapply_targets: HashSet::new(),
+'@ @'
+            sync_wanted: false,
+            launch_after_apply: false,
+            reapply_targets: HashSet::new(),
+'@ "launch state initialization"
+
+# Replace the former flat catalogue with a grouped sky list and a preview-enabled replacement asset list.
+$libraryMethod = @'
+    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new("RIVALS ASSET LIBRARY").strong());
+            ui.add_space(8.0);
+            ui.add(egui::TextEdit::singleline(&mut self.rivals_catalog_search)
+                .desired_width(280.0).hint_text("Search skins, skies, sounds or ID…"));
+        });
+        ui.label(egui::RichText::new("Community skybox, weapon icon and sound IDs below are replacement assets. The separately labelled map-sky references are target IDs being replaced.")
+            .color(theme::MUTED).small());
+
+        let query = self.rivals_catalog_search.trim().to_lowercase();
+        let assets = rivals_asset_catalog();
+        if let Some(id) = self.catalog_preview_id {
+            ui.add_space(6.0);
+            ui.group(|ui| {
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new(format!("ASSET PREVIEW · {id}")).strong());
+                    if ui.small_button("Clear").clicked() { self.catalog_preview_id = None; }
+                });
+                if let Some(texture) = self.lookup_pictures.get(&id) {
+                    let size = texture.size_vec2();
+                    let scale = (420.0 / size.x.max(1.0)).min(300.0 / size.y.max(1.0)).min(1.0);
+                    ui.image((texture.id(), size * scale));
+                    ui.label(egui::RichText::new("Public replacement asset preview").color(theme::MUTED).small());
+                } else if self.lookup_job.is_some() {
+                    ui.label(egui::RichText::new("Fetching public asset preview from Roblox…").color(theme::MUTED));
+                } else {
+                    ui.label(egui::RichText::new("No image preview was returned. Restricted assets may not be anonymously downloadable.").color(theme::MUTED));
+                }
+            });
+        }
+
+        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
+        for asset in assets.iter().filter(|asset| asset.get("category").and_then(serde_json::Value::as_str) == Some("Community skybox")) {
+            let name = asset.get("name").and_then(serde_json::Value::as_str).unwrap_or("Unnamed sky").to_owned();
+            let face = asset.get("variant").and_then(serde_json::Value::as_str).unwrap_or("").to_ascii_uppercase();
+            if let Some(id) = asset.get("id").and_then(serde_json::Value::as_str).and_then(|id| id.parse::<u64>().ok()) {
+                skies.entry(name).or_default().insert(face, id);
+            }
+        }
+        let sky_count = skies.len();
+        let matching_skies = skies.iter().filter(|(name, faces)| query.is_empty() || name.to_lowercase().contains(&query) || faces.values().any(|id| id.to_string().contains(&query))).count();
+        egui::CollapsingHeader::new(format!("COMMUNITY SKYBOXES · {sky_count} grouped six-face sets ({matching_skies} match)"))
+            .default_open(!query.is_empty())
+            .show(ui, |ui| {
+                ui.label(egui::RichText::new("Faces are grouped by name in the order FT, BK, RT, LF, UP, DN. Every ID here is a replacement ID. Put the corresponding six target IDs in Config Builder; its one-to-one pairing creates one six-rule config.")
+                    .color(theme::MUTED).small());
+                egui::ScrollArea::vertical().max_height(330.0).show(ui, |ui| {
+                    for (name, faces) in &skies {
+                        if !query.is_empty() && !name.to_lowercase().contains(&query) && !faces.values().any(|id| id.to_string().contains(&query)) { continue; }
+                        let order = ["FT", "BK", "RT", "LF", "UP", "DN"];
+                        let replacement_ids: Vec<String> = order.iter().filter_map(|face| faces.get(*face).map(u64::to_string)).collect();
+                        let complete = order.iter().all(|face| faces.contains_key(*face));
+                        egui::Frame::group(ui.style()).show(ui, |ui| {
+                            ui.horizontal_wrapped(|ui| {
+                                ui.label(egui::RichText::new(name).strong());
+                                theme::pill(ui, &format!("{}/6 faces", faces.len()), if complete { theme::OK } else { theme::WARN });
+                                if complete && ui.small_button("Use 6 replacement IDs").clicked() {
+                                    self.studio_replacement_input = replacement_ids.join("\n");
+                                    self.show_tab(Tab::Studio, ui.ctx());
+                                }
+                            });
+                            ui.horizontal_wrapped(|ui| {
+                                for face in order {
+                                    if let Some(id) = faces.get(face) {
+                                        if ui.small_button(format!("Preview {face}")).clicked() {
+                                            actions.push(Action::PreviewCatalog(*id));
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    }
+                });
+            });
+
+        let map_targets: Vec<String> = assets.iter()
+            .filter(|asset| asset.get("category").and_then(serde_json::Value::as_str) == Some("RIVALS map sky texture"))
+            .filter_map(|asset| asset.get("id").and_then(serde_json::Value::as_str).map(str::to_owned)).collect();
+        ui.horizontal_wrapped(|ui| {
+            ui.label(egui::RichText::new(format!("{} known map-sky target references", map_targets.len())).color(theme::MUTED).small());
+            if !map_targets.is_empty() && ui.small_button("Load as target IDs").on_hover_text("These IDs are targets being replaced, not replacement assets").clicked() {
+                self.studio_target_input = map_targets.join("\n");
+                self.show_tab(Tab::Studio, ui.ctx());
+            }
+        });
+
+        let matches: Vec<usize> = assets.iter().enumerate().filter_map(|(index, asset)| {
+            if asset.get("category").and_then(serde_json::Value::as_str) == Some("Community skybox") { return None; }
+            let search = rivals_catalog_search_text().get(index).map(String::as_str).unwrap_or("");
+            (query.is_empty() || search.contains(&query)).then_some(index)
+        }).collect();
+        ui.add_space(8.0);
+        ui.label(egui::RichText::new(format!("{} other curated assets · {} shown", assets.len().saturating_sub(546), matches.len())).color(theme::MUTED).small());
+        egui::ScrollArea::vertical().auto_shrink([false, false]).show_rows(ui, 38.0, matches.len(), |ui, visible| {
+            for row in visible {
+                let asset = &assets[matches[row]];
+                let id = asset.get("id").and_then(serde_json::Value::as_str).unwrap_or("");
+                let number = id.parse::<u64>().ok();
+                let name = asset.get("name").and_then(serde_json::Value::as_str).unwrap_or("RIVALS asset");
+                let category = asset.get("category").and_then(serde_json::Value::as_str).unwrap_or("RIVALS");
+                let variant = asset.get("variant").and_then(serde_json::Value::as_str).unwrap_or("");
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new(category).color(theme::MUTED).small());
+                    ui.label(name);
+                    if !variant.is_empty() {
+                        let label = if variant == "High Res" { "High Res · recommended" } else if variant == "Low Res" { "Low Res · lower detail" } else { variant };
+                        ui.label(egui::RichText::new(label).color(if variant == "High Res" { theme::OK } else { theme::MUTED }).small());
+                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if let Some(id) = number {
+                            if ui.small_button("Preview").clicked() { actions.push(Action::PreviewCatalog(id)); }
+                        }
+                        if ui.small_button(if category == "RIVALS map sky texture" { "Use as target" } else { "Use as replacement" }).clicked() {
+                            if category == "RIVALS map sky texture" {
+                                self.studio_target_input = id.to_owned();
+                            } else {
+                                self.studio_replacement_input = id.to_owned();
+                            }
+                            self.show_tab(Tab::Studio, ui.ctx());
+                        }
+                        ui.monospace(id);
+                    });
+                });
+                ui.separator();
+            }
+        });
+    }
+
+'@
+$gui = Replace-Once $gui '    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {' ($libraryMethod + '    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {') "grouped sky and asset preview method"
+$assetLibraryRoute = @'
+        if self.tab == Tab::All { self.asset_library_page(ui, actions); return; }
+        let mut clicked: Option<usize> = None;
+'@
+$gui = Replace-RegexOnce $gui '(?s)        if self\.tab == Tab::All \{.*?            return;\r?\n        \}\r?\n        let mut clicked: Option<usize> = None;' $assetLibraryRoute "Asset Library page switch"
+
+# Preview image assets on demand; audio assets open the existing player/lookup page.
+$gui = Replace-Once $gui @'
+        let result = match action {
+            Action::Reload => {
+'@ @'
+        let result = match action {
+            Action::PreviewCatalog(id) => {
+                let is_sound = rivals_asset_catalog().iter().any(|asset|
+                    asset.get("category").and_then(serde_json::Value::as_str) == Some("Community sound")
+                    && asset.get("id").and_then(serde_json::Value::as_str).is_some_and(|value| value == id.to_string())
+                );
+                if is_sound {
+                    self.lookup_input = id.to_string();
+                    self.show_tab(Tab::Lookup, ctx);
+                } else {
+                    self.catalog_preview_id = Some(id);
+                }
+                self.start_lookup(ctx, vec![id]);
+                Ok(format!("Fetching preview for asset {id}"))
+            }
+            Action::LaunchRoblox => self.reload_configs_then_launch(ctx),
+            Action::Reload => {
+'@ "asset preview and launch action handlers"
+
+# Reload saved configs automatically before launch and preserve their enabled/off switches.
+$gui = Replace-Once $gui @'
+                self.pending_configs = Some(pending);
+                self.confirm_configs = true;
+                self.preview = None;
+'@ @'
+                self.pending_configs = Some(pending);
+                self.preview = None;
+                if self.launch_after_apply {
+                    self.confirm_configs = false;
+                    self.accept_configs();
+                } else {
+                    self.confirm_configs = true;
+                }
+'@ "automatic config reload for launch"
+$gui = Replace-Once $gui @'
+            Some(Err(e)) => {
+                self.config_job = None;
+                self.notify(ctx, e, true);
+            }
+'@ @'
+            Some(Err(e)) => {
+                self.config_job = None;
+                self.launch_after_apply = false;
+                self.notify(ctx, e, true);
+            }
+'@ "config reload failure handling"
+$gui = Replace-Once $gui @'
+            if let Some(loaded) = self.configs.iter().find(|c| config::same_file(&c.path, &config.path)) {
+                config.off = loaded.off.clone();
+            }
+'@ @'
+            if let Some(loaded) = self.configs.iter().find(|c| config::same_file(&c.path, &config.path)) {
+                config.off = loaded.off.clone();
+                config.enabled = loaded.enabled;
+            }
+'@ "preserve enabled state on reload"
+
+$launchMethod = @'
+    fn reload_configs_then_launch(&mut self, ctx: &egui::Context) -> Result<String> {
+        let paths: Vec<PathBuf> = self.configs.iter().map(|config| config.path.clone()).collect();
+        if paths.is_empty() { return launch_roblox_client(); }
+        anyhow::ensure!(self.config_job.is_none() && self.apply_job.is_none(), "Wait for the current config operation to finish before launching Roblox");
+        self.launch_after_apply = true;
+        match self.check_configs(ctx, paths) {
+            Ok(_) => Ok("Reloading saved config files before launching Roblox…".into()),
+            Err(error) => { self.launch_after_apply = false; Err(error) }
+        }
+    }
+
+'@
+$gui = Replace-Once $gui '    /// Takes the configs that were checked and confirmed into the list. One' ($launchMethod + '    /// Takes the configs that were checked and confirmed into the list. One') "reload before launch method"
+
+$gui = Replace-Once $gui @'
+        self.apply_job = None;
+        match result {
+            Ok(synced) => {
+'@ @'
+        self.apply_job = None;
+        let launch_after_apply = self.launch_after_apply;
+        let mut apply_succeeded = false;
+        match result {
+            Ok(synced) => {
+                apply_succeeded = true;
+'@ "launch after config sync"
+$gui = Replace-Once $gui @'
+            Err(e) => self.notify(ctx, e, true),
+        }
+        if self.settings.watch {
+'@ @'
+            Err(e) => self.notify(ctx, e, true),
+        }
+        if launch_after_apply {
+            self.launch_after_apply = false;
+            if apply_succeeded {
+                match launch_roblox_client() {
+                    Ok(message) => self.notify(ctx, message, false),
+                    Err(error) => self.notify(ctx, format!("Configs were reloaded, but Roblox could not be launched: {error:#}"), true),
+                }
+            }
+        }
+        if self.settings.watch {
+'@ "launch only after successful cache sync"
+
+# Sidebar launcher button.
+$gui = Replace-Once $gui @'
+        ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+'@ @'
+        if ui.add_sized(Vec2::new(ui.available_width(), 36.0), primary_button("Launch Roblox")).clicked() {
+            actions.push(Action::LaunchRoblox);
+        }
+        ui.add_space(8.0);
+        ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+'@ "sidebar Roblox launch button"
+
+# Pair target and replacement lists one-to-one; a single replacement still works for multiple targets.
+$methodStart = $gui.IndexOf('    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {')
+$methodEnd = $gui.IndexOf('    fn customization_page', $methodStart)
+if ($methodStart -lt 0 -or $methodEnd -le $methodStart) { throw "Could not isolate the Config Studio replacement helper" }
+$newMethod = @'
+    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {
+        let targets = crate::studio::extract_asset_ids(&self.studio_target_input);
+        let replacements = crate::studio::extract_asset_ids(&self.studio_replacement_input);
+        anyhow::ensure!(!targets.is_empty(), "Enter at least one target asset ID or Roblox asset URL");
+        anyhow::ensure!(!replacements.is_empty(), "Enter one or more replacement asset IDs");
+        anyhow::ensure!(replacements.len() == 1 || replacements.len() == targets.len(),
+            "Enter one replacement ID for every target, or the same number of IDs for one-to-one pairing");
+        for (index, target) in targets.iter().enumerate() {
+            let replacement = replacements[if replacements.len() == 1 { 0 } else { index }];
+            self.studio_doc.add_rule(*target, replacement)?;
+        }
+        self.studio_target_input.clear();
+        self.studio_replacement_input.clear();
+        Ok(targets.len())
+    }
+
+'@
+$gui = $gui.Substring(0, $methodStart) + $newMethod + $gui.Substring($methodEnd)
+$labelOld = 'ui.label(egui::RichText::new("Replacement asset ID").color(theme::MUTED).small());'
+$gui = $gui.Replace($labelOld, 'ui.label(egui::RichText::new("Replacement asset ID(s) · one per target, or one for all").color(theme::MUTED).small());')
+$gui = $gui.Replace('ui.label(egui::RichText::new("Replacement asset ID").color(theme::MUTED).small());', 'ui.label(egui::RichText::new("Replacement asset ID(s) · one per target, or one for all").color(theme::MUTED).small());')
+$gui = $gui.Replace('ui.text_edit_singleline(&mut self.studio_replacement_input);', 'ui.add(egui::TextEdit::multiline(&mut self.studio_replacement_input).desired_rows(3).desired_width(260.0).hint_text("Replacement IDs, one per line"));')
+if (!$gui.Contains('egui::TextEdit::multiline(&mut self.studio_replacement_input)')) { throw "Replacement ID list fields were not updated" }
+
+# Higher-detail texture decode / display settings.
+$gui = $gui.Replace('picture.thumbnail(256, 256)', 'picture.thumbnail(512, 512)')
+$gui = $gui.Replace('shrink(image, 2048)', 'shrink(image, 4096)')
+$gui = $gui.Replace('viewers::decode_ktx2(body, 2048)', 'viewers::decode_ktx2(body, 4096)')
+Save-Source $guiPath $gui
+
+# Extra palette choices and an independently switchable ambient accent effect.
+$settingsPath = Join-Path $Project "src/settings.rs"
+$settings = [IO.File]::ReadAllText($settingsPath)
+$settings = Replace-Once $settings @'
+    pub animations: bool,
+    /// Accent palette selected in the Customization page.
+'@ @'
+    pub animations: bool,
+    /// Soft breathing glow behind the selected navigation item.
+    pub animated_glow: bool,
+    /// Accent palette selected by the user.
+'@ "animated glow setting"
+$settings = Replace-Once $settings @'
+            animations: true,
+            accent: "violet".into(),
+'@ @'
+            animations: true,
+            animated_glow: true,
+            accent: "violet".into(),
+'@ "animated glow default"
+Save-Source $settingsPath $settings
+
+$themePath = Join-Path $Project "src/theme.rs"
+$theme = [IO.File]::ReadAllText($themePath)
+$theme = Replace-Once $theme @'
+        "amber" => 0xE8B65D,
+        _ => 0xA970FF,
+'@ @'
+        "amber" => 0xE8B65D,
+        "mint" => 0x65D6A6,
+        "orange" => 0xFF965C,
+        "indigo" => 0x8394FF,
+        _ => 0xA970FF,
+'@ "additional accent colors"
+Save-Source $themePath $theme
+
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui @'
+                    "amber" => "Warm amber",
+                    _ => "Prlngzz violet",
+'@ @'
+                    "amber" => "Warm amber",
+                    "mint" => "Mint green",
+                    "orange" => "Soft orange",
+                    "indigo" => "Indigo",
+                    _ => "Prlngzz violet",
+'@ "additional accent labels"
+$gui = Replace-Once $gui @'
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "amber".into(), "Warm amber").changed();
+'@ @'
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "amber".into(), "Warm amber").changed();
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "mint".into(), "Mint green").changed();
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "orange".into(), "Soft orange").changed();
+                    accent_changed |= ui.selectable_value(&mut self.settings.accent, "indigo".into(), "Indigo").changed();
+'@ "additional accent choices"
+$gui = Replace-Once $gui @'
+            preferences_changed |= ui.checkbox(&mut self.settings.animations, "Enable animations and transitions").changed();
+            ui.label(egui::RichText::new("Controls page transitions, sidebar easing and decorative motion. Disabling this keeps the interface still while preserving progress and status feedback.").color(theme::MUTED).small());
+'@ @'
+            preferences_changed |= ui.checkbox(&mut self.settings.animations, "Enable animations and transitions").changed();
+            preferences_changed |= ui.checkbox(&mut self.settings.animated_glow, "Animate selected-tab accent glow").changed();
+            ui.label(egui::RichText::new("Controls page transitions, sidebar easing and the soft selected-tab glow. Turn either effect off for a quieter interface.").color(theme::MUTED).small());
+'@ "animated glow option"
+$gui = Replace-Once $gui @'
+            let active = if self.settings.animations {
+'@ @'
+            let mut active = if self.settings.animations {
+'@ "mutable active tab animation"
+$gui = Replace-Once $gui @'
+            let hover = if self.settings.animations {
+'@ @'
+            if selected && self.settings.animations && self.settings.animated_glow {
+                let pulse = 0.90 + 0.10 * ((now as f32 * 2.0).sin() * 0.5 + 0.5);
+                active *= pulse;
+                ui.ctx().request_repaint_after(std::time::Duration::from_millis(50));
+            }
+            let hover = if self.settings.animations {
+'@ "pulsing active-tab accent"
+Save-Source $guiPath $gui
+
+# Extend native profile import aliases to mirror the config engine.
+$studioPath = Join-Path $Project "src/studio.rs"
+$studio = [IO.File]::ReadAllText($studioPath)
+$studio = $studio.Replace('object.get("replace_ids").or_else(|| object.get("target_ids")).or_else(|| object.get("targets"))',
+    'object.get("replace_ids").or_else(|| object.get("target_ids")).or_else(|| object.get("asset_ids")).or_else(|| object.get("targets"))')
+$studio = Replace-Once $studio @'
+        "remove" => json!({ "type": "remove" }),
+        "local" => match object.get("local_path").and_then(Value::as_str).filter(|p| !p.trim().is_empty()) {
+'@ @'
+        "remove" | "delete" | "remove_asset" => json!({ "type": "remove" }),
+        "local" | "local_file" | "file" => match object.get("local_path").and_then(Value::as_str).filter(|p| !p.trim().is_empty()) {
+'@ "studio remove and local aliases"
+$studio = Replace-Once $studio @'
+        "cdn" => {
+'@ @'
+        "cdn" | "url" | "https" => {
+'@ "studio URL aliases"
+$studio = Replace-Once $studio @'
+        "id" => match object.get("with_id") {
+'@ @'
+        "id" | "asset_id" | "replace" => match object.get("with_id").or_else(|| object.get("replacement_id")) {
+'@ "studio replacement ID aliases"
+Save-Source $studioPath $studio
+
+# Roblox protocol handlers (including third-party launchers) first; standard installation as fallback.
+$launcher = @'
+
+#[cfg(windows)]
+fn launch_roblox_client() -> anyhow::Result<String> {
+    if open::that("roblox-player:").is_ok() {
+        return Ok("Launch request sent to the registered Roblox player protocol handler.".into());
+    }
+    let local = std::env::var_os("LOCALAPPDATA").map(PathBuf::from)
+        .ok_or_else(|| anyhow::anyhow!("LOCALAPPDATA is not available"))?;
+    let versions = local.join("Roblox").join("Versions");
+    let mut folders: Vec<PathBuf> = std::fs::read_dir(&versions)
+        .with_context(|| format!("Could not open Roblox versions folder at {}", versions.display()))?
+        .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+        .filter(|path| path.is_dir()).collect();
+    folders.sort_by_key(|path| std::cmp::Reverse(path.file_name().map(|name| name.to_os_string()).unwrap_or_default()));
+    for folder in folders {
+        let player = folder.join("RobloxPlayerBeta.exe");
+        if player.is_file() {
+            std::process::Command::new(&player).spawn()
+                .with_context(|| format!("Could not start {}", player.display()))?;
+            return Ok("Started the installed Roblox desktop player.".into());
+        }
+    }
+    anyhow::bail!("No registered roblox-player protocol handler or installed RobloxPlayerBeta.exe was found.")
+}
+
+#[cfg(not(windows))]
+fn launch_roblox_client() -> anyhow::Result<String> {
+    open::that("roblox-player:").map(|()| "Launch request sent to the registered Roblox player protocol handler.".into())
+        .map_err(Into::into)
+}
+
+'@
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui 'impl App {' ($launcher + 'impl App {') "cross-launcher Roblox launch helper"
+Save-Source $guiPath $gui
+
+# Focused regression coverage for the exact user-supplied JSON patterns.
+$configPath = Join-Path $Project "src/config.rs"
+$config = [IO.File]::ReadAllText($configPath)
+$config += @'
+
+#[cfg(test)]
+mod supplied_config_regressions {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn no_arms_sample_removes_both_targets() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"the no arm","replace_ids":[12307734932,12307583853],"mode":"id","enabled":true}]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].name, "the no arm");
+        assert_eq!(rules[0].targets, [Target::Asset(12307734932), Target::Asset(12307583853)]);
+        assert_eq!(rules[0].action, Action::Remove);
+    }
+
+    #[test]
+    fn candycane_sample_keeps_target_and_replacement_ids_separate() {
+        let rules = parse(r#"{"replacement_rules":[
+            {"name":"body","replace_ids":[18586195844],"mode":"local","enabled":true,"local_path":"C:/Users/santh/Downloads/idekatp.obj"},
+            {"name":"remove","replace_ids":[18586195727],"mode":"id","enabled":true},
+            {"name":"icon","replace_ids":[18766863586],"mode":"id","enabled":true,"with_id":124021545052910}
+        ]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 3);
+        assert_eq!(rules[0].targets, [Target::Asset(18586195844)]);
+        assert!(matches!(&rules[0].action, Action::Local(path) if path.file_name().and_then(|name| name.to_str()) == Some("idekatp.obj")));
+        assert_eq!(rules[1].targets, [Target::Asset(18586195727)]);
+        assert_eq!(rules[1].action, Action::Remove);
+        assert_eq!(rules[2].targets, [Target::Asset(18766863586)]);
+        assert_eq!(rules[2].action, Action::With(Target::Asset(124021545052910)));
+    }
+}
+'@
+Save-Source $configPath $config
+
+Write-Host "Feature updates applied: version, six-face sky groups, previews, multi-ID pairing, launch, config regressions and customization."
+
+
+# Source-complete replacement workflow, verified arena texture examples, and startup intro.
+$studioPath = Join-Path $Project "src/studio.rs"
+$studio = [IO.File]::ReadAllText($studioPath)
+$cdnMethod = @'
+    /// Adds an HTTPS CDN replacement to a Roblox asset target.
+    pub fn add_cdn_rule(&mut self, target_id: u64, url: &str) -> Result<()> {
+        ensure!(target_id > 0, "Target asset ID must be greater than zero");
+        let url = url.trim();
+        ensure!(url.starts_with("https://"), "CDN replacements must use HTTPS");
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": "CDN texture replacement",
+            "enabled": true,
+            "targets": [target_id],
+            "action": { "type": "https", "url": url },
+            "notes": "HTTPS CDN replacement. The URL is fetched anonymously when the local cache rule is applied."
+        }));
+        Ok(())
+    }
+
+'@
+$studio = Replace-Once $studio '    pub fn remove_rule(&mut self, index: usize) -> bool {' ($cdnMethod + '    pub fn remove_rule(&mut self, index: usize) -> bool {') "Config Studio HTTPS CDN rule method"
+Save-Source $studioPath $studio
+
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui @'
+    studio_replacement_input: String,
+    studio_local_path_input: String,
+'@ @'
+    studio_replacement_input: String,
+    studio_cdn_input: String,
+    studio_local_path_input: String,
+'@ "Config Studio CDN input state"
+$gui = Replace-Once $gui @'
+            studio_replacement_input: String::new(),
+            studio_local_path_input: String::new(),
+'@ @'
+            studio_replacement_input: String::new(),
+            studio_cdn_input: String::new(),
+            studio_local_path_input: String::new(),
+'@ "Config Studio CDN input initialization"
+
+$cdnCard = @'
+        ui.add_space(10.0);
+        card(ui, 1.0, |ui| {
+            ui.label(egui::RichText::new("HTTPS CDN REPLACEMENT").strong().size(16.0).color(theme::accent()));
+            ui.label(egui::RichText::new("Use an HTTPS image or asset URL. The target is the original RIVALS asset; the URL is the replacement.").color(theme::MUTED).small());
+            ui.horizontal(|ui| {
+                ui.label("CDN URL");
+                ui.add(egui::TextEdit::singleline(&mut self.studio_cdn_input).desired_width(390.0).hint_text("https://example.com/texture.png"));
+            });
+            if ui.add(primary_button("Add CDN replacement")).clicked() {
+                match self.add_studio_cdn_rules() {
+                    Ok(count) => self.studio_status = format!("Added {count} HTTPS CDN replacement rule(s)."),
+                    Err(error) => self.studio_status = format!("Could not add CDN rule: {error:#}"),
+                }
+            }
+        });
+'@
+$gui = Replace-Once $gui @'
+        ui.add_space(10.0);
+        let rows = self.studio_doc.rules().to_vec();
+'@ ($cdnCard + @'
+        ui.add_space(10.0);
+        let rows = self.studio_doc.rules().to_vec();
+'@) "Config Studio CDN replacement card"
+
+$cdnHelper = @'
+    fn add_studio_cdn_rules(&mut self) -> anyhow::Result<usize> {
+        let url = self.studio_cdn_input.trim().to_owned();
+        anyhow::ensure!(url.starts_with("https://"), "Enter a valid HTTPS CDN URL");
+        let targets = crate::studio::extract_asset_ids(&self.studio_target_input);
+        anyhow::ensure!(!targets.is_empty(), "Enter one or more original RIVALS target asset IDs");
+        for target in &targets { self.studio_doc.add_cdn_rule(*target, &url)?; }
+        self.studio_target_input.clear();
+        self.studio_cdn_input.clear();
+        Ok(targets.len())
+    }
+
+'@
+$gui = Replace-Once $gui '    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {' ($cdnHelper + '    fn add_studio_rules(&mut self) -> anyhow::Result<usize> {') "Config Studio CDN rule helper"
+
+# Surface the three actual examples from the user's supplied configs; do not infer a floor/wall/prop label.
+$arenaCards = @'
+        ui.add_space(12.0);
+        card(ui, 1.0, |ui| {
+            ui.horizontal(|ui| {
+                ui.label(egui::RichText::new("ARENA TEXTURE LIBRARY").strong().size(18.0).color(theme::accent()));
+                theme::pill(ui, "1 verified target · 3 examples", theme::OK);
+            });
+            ui.label(egui::RichText::new("These entries come from the supplied RIVALS configs. The target surface has not been identified, so it is deliberately labelled Unclassified rather than guessed as a floor, wall or prop.").color(theme::MUTED).small());
+            ui.separator();
+            ui.horizontal_wrapped(|ui| {
+                ui.vertical(|ui| {
+                    ui.label(egui::RichText::new("Tism textures").strong());
+                    ui.label("Target: 7658055825");
+                    ui.label("Replacement: 6372755229");
+                    if ui.small_button("Preview replacement").clicked() { actions.push(Action::PreviewCatalog(6372755229)); }
+                    if ui.button("Use this texture").clicked() {
+                        match self.studio_doc.add_rule(7658055825, 6372755229) {
+                            Ok(()) => { self.studio_status = "Added Tism textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add Tism textures: {error:#}"),
+                        }
+                    }
+                });
+                ui.separator();
+                ui.vertical(|ui| {
+                    ui.label(egui::RichText::new("Flow Textures").strong());
+                    ui.label("Target: 7658055825");
+                    ui.label("Replacement: HTTPS CDN");
+                    ui.label(egui::RichText::new("raw.githubusercontent.com · Flow Textures.png").color(theme::MUTED).small());
+                    if ui.button("Use Flow Textures").clicked() {
+                        match self.studio_doc.add_cdn_rule(7658055825, "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png") {
+                            Ok(()) => { self.studio_status = "Added Flow Textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add Flow Textures: {error:#}"),
+                        }
+                    }
+                });
+                ui.separator();
+                ui.vertical(|ui| {
+                    ui.label(egui::RichText::new("No Textures").strong());
+                    ui.label("Target: 7658055825");
+                    ui.label("Action: Remove original");
+                    if ui.button("Use No Textures").clicked() {
+                        match self.studio_doc.add_remove_rule("7658055825") {
+                            Ok(()) => { self.studio_status = "Added No Textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add No Textures: {error:#}"),
+                        }
+                    }
+                });
+            });
+            ui.label(egui::RichText::new("More arena surfaces will be listed only when their original target IDs and replacement assets are verified.").color(theme::MUTED).small());
+        });
+'@
+$gui = Replace-Once $gui @'
+        ui.add_space(12.0);
+        ui.label(egui::RichText::new("RECENT LOCAL ACTIVITY").strong().color(theme::MUTED).small());
+'@ ($arenaCards + @'
+        ui.add_space(12.0);
+        ui.label(egui::RichText::new("RECENT LOCAL ACTIVITY").strong().color(theme::MUTED).small());
+'@) "verified RIVALS arena texture presets"
+
+# Make local-file portability explicit in the applied-config rule list.
+$gui = Replace-Once $gui @'
+                                ui.label(egui::RichText::new(rule_summary(rule)).color(theme::MUTED).small());
+'@ @'
+                                ui.label(egui::RichText::new(rule_summary(rule)).color(theme::MUTED).small());
+                                if let config::Action::Local(path) = &rule.action {
+                                    if path.is_file() {
+                                        theme::pill(ui, "LOCAL ONLY", theme::WARN);
+                                    } else {
+                                        theme::pill(ui, "LOCAL ONLY · FILE MISSING", theme::DANGER);
+                                    }
+                                }
+'@ "local-only config portability indicator"
+
+# Four-and-a-half-second animated startup intro. The regular UI continues initializing underneath it.
+$gui = Replace-Once $gui @'
+    studio_status: String,
+}
+'@ @'
+    studio_status: String,
+    startup_intro_started: f64,
+    startup_intro_skipped: bool,
+}
+'@ "startup intro state"
+$gui = Replace-Once $gui @'
+            studio_status: "Create a profile or import a Fleasion-compatible JSON file.".into(),
+        };
+'@ @'
+            studio_status: "Create a profile or import a Fleasion-compatible JSON file.".into(),
+            startup_intro_started: cc.egui_ctx.input(|input| input.time),
+            startup_intro_skipped: false,
+        };
+'@ "startup intro initialization"
+$intro = @'
+        if self.settings.animations && !self.startup_intro_skipped {
+            let elapsed = (now - self.startup_intro_started) as f32;
+            let duration = 4.5_f32;
+            if elapsed < duration {
+                let t = (elapsed / duration).clamp(0.0, 1.0);
+                let fade_in = (t / 0.18).clamp(0.0, 1.0);
+                let fade_out = ((1.0 - t) / 0.18).clamp(0.0, 1.0);
+                let opacity = fade_in.min(fade_out);
+                let rect = ctx.screen_rect();
+                egui::Area::new(egui::Id::new("prlngzz-startup-intro"))
+                    .order(egui::Order::Foreground)
+                    .fixed_pos(rect.min)
+                    .show(ctx, |ui| {
+                        ui.set_min_size(rect.size());
+                        let (surface, _) = ui.allocate_exact_size(rect.size(), egui::Sense::click());
+                        let painter = ui.painter_at(surface);
+                        theme::splash_gradient(&painter, surface, 0.985 * opacity);
+                        let center = surface.center();
+                        let pulse = 1.0 + 0.035 * (elapsed * 2.2).sin();
+                        let radius = 74.0 * pulse;
+                        painter.circle_stroke(center, radius + 18.0, Stroke::new(1.2_f32, alpha(theme::accent(), 0.20 * opacity)));
+                        painter.circle_stroke(center, radius + 7.0, Stroke::new(2.0_f32, alpha(theme::accent(), 0.45 * opacity)));
+                        painter.circle_filled(center, radius, alpha(theme::CARD, 0.94 * opacity));
+                        painter.text(center, egui::Align2::CENTER_CENTER, "P", egui::FontId::new(76.0, egui::FontFamily::Proportional), alpha(theme::SPLASH_INK, opacity));
+                        let title_pos = egui::pos2(center.x, center.y + 112.0);
+                        painter.text(title_pos, egui::Align2::CENTER_CENTER, "PRLNGZZ EDITOR", egui::FontId::new(30.0, theme::wordmark_font()), alpha(theme::SPLASH_INK, opacity));
+                        painter.text(egui::pos2(center.x, title_pos.y + 34.0), egui::Align2::CENTER_CENTER, "RIVALS CUSTOMIZATION WORKSPACE", egui::FontId::proportional(12.0), alpha(theme::SPLASH_MUTED, opacity));
+                        let width = (surface.width() * 0.34).clamp(220.0, 420.0);
+                        let bar = Rect::from_center_size(egui::pos2(center.x, surface.bottom() - 66.0), Vec2::new(width, 3.0));
+                        painter.rect_filled(bar, CornerRadius::same(2), alpha(theme::BORDER, opacity));
+                        painter.rect_filled(Rect::from_min_size(bar.min, Vec2::new(width * t, bar.height())), CornerRadius::same(2), alpha(theme::SPLASH_BAR, opacity));
+                        if ui.put(Rect::from_min_size(egui::pos2(surface.right() - 112.0, surface.bottom() - 54.0), Vec2::new(92.0, 30.0)), egui::Button::new("Skip intro")).clicked() {
+                            self.startup_intro_skipped = true;
+                        }
+                    });
+                ctx.request_repaint_after(std::time::Duration::from_millis(16));
+            } else {
+                self.startup_intro_skipped = true;
+            }
+        }
+
+'@
+# Place the intro immediately after the existing splash call.
+$gui = Replace-Once $gui '        self.show_splash(ctx);' ('        self.show_splash(ctx);' + [char]10 + $intro.TrimEnd())
+Save-Source $guiPath $gui
+
+# Parser regression for the supplied Flow CDN example and HTTPS-only enforcement.
+$configPath = Join-Path $Project "src/config.rs"
+$config = [IO.File]::ReadAllText($configPath)
+$config += @'
+
+#[cfg(test)]
+mod cdn_texture_regressions {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn supplied_flow_texture_uses_verified_target_and_https_replacement() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"Textures","replace_ids":[7658055825],"mode":"cdn","enabled":true,"cdn_url":"https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png"}]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].targets, [Target::Asset(7658055825)]);
+        assert_eq!(rules[0].action, Action::Cdn("https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png".into()));
+    }
+
+    #[test]
+    fn rejects_non_https_remote_replacement_urls() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"unsafe","replace_ids":[7658055825],"mode":"cdn","cdn_url":"http://example.com/texture.png"}]}"#, Path::new(".")).unwrap();
+        assert!(matches!(&rules[0].action, Action::Invalid(_)));
+    }
+}
+'@
+Save-Source $configPath $config
+
+Write-Host "Added HTTPS Config Studio rules, the three supplied arena texture presets, LOCAL ONLY portability labels, and a 4.5-second animated startup intro."
+
+
+# Apply presets as independent, enabled local-cache profiles. This keeps unsaved Config Studio edits untouched.
+$studioPath = Join-Path $Project "src/studio.rs"
+$studio = [IO.File]::ReadAllText($studioPath)
+$namedMethods = @'
+    /// Adds an asset-ID replacement with a caller-provided, stable rule name.
+    pub fn add_named_rule(&mut self, name: &str, target_id: u64, replacement_id: u64) -> Result<()> {
+        ensure!(target_id > 0 && replacement_id > 0, "Asset IDs must be greater than zero");
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": name,
+            "enabled": true,
+            "targets": [target_id],
+            "action": { "type": "asset_id", "asset_id": replacement_id },
+            "notes": "RIVALS cache replacement: the original game asset is the target; this Roblox asset is the replacement."
+        }));
+        Ok(())
+    }
+
+    /// Adds an HTTPS CDN replacement with a caller-provided rule name.
+    pub fn add_named_cdn_rule(&mut self, name: &str, target_id: u64, url: &str) -> Result<()> {
+        ensure!(target_id > 0, "Target asset ID must be greater than zero");
+        let url = url.trim();
+        ensure!(url.starts_with("https://"), "CDN replacements must use HTTPS");
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": name,
+            "enabled": true,
+            "targets": [target_id],
+            "action": { "type": "https", "url": url },
+            "notes": "HTTPS replacement image fetched by the local cache replacement engine."
+        }));
+        Ok(())
+    }
+
+    /// Adds a named removal rule.
+    pub fn add_named_remove_rule(&mut self, name: &str, target_id: u64) -> Result<()> {
+        ensure!(target_id > 0, "Target asset ID must be greater than zero");
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": name,
+            "enabled": true,
+            "targets": [target_id],
+            "action": { "type": "remove" },
+            "notes": "Removes the original image payload from the local Roblox cache. Roblox may download the original again later."
+        }));
+        Ok(())
+    }
+
+'@
+$studio = Replace-Once $studio '    pub fn remove_rule(&mut self, index: usize) -> bool {' ($namedMethods + '    pub fn remove_rule(&mut self, index: usize) -> bool {') "named preset rules"
+Save-Source $studioPath $studio
+
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+
+# Verified per-face targets, extracted as data from Martinikaws/RivalsSkinChangerFULLMATCHA/main.lua
+# at commit 531cc6f92fa5c7f172309d798e6a72cf47321395. Face order is BK, DN, FT, LF, RT, UP.
+$skyTargets = @'
+const RIVALS_SKY_FACE_TARGETS: [(&str, [(&str, u64); 6]); 3] = [
+    ("Blue", [
+        ("BK", 14147881792), ("DN", 14147882149), ("FT", 14147882761),
+        ("LF", 14147883091), ("RT", 14147882405), ("UP", 14147881297),
+    ]),
+    ("Station", [
+        ("BK", 2108482005), ("DN", 2108545280), ("FT", 2108482231),
+        ("LF", 2108482395), ("RT", 2108482542), ("UP", 2108482676),
+    ]),
+    ("Space", [
+        ("BK", 10196550937), ("DN", 10196550667), ("FT", 10196550367),
+        ("LF", 10196550128), ("RT", 10196549902), ("UP", 10196567794),
+    ]),
+];
+
+'@
+$gui = Replace-Once $gui @'
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum Tab {
+'@ ($skyTargets + @'
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum Tab {
+'@) "verified six-face RIVALS sky targets"
+
+# One-click preset profiles are explicit actions and never overwrite the user's in-progress Studio document.
+$gui = Replace-Once $gui @'
+enum Action {
+    LaunchRoblox,
+'@ @'
+enum Action {
+    ApplyGeneratedProfile(crate::studio::ProfileDocument),
+    LaunchRoblox,
+'@ "generated preset apply action"
+
+$gui = Replace-Once $gui @'
+    launch_after_apply: bool,
+    /// True while the work going on was started by a switch on the Configs page, which should not take over the window.
+'@ @'
+    launch_after_apply: bool,
+    /// A verified library preset can be accepted once its asset IDs have been checked.
+    auto_accept_configs: bool,
+    /// Library presets explicitly re-enable their profile and all its rules when re-used.
+    force_enable_pending_configs: bool,
+    /// True while the work going on was started by a switch on the Configs page, which should not take over the window.
+'@ "automatic preset-apply state"
+
+$gui = Replace-Once $gui @'
+            launch_after_apply: false,
+            reapply_targets: HashSet::new(),
+'@ @'
+            launch_after_apply: false,
+            auto_accept_configs: false,
+            force_enable_pending_configs: false,
+            reapply_targets: HashSet::new(),
+'@ "automatic preset-apply state initialization"
+
+$gui = Replace-Once $gui @'
+            Action::LaunchRoblox => self.reload_configs_then_launch(ctx),
+'@ @'
+            Action::ApplyGeneratedProfile(profile) => self.apply_generated_profile(ctx, profile),
+            Action::LaunchRoblox => self.reload_configs_then_launch(ctx),
+'@ "generated profile action handler"
+
+# Persist, check, auto-enable, and apply an independent profile. The existing Studio buffer is left intact.
+$applyGenerated = @'
+    fn apply_generated_profile(&mut self, ctx: &egui::Context, profile: crate::studio::ProfileDocument) -> Result<String> {
+        anyhow::ensure!(
+            self.config_job.is_none() && self.apply_job.is_none() && self.pending_configs.is_none() && !self.confirm_configs,
+            "Finish the current config operation before applying another library preset"
+        );
+        let validation = profile.validation();
+        anyhow::ensure!(validation.errors.is_empty(), "The preset profile is invalid: {}", validation.errors.join("; "));
+        anyhow::ensure!(validation.enabled_rules > 0, "The preset has no enabled replacement rules");
+
+        let profile_name = profile.name().to_owned();
+        let text = profile.to_fleasion_json()?;
+        let folder = crate::protection::data_dir()?.join("profiles");
+        std::fs::create_dir_all(&folder)?;
+        let safe = profile_name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '-' }).collect::<String>();
+        let stem = if safe.trim_matches('-').is_empty() { "rivals-preset" } else { safe.trim_matches('-') };
+        let mut path = folder.join(format!("{stem}.json"));
+        let mut suffix = 2usize;
+        while path.exists() {
+            if std::fs::read_to_string(&path).ok().as_deref() == Some(text.as_str()) { break; }
+            path = folder.join(format!("{stem}-{suffix}.json"));
+            suffix += 1;
+        }
+        std::fs::write(&path, text).with_context(|| format!("saving the {profile_name} preset"))?;
+
+        self.auto_accept_configs = true;
+        self.force_enable_pending_configs = true;
+        if let Err(error) = self.check_configs(ctx, vec![path]) {
+            self.auto_accept_configs = false;
+            self.force_enable_pending_configs = false;
+            return Err(error);
+        }
+        Ok(format!("Checking asset IDs and preparing {profile_name} for local-cache apply…"))
+    }
+
+'@
+$gui = Replace-Once $gui '    fn check_configs(&mut self, ctx: &egui::Context, paths: Vec<PathBuf>) -> Result<String> {' ($applyGenerated + '    fn check_configs(&mut self, ctx: &egui::Context, paths: Vec<PathBuf>) -> Result<String> {') "generated profile apply helper"
+
+$gui = Replace-Once $gui @'
+                self.pending_configs = Some(pending);
+                self.preview = None;
+                if self.launch_after_apply {
+                    self.confirm_configs = false;
+                    self.accept_configs();
+                } else {
+                    self.confirm_configs = true;
+                }
+'@ @'
+                self.pending_configs = Some(pending);
+                self.preview = None;
+                let auto_accept = std::mem::take(&mut self.auto_accept_configs);
+                if self.launch_after_apply || auto_accept {
+                    self.confirm_configs = false;
+                    self.accept_configs();
+                } else {
+                    self.confirm_configs = true;
+                }
+'@ "accept library presets after ID checks"
+
+$gui = Replace-Once $gui @'
+                self.config_job = None;
+                self.launch_after_apply = false;
+                self.notify(ctx, e, true);
+'@ @'
+                self.config_job = None;
+                self.launch_after_apply = false;
+                self.auto_accept_configs = false;
+                self.force_enable_pending_configs = false;
+                self.notify(ctx, e, true);
+'@ "clear preset apply flags after config-check failure"
+
+$gui = Replace-Once $gui @'
+    fn accept_configs(&mut self) {
+        let Some(pending) = self.pending_configs.take() else { return };
+        for mut config in pending.configs {
+            if let Some(loaded) = self.configs.iter().find(|c| config::same_file(&c.path, &config.path)) {
+                config.off = loaded.off.clone();
+                config.enabled = loaded.enabled;
+            }
+'@ @'
+    fn accept_configs(&mut self) {
+        let Some(pending) = self.pending_configs.take() else { return };
+        let force_enable = std::mem::take(&mut self.force_enable_pending_configs);
+        for mut config in pending.configs {
+            if let Some(loaded) = self.configs.iter().find(|c| config::same_file(&c.path, &config.path)) {
+                config.off = loaded.off.clone();
+                if force_enable {
+                    config.off.clear();
+                    config.enabled = true;
+                } else {
+                    config.enabled = loaded.enabled;
+                }
+            }
+'@ "re-enable preset and its rules on use"
+
+# Change the existing Overview-page texture actions from "open Studio" to genuine, one-click local-cache presets.
+$gui = Replace-Once $gui @'
+                        match self.studio_doc.add_rule(7658055825, 6372755229) {
+                            Ok(()) => { self.studio_status = "Added Tism textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add Tism textures: {error:#}"),
+                        }
+'@ @'
+                        let mut profile = crate::studio::ProfileDocument::new("Tism textures", "RIVALS");
+                        match profile.add_named_rule("Arena 2.0", 7658055825, 6372755229) {
+                            Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                            Err(error) => self.studio_status = format!("Could not prepare Tism textures: {error:#}"),
+                        }
+'@ "one-click Tism arena preset"
+
+$gui = Replace-Once $gui @'
+                        match self.studio_doc.add_cdn_rule(7658055825, "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png") {
+                            Ok(()) => { self.studio_status = "Added Flow Textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add Flow Textures: {error:#}"),
+                        }
+'@ @'
+                        let mut profile = crate::studio::ProfileDocument::new("Flow Textures", "RIVALS");
+                        match profile.add_named_cdn_rule("Flow Textures", 7658055825, "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png") {
+                            Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                            Err(error) => self.studio_status = format!("Could not prepare Flow Textures: {error:#}"),
+                        }
+'@ "one-click Flow CDN preset"
+
+$gui = Replace-Once $gui @'
+                        match self.studio_doc.add_remove_rule("7658055825") {
+                            Ok(()) => { self.studio_status = "Added No Textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add No Textures: {error:#}"),
+                        }
+'@ @'
+                        let mut profile = crate::studio::ProfileDocument::new("No Textures", "RIVALS");
+                        match profile.add_named_remove_rule("No Textures", 7658055825) {
+                            Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                            Err(error) => self.studio_status = format!("Could not prepare No Textures: {error:#}"),
+                        }
+'@ "one-click No Textures preset"
+
+# Add the same verified arena presets inside Asset Library, close to the skybox collection.
+$arenaLibraryCard = @'
+        ui.add_space(10.0);
+        egui::CollapsingHeader::new("RIVALS ARENA TEXTURES · 3 verified config examples")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.label(egui::RichText::new("All three supplied configs target original RIVALS asset 7658055825. The exact arena surface is not identified by the configs, so it is shown as Unclassified rather than guessed.")
+                    .color(theme::MUTED).small());
+                ui.horizontal_wrapped(|ui| {
+                    ui.vertical(|ui| {
+                        ui.label(egui::RichText::new("Tism textures").strong());
+                        ui.label("Target 7658055825 → Roblox ID 6372755229");
+                        if ui.small_button("Preview replacement").clicked() { actions.push(Action::PreviewCatalog(6372755229)); }
+                        if ui.button("Use Tism textures").clicked() {
+                            let mut profile = crate::studio::ProfileDocument::new("Tism textures", "RIVALS");
+                            match profile.add_named_rule("Arena 2.0", 7658055825, 6372755229) {
+                                Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                                Err(error) => self.studio_status = format!("Could not prepare Tism textures: {error:#}"),
+                            }
+                        }
+                    });
+                    ui.separator();
+                    ui.vertical(|ui| {
+                        ui.label(egui::RichText::new("Flow Textures").strong());
+                        ui.label("Target 7658055825 → HTTPS CDN image");
+                        if ui.button("Use Flow Textures").clicked() {
+                            let mut profile = crate::studio::ProfileDocument::new("Flow Textures", "RIVALS");
+                            match profile.add_named_cdn_rule("Flow Textures", 7658055825, "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png") {
+                                Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                                Err(error) => self.studio_status = format!("Could not prepare Flow Textures: {error:#}"),
+                            }
+                        }
+                    });
+                    ui.separator();
+                    ui.vertical(|ui| {
+                        ui.label(egui::RichText::new("No Textures").strong());
+                        ui.label("Target 7658055825 → Remove original payload");
+                        if ui.button("Use No Textures").clicked() {
+                            let mut profile = crate::studio::ProfileDocument::new("No Textures", "RIVALS");
+                            match profile.add_named_remove_rule("No Textures", 7658055825) {
+                                Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                                Err(error) => self.studio_status = format!("Could not prepare No Textures: {error:#}"),
+                            }
+                        }
+                    });
+                });
+            });
+
+'@
+$gui = Replace-Once $gui @'
+        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
+'@ ($arenaLibraryCard + @'
+        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
+'@) "Arena Texture Library presets in Asset Library"
+
+# Use six community replacement faces against the verified original target-face IDs.
+# The source game's Graveyard, Sudden Death and Westown presets reuse IDs across faces.
+# Because the cache engine replaces by asset ID, distinct per-face replacements cannot be safely assigned to those repeated IDs.
+$gui = Replace-Once $gui @'
+                ui.label(egui::RichText::new("Faces are grouped by name in the order FT, BK, RT, LF, UP, DN. Every ID here is a replacement ID. Put the corresponding six target IDs in Config Builder; its one-to-one pairing creates one six-rule config.")
+                    .color(theme::MUTED).small());
+'@ @'
+                ui.label(egui::RichText::new("Each complete group supplies six replacement IDs (FT, BK, RT, LF, UP, DN). Use Sky creates 18 named rules: six correctly paired faces for each supported RIVALS sky map (Blue, Station and Space), then checks and enables the profile automatically.")
+                    .color(theme::MUTED).small());
+'@ "skybox pairing instructions"
+
+$gui = Replace-Once $gui @'
+                                if complete && ui.small_button("Use 6 replacement IDs").clicked() {
+                                    self.studio_replacement_input = replacement_ids.join("\n");
+                                    self.show_tab(Tab::Studio, ui.ctx());
+                                }
+'@ @'
+                                if complete && ui.small_button("Use Sky · apply to 3 maps").clicked() {
+                                    let mut profile = crate::studio::ProfileDocument::new(&format!("{name} Skybox"), "RIVALS");
+                                    let mut failure = None;
+                                    for (map_name, target_faces) in RIVALS_SKY_FACE_TARGETS {
+                                        for (face, target_id) in target_faces {
+                                            let Some(replacement_id) = faces.get(face).copied() else {
+                                                failure = Some(format!("{name} is missing its {face} face"));
+                                                break;
+                                            };
+                                            let rule_name = format!("{name} · {map_name} · {face}");
+                                            if let Err(error) = profile.add_named_rule(&rule_name, target_id, replacement_id) {
+                                                failure = Some(format!("{map_name} {face}: {error:#}"));
+                                                break;
+                                            }
+                                        }
+                                        if failure.is_some() { break; }
+                                    }
+                                    if let Some(error) = failure {
+                                        self.studio_status = format!("Could not prepare skybox: {error}");
+                                    } else {
+                                        actions.push(Action::ApplyGeneratedProfile(profile));
+                                    }
+                                }
+'@ "one-click six-face sky apply"
+
+# Replace the old misleading 'load six front-face IDs' control with the supported-map limitation.
+$oldTargets = @'
+        let map_targets: Vec<String> = assets.iter()
+            .filter(|asset| asset.get("category").and_then(serde_json::Value::as_str) == Some("RIVALS map sky texture"))
+            .filter_map(|asset| asset.get("id").and_then(serde_json::Value::as_str).map(str::to_owned)).collect();
+        ui.horizontal_wrapped(|ui| {
+            ui.label(egui::RichText::new(format!("{} known map-sky target references", map_targets.len())).color(theme::MUTED).small());
+            if !map_targets.is_empty() && ui.small_button("Load as target IDs").on_hover_text("These IDs are targets being replaced, not replacement assets").clicked() {
+                self.studio_target_input = map_targets.join("\n");
+                self.show_tab(Tab::Studio, ui.ctx());
+            }
+        });
+'@
+$newTargets = @'
+        ui.label(egui::RichText::new("Supported original sky targets: Blue, Station and Space. Graveyard, Sudden Death and Westown reuse some original image IDs across different face directions; the cache can only assign one replacement per shared ID, so those three are deliberately excluded to prevent incorrect repeated faces.")
+            .color(theme::WARN).small());
+'@
+$gui = Replace-Once $gui $oldTargets $newTargets "safe sky target explanation"
+
+# Regression: every target face in each advertised map must be distinct.
+$gui = Replace-Once $gui @'
+    #[test]
+    fn a_shared_target_goes_to_one_config() {
+'@ @'
+    #[test]
+    fn advertised_sky_maps_have_six_distinct_target_ids() {
+        for (name, faces) in RIVALS_SKY_FACE_TARGETS {
+            let ids: HashSet<u64> = faces.iter().map(|(_, id)| *id).collect();
+            assert_eq!(ids.len(), 6, "{name} must expose six distinct target IDs");
+            assert_eq!(faces.iter().map(|(face, _)| *face).collect::<Vec<_>>(), ["BK", "DN", "FT", "LF", "RT", "UP"]);
+        }
+    }
+
+    #[test]
+    fn a_shared_target_goes_to_one_config() {
+'@ "unique sky face target regression"
+
+Save-Source $guiPath $gui
+Write-Host "Fixed preset application: arena examples now build and enable standalone cache profiles; complete community skyboxes map to verified Blue, Station and Space target faces only."
+
+
+# The six replacement values are now read directly from the face map when the one-click profile is built.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$gui = Replace-Once $gui '                        let replacement_ids: Vec<String> = order.iter().filter_map(|face| faces.get(*face).map(u64::to_string)).collect();' '' "remove obsolete skybox ID textbox staging"
+Save-Source $guiPath $gui
+
+
+# Build skybox replacement profiles in one tested helper. Target ids are the RIVALS map's original face IDs;
+# replacement ids come from the selected community skybox. The mapping order is explicit, not positional guessing.
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+$skyProfileHelper = @'
+fn build_skybox_profile(name: &str, faces: &BTreeMap<String, u64>) -> anyhow::Result<crate::studio::ProfileDocument> {
+    const REQUIRED: [&str; 6] = ["BK", "DN", "FT", "LF", "RT", "UP"];
+    for face in REQUIRED {
+        anyhow::ensure!(faces.contains_key(face), "The {name} skybox is missing its {face} replacement face");
+    }
+    let mut profile = crate::studio::ProfileDocument::new(&format!("{name} Skybox"), "RIVALS");
+    let mut count = 0usize;
+    for (map_name, target_faces) in RIVALS_SKY_FACE_TARGETS {
+        for (face, target_id) in target_faces {
+            let replacement_id = *faces.get(face).expect("all six faces were checked above");
+            let rule_name = format!("{name} · {map_name} · {face}");
+            profile.add_named_rule(&rule_name, target_id, replacement_id)?;
+            count += 1;
+        }
+    }
+    anyhow::ensure!(count == 18, "A supported skybox must create exactly 18 cache replacement rules");
+    let validation = profile.validation();
+    anyhow::ensure!(validation.errors.is_empty(), "The generated skybox profile is invalid: {}", validation.errors.join("; "));
+    Ok(profile)
+}
+
+'@
+$gui = Replace-Once $gui 'impl Tab {' ($skyProfileHelper + 'impl Tab {') "testable six-face skybox profile builder"
+
+$oldSkyApply = @'
+                                if complete && ui.small_button("Use Sky · apply to 3 maps").clicked() {
+                                    let mut profile = crate::studio::ProfileDocument::new(&format!("{name} Skybox"), "RIVALS");
+                                    let mut failure = None;
+                                    for (map_name, target_faces) in RIVALS_SKY_FACE_TARGETS {
+                                        for (face, target_id) in target_faces {
+                                            let Some(replacement_id) = faces.get(face).copied() else {
+                                                failure = Some(format!("{name} is missing its {face} face"));
+                                                break;
+                                            };
+                                            let rule_name = format!("{name} · {map_name} · {face}");
+                                            if let Err(error) = profile.add_named_rule(&rule_name, target_id, replacement_id) {
+                                                failure = Some(format!("{map_name} {face}: {error:#}"));
+                                                break;
+                                            }
+                                        }
+                                        if failure.is_some() { break; }
+                                    }
+                                    if let Some(error) = failure {
+                                        self.studio_status = format!("Could not prepare skybox: {error}");
+                                    } else {
+                                        actions.push(Action::ApplyGeneratedProfile(profile));
+                                    }
+                                }
+'@
+$newSkyApply = @'
+                                if complete && ui.small_button("Use Sky · apply to 3 maps").clicked() {
+                                    match build_skybox_profile(name, faces) {
+                                        Ok(profile) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                                        Err(error) => self.studio_status = format!("Could not prepare skybox: {error:#}"),
+                                    }
+                                }
+'@
+$gui = Replace-Once $gui $oldSkyApply $newSkyApply "one-click skybox uses tested face mapping"
+
+# Tests prove that all six replacement faces are paired with the intended original RIVALS target face,
+# survive native -> Fleasion conversion, and are still understood by the live cache replacement parser.
+$gui = Replace-Once $gui @'
+    #[test]
+    fn advertised_sky_maps_have_six_distinct_target_ids() {
+'@ @'
+    #[test]
+    fn sky_front_face_targets_match_the_curated_rivals_map_references() {
+        let catalog: serde_json::Value = serde_json::from_str(include_str!("../rivals_asset_catalog.json")).unwrap();
+        let assets = catalog["assets"].as_array().unwrap();
+        for (map_name, faces) in RIVALS_SKY_FACE_TARGETS {
+            let front = faces.iter().find(|(face, _)| *face == "FT").unwrap().1;
+            let reference = assets.iter().find(|asset| {
+                asset["category"].as_str() == Some("RIVALS map sky texture")
+                    && asset["name"].as_str().is_some_and(|name| name.eq_ignore_ascii_case(map_name))
+            }).unwrap_or_else(|| panic!("Missing curated RIVALS {map_name} front-face reference"));
+            assert_eq!(reference["id"].as_str().unwrap().parse::<u64>().unwrap(), front, "{map_name} FT target");
+        }
+    }
+
+    #[test]
+    fn complete_community_sky_creates_18_correctly_directed_cache_rules() {
+        let replacements = BTreeMap::from([
+            ("BK".to_string(), 9001), ("DN".to_string(), 9002), ("FT".to_string(), 9003),
+            ("LF".to_string(), 9004), ("RT".to_string(), 9005), ("UP".to_string(), 9006),
+        ]);
+        let profile = build_skybox_profile("Regression sky", &replacements).unwrap();
+        assert_eq!(profile.validation().enabled_rules, 18);
+        let exported = profile.to_fleasion_json().unwrap();
+        let rules = crate::config::parse(&exported, std::path::Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 18);
+        for (map_name, target_faces) in RIVALS_SKY_FACE_TARGETS {
+            for (face, target_id) in target_faces {
+                let expected_name = format!("Regression sky · {map_name} · {face}");
+                let rule = rules.iter().find(|rule| rule.name == expected_name).unwrap();
+                assert_eq!(rule.targets, [crate::config::Target::Asset(target_id)]);
+                assert_eq!(
+                    rule.action,
+                    crate::config::Action::With(crate::config::Target::Asset(replacements[face]))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn advertised_sky_maps_have_six_distinct_target_ids() {
+'@ "sky target and generated profile regressions"
+Save-Source $guiPath $gui
+
+$configPath = Join-Path $Project "src/config.rs"
+$config = [IO.File]::ReadAllText($configPath)
+$config += @'
+
+#[cfg(test)]
+mod arena_texture_preset_regressions {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn supplied_tism_preset_replaces_the_original_rivals_texture_id() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"arena2.0","replace_ids":[7658055825],"mode":"id","enabled":true,"with_id":6372755229}]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].targets, [Target::Asset(7658055825)]);
+        assert_eq!(rules[0].action, Action::With(Target::Asset(6372755229)));
+    }
+
+    #[test]
+    fn supplied_no_textures_preset_removes_the_original_rivals_texture_id() {
+        let rules = parse(r#"{"replacement_rules":[{"name":"No Textures","replace_ids":[7658055825],"mode":"id","enabled":true}]}"#, Path::new(".")).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].targets, [Target::Asset(7658055825)]);
+        assert_eq!(rules[0].action, Action::Remove);
+    }
+}
+'@
+Save-Source $configPath $config
+Write-Host "Added exact target/replacement round-trip tests for arena presets and six-face sky profiles."
