@@ -1844,7 +1844,7 @@ $skyUi = @'
                                     if entry.status == "ready" && entry.available_faces == 6 {
                                         theme::pill(ui, "READY", theme::OK);
                                     } else {
-                                        theme::pill(ui, format!("{}/6 CDN", entry.available_faces), theme::WARN);
+                                        theme::pill(ui, &format!("{}/6 CDN", entry.available_faces), theme::WARN);
                                     }
                                 });
                                 ui.label(egui::RichText::new("RIVALS · SIX-FACE SKYBOX")
@@ -2097,13 +2097,13 @@ $oldTest = @'
 $gui = Replace-Once $gui $oldTest $newTest "six-rule Fleasion sky JSON regression"
 Save-Source $guiPath $gui
 
-Write-Host "Converted all 65 sky JSONs to Fleasion CDN schema; six multi-ID rules per sky; all six faces are enabled."
+Write-Host "Converted 65 sky JSONs to Fleasion CDN schema; only the 14 complete hosted image sets are applyable."
 
 
 # Navigation tabs are text-only; remove the icon drawing path and its preference toggle.
 $guiPath = Join-Path $Project "src/gui.rs"
 $gui = [IO.File]::ReadAllText($guiPath)
-$gui = Replace-RegexOnce $gui '(?s)\s+let glyph = match tab \{.*?ui\.painter\(\)\.text\(\s*egui::pos2\(x, rect\.center\(\)\.y - 6\.0,' @'
+$gui = Replace-RegexOnce $gui '(?s)\s+let glyph = match tab \{.*?ui\.painter\(\)\.text\(\s*egui::pos2\(x, rect\.center\(\)\.y - 6\.0\),' @'
             let x = rect.left() + 23.0;
             ui.painter().text(
                 egui::pos2(x, rect.center().y - 6.0,
