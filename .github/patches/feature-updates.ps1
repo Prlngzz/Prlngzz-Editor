@@ -944,3 +944,401 @@ mod cdn_texture_regressions {
 Save-Source $configPath $config
 
 Write-Host "Added HTTPS Config Studio rules, the three supplied arena texture presets, LOCAL ONLY portability labels, and a 4.5-second animated startup intro."
+
+
+# Apply presets as independent, enabled local-cache profiles. This keeps unsaved Config Studio edits untouched.
+$studioPath = Join-Path $Project "src/studio.rs"
+$studio = [IO.File]::ReadAllText($studioPath)
+$namedMethods = @'
+    /// Adds an asset-ID replacement with a caller-provided, stable rule name.
+    pub fn add_named_rule(&mut self, name: &str, target_id: u64, replacement_id: u64) -> Result<()> {
+        ensure!(target_id > 0 && replacement_id > 0, "Asset IDs must be greater than zero");
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": name,
+            "enabled": true,
+            "targets": [target_id],
+            "action": { "type": "asset_id", "asset_id": replacement_id },
+            "notes": "RIVALS cache replacement: the original game asset is the target; this Roblox asset is the replacement."
+        }));
+        Ok(())
+    }
+
+    /// Adds an HTTPS CDN replacement with a caller-provided rule name.
+    pub fn add_named_cdn_rule(&mut self, name: &str, target_id: u64, url: &str) -> Result<()> {
+        ensure!(target_id > 0, "Target asset ID must be greater than zero");
+        let url = url.trim();
+        ensure!(url.starts_with("https://"), "CDN replacements must use HTTPS");
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": name,
+            "enabled": true,
+            "targets": [target_id],
+            "action": { "type": "https", "url": url },
+            "notes": "HTTPS replacement image fetched by the local cache replacement engine."
+        }));
+        Ok(())
+    }
+
+    /// Adds a named removal rule.
+    pub fn add_named_remove_rule(&mut self, name: &str, target_id: u64) -> Result<()> {
+        ensure!(target_id > 0, "Target asset ID must be greater than zero");
+        let rules = self.raw.get_mut("rules").and_then(Value::as_array_mut).context("The profile rules field must be an array")?;
+        let mut sequence = count_rules(rules) + 1;
+        while rule_id_exists(rules, &format!("rule-{sequence:03}")) { sequence += 1; }
+        rules.push(json!({
+            "id": format!("rule-{sequence:03}"),
+            "name": name,
+            "enabled": true,
+            "targets": [target_id],
+            "action": { "type": "remove" },
+            "notes": "Removes the original image payload from the local Roblox cache. Roblox may download the original again later."
+        }));
+        Ok(())
+    }
+
+'@
+$studio = Replace-Once $studio '    pub fn remove_rule(&mut self, index: usize) -> bool {' ($namedMethods + '    pub fn remove_rule(&mut self, index: usize) -> bool {') "named preset rules"
+Save-Source $studioPath $studio
+
+$guiPath = Join-Path $Project "src/gui.rs"
+$gui = [IO.File]::ReadAllText($guiPath)
+
+# Verified per-face targets, extracted as data from Martinikaws/RivalsSkinChangerFULLMATCHA/main.lua
+# at commit 531cc6f92fa5c7f172309d798e6a72cf47321395. Face order is BK, DN, FT, LF, RT, UP.
+$skyTargets = @'
+const RIVALS_SKY_FACE_TARGETS: [(&str, [(&str, u64); 6]); 3] = [
+    ("Blue", [
+        ("BK", 14147881792), ("DN", 14147882149), ("FT", 14147882761),
+        ("LF", 14147883091), ("RT", 14147882405), ("UP", 14147881297),
+    ]),
+    ("Station", [
+        ("BK", 2108482005), ("DN", 2108545280), ("FT", 2108482231),
+        ("LF", 2108482395), ("RT", 2108482542), ("UP", 2108482676),
+    ]),
+    ("Space", [
+        ("BK", 10196550937), ("DN", 10196550667), ("FT", 10196550367),
+        ("LF", 10196550128), ("RT", 10196549902), ("UP", 10196567794),
+    ]),
+];
+
+'@
+$gui = Replace-Once $gui 'enum Tab {' ($skyTargets + 'enum Tab {') "verified six-face RIVALS sky targets"
+
+# One-click preset profiles are explicit actions and never overwrite the user's in-progress Studio document.
+$gui = Replace-Once $gui @'
+enum Action {
+    LaunchRoblox,
+'@ @'
+enum Action {
+    ApplyGeneratedProfile(crate::studio::ProfileDocument),
+    LaunchRoblox,
+'@ "generated preset apply action"
+
+$gui = Replace-Once $gui @'
+    launch_after_apply: bool,
+    /// True while the work going on was started by a switch on the Configs page, which should not take over the window.
+'@ @'
+    launch_after_apply: bool,
+    /// A verified library preset can be accepted once its asset IDs have been checked.
+    auto_accept_configs: bool,
+    /// Library presets explicitly re-enable their profile and all its rules when re-used.
+    force_enable_pending_configs: bool,
+    /// True while the work going on was started by a switch on the Configs page, which should not take over the window.
+'@ "automatic preset-apply state"
+
+$gui = Replace-Once $gui @'
+            launch_after_apply: false,
+            reapply_targets: HashSet::new(),
+'@ @'
+            launch_after_apply: false,
+            auto_accept_configs: false,
+            force_enable_pending_configs: false,
+            reapply_targets: HashSet::new(),
+'@ "automatic preset-apply state initialization"
+
+$gui = Replace-Once $gui @'
+            Action::LaunchRoblox => self.reload_configs_then_launch(ctx),
+'@ @'
+            Action::ApplyGeneratedProfile(profile) => self.apply_generated_profile(ctx, profile),
+            Action::LaunchRoblox => self.reload_configs_then_launch(ctx),
+'@ "generated profile action handler"
+
+# Persist, check, auto-enable, and apply an independent profile. The existing Studio buffer is left intact.
+$applyGenerated = @'
+    fn apply_generated_profile(&mut self, ctx: &egui::Context, profile: crate::studio::ProfileDocument) -> Result<String> {
+        anyhow::ensure!(
+            self.config_job.is_none() && self.apply_job.is_none() && self.pending_configs.is_none() && !self.confirm_configs,
+            "Finish the current config operation before applying another library preset"
+        );
+        let validation = profile.validation();
+        anyhow::ensure!(validation.errors.is_empty(), "The preset profile is invalid: {}", validation.errors.join("; "));
+        anyhow::ensure!(validation.enabled_rules > 0, "The preset has no enabled replacement rules");
+
+        let profile_name = profile.name().to_owned();
+        let text = profile.to_fleasion_json()?;
+        let folder = crate::protection::data_dir()?.join("profiles");
+        std::fs::create_dir_all(&folder)?;
+        let safe = profile_name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '-' }).collect::<String>();
+        let stem = if safe.trim_matches('-').is_empty() { "rivals-preset" } else { safe.trim_matches('-') };
+        let mut path = folder.join(format!("{stem}.json"));
+        let mut suffix = 2usize;
+        while path.exists() {
+            if std::fs::read_to_string(&path).ok().as_deref() == Some(text.as_str()) { break; }
+            path = folder.join(format!("{stem}-{suffix}.json"));
+            suffix += 1;
+        }
+        std::fs::write(&path, text).with_context(|| format!("saving the {profile_name} preset"))?;
+
+        self.auto_accept_configs = true;
+        self.force_enable_pending_configs = true;
+        if let Err(error) = self.check_configs(ctx, vec![path]) {
+            self.auto_accept_configs = false;
+            self.force_enable_pending_configs = false;
+            return Err(error);
+        }
+        Ok(format!("Checking asset IDs and preparing {profile_name} for local-cache apply…"))
+    }
+
+'@
+$gui = Replace-Once $gui '    fn check_configs(&mut self, ctx: &egui::Context, paths: Vec<PathBuf>) -> Result<String> {' ($applyGenerated + '    fn check_configs(&mut self, ctx: &egui::Context, paths: Vec<PathBuf>) -> Result<String> {') "generated profile apply helper"
+
+$gui = Replace-Once $gui @'
+                self.pending_configs = Some(pending);
+                self.preview = None;
+                if self.launch_after_apply {
+                    self.confirm_configs = false;
+                    self.accept_configs();
+                } else {
+                    self.confirm_configs = true;
+                }
+'@ @'
+                self.pending_configs = Some(pending);
+                self.preview = None;
+                let auto_accept = std::mem::take(&mut self.auto_accept_configs);
+                if self.launch_after_apply || auto_accept {
+                    self.confirm_configs = false;
+                    self.accept_configs();
+                } else {
+                    self.confirm_configs = true;
+                }
+'@ "accept library presets after ID checks"
+
+$gui = Replace-Once $gui @'
+                self.config_job = None;
+                self.launch_after_apply = false;
+                self.notify(ctx, e, true);
+'@ @'
+                self.config_job = None;
+                self.launch_after_apply = false;
+                self.auto_accept_configs = false;
+                self.force_enable_pending_configs = false;
+                self.notify(ctx, e, true);
+'@ "clear preset apply flags after config-check failure"
+
+$gui = Replace-Once $gui @'
+    fn accept_configs(&mut self) {
+        let Some(pending) = self.pending_configs.take() else { return };
+        for mut config in pending.configs {
+            if let Some(loaded) = self.configs.iter().find(|c| config::same_file(&c.path, &config.path)) {
+                config.off = loaded.off.clone();
+                config.enabled = loaded.enabled;
+            }
+'@ @'
+    fn accept_configs(&mut self) {
+        let Some(pending) = self.pending_configs.take() else { return };
+        let force_enable = std::mem::take(&mut self.force_enable_pending_configs);
+        for mut config in pending.configs {
+            if let Some(loaded) = self.configs.iter().find(|c| config::same_file(&c.path, &config.path)) {
+                config.off = loaded.off.clone();
+                if force_enable {
+                    config.off.clear();
+                    config.enabled = true;
+                } else {
+                    config.enabled = loaded.enabled;
+                }
+            }
+'@ "re-enable preset and its rules on use"
+
+# Change the existing Overview-page texture actions from "open Studio" to genuine, one-click local-cache presets.
+$gui = Replace-Once $gui @'
+                        match self.studio_doc.add_rule(7658055825, 6372755229) {
+                            Ok(()) => { self.studio_status = "Added Tism textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add Tism textures: {error:#}"),
+                        }
+'@ @'
+                        let mut profile = crate::studio::ProfileDocument::new("Tism textures", "RIVALS");
+                        match profile.add_named_rule("Arena 2.0", 7658055825, 6372755229) {
+                            Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                            Err(error) => self.studio_status = format!("Could not prepare Tism textures: {error:#}"),
+                        }
+'@ "one-click Tism arena preset"
+
+$gui = Replace-Once $gui @'
+                        match self.studio_doc.add_cdn_rule(7658055825, "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png") {
+                            Ok(()) => { self.studio_status = "Added Flow Textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add Flow Textures: {error:#}"),
+                        }
+'@ @'
+                        let mut profile = crate::studio::ProfileDocument::new("Flow Textures", "RIVALS");
+                        match profile.add_named_cdn_rule("Flow Textures", 7658055825, "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png") {
+                            Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                            Err(error) => self.studio_status = format!("Could not prepare Flow Textures: {error:#}"),
+                        }
+'@ "one-click Flow CDN preset"
+
+$gui = Replace-Once $gui @'
+                        match self.studio_doc.add_remove_rule("7658055825") {
+                            Ok(()) => { self.studio_status = "Added No Textures to Config Studio. Save & Apply to activate it.".into(); actions.push(Action::ShowTab(Tab::Studio)); }
+                            Err(error) => self.studio_status = format!("Could not add No Textures: {error:#}"),
+                        }
+'@ @'
+                        let mut profile = crate::studio::ProfileDocument::new("No Textures", "RIVALS");
+                        match profile.add_named_remove_rule("No Textures", 7658055825) {
+                            Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                            Err(error) => self.studio_status = format!("Could not prepare No Textures: {error:#}"),
+                        }
+'@ "one-click No Textures preset"
+
+# Add the same verified arena presets inside Asset Library, close to the skybox collection.
+$arenaLibraryCard = @'
+        ui.add_space(10.0);
+        egui::CollapsingHeader::new("RIVALS ARENA TEXTURES · 3 verified config examples")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.label(egui::RichText::new("All three supplied configs target original RIVALS asset 7658055825. The exact arena surface is not identified by the configs, so it is shown as Unclassified rather than guessed.")
+                    .color(theme::MUTED).small());
+                ui.horizontal_wrapped(|ui| {
+                    ui.vertical(|ui| {
+                        ui.label(egui::RichText::new("Tism textures").strong());
+                        ui.label("Target 7658055825 → Roblox ID 6372755229");
+                        if ui.small_button("Preview replacement").clicked() { actions.push(Action::PreviewCatalog(6372755229)); }
+                        if ui.button("Use Tism textures").clicked() {
+                            let mut profile = crate::studio::ProfileDocument::new("Tism textures", "RIVALS");
+                            match profile.add_named_rule("Arena 2.0", 7658055825, 6372755229) {
+                                Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                                Err(error) => self.studio_status = format!("Could not prepare Tism textures: {error:#}"),
+                            }
+                        }
+                    });
+                    ui.separator();
+                    ui.vertical(|ui| {
+                        ui.label(egui::RichText::new("Flow Textures").strong());
+                        ui.label("Target 7658055825 → HTTPS CDN image");
+                        if ui.button("Use Flow Textures").clicked() {
+                            let mut profile = crate::studio::ProfileDocument::new("Flow Textures", "RIVALS");
+                            match profile.add_named_cdn_rule("Flow Textures", 7658055825, "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/FLow%20Textures.png") {
+                                Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                                Err(error) => self.studio_status = format!("Could not prepare Flow Textures: {error:#}"),
+                            }
+                        }
+                    });
+                    ui.separator();
+                    ui.vertical(|ui| {
+                        ui.label(egui::RichText::new("No Textures").strong());
+                        ui.label("Target 7658055825 → Remove original payload");
+                        if ui.button("Use No Textures").clicked() {
+                            let mut profile = crate::studio::ProfileDocument::new("No Textures", "RIVALS");
+                            match profile.add_named_remove_rule("No Textures", 7658055825) {
+                                Ok(()) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                                Err(error) => self.studio_status = format!("Could not prepare No Textures: {error:#}"),
+                            }
+                        }
+                    });
+                });
+            });
+
+'@
+$gui = Replace-Once $gui @'
+        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
+'@ ($arenaLibraryCard + @'
+        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
+'@) "Arena Texture Library presets in Asset Library"
+
+# Use six community replacement faces against the verified original target-face IDs.
+# The source game's Graveyard, Sudden Death and Westown presets reuse IDs across faces.
+# Because the cache engine replaces by asset ID, distinct per-face replacements cannot be safely assigned to those repeated IDs.
+$gui = Replace-Once $gui @'
+                ui.label(egui::RichText::new("Faces are grouped by name in the order FT, BK, RT, LF, UP, DN. Every ID here is a replacement ID. Put the corresponding six target IDs in Config Builder; its one-to-one pairing creates one six-rule config.")
+                    .color(theme::MUTED).small());
+'@ @'
+                ui.label(egui::RichText::new("Each complete group supplies six replacement IDs (FT, BK, RT, LF, UP, DN). Use Sky creates 18 named rules: six correctly paired faces for each supported RIVALS sky map (Blue, Station and Space), then checks and enables the profile automatically.")
+                    .color(theme::MUTED).small());
+'@ "skybox pairing instructions"
+
+$gui = Replace-Once $gui @'
+                                if complete && ui.small_button("Use 6 replacement IDs").clicked() {
+                                    self.studio_replacement_input = replacement_ids.join("\n");
+                                    self.show_tab(Tab::Studio, ui.ctx());
+                                }
+'@ @'
+                                if complete && ui.small_button("Use Sky · apply to 3 maps").clicked() {
+                                    let mut profile = crate::studio::ProfileDocument::new(&format!("{name} Skybox"), "RIVALS");
+                                    let mut failure = None;
+                                    for (map_name, target_faces) in RIVALS_SKY_FACE_TARGETS {
+                                        for (face, target_id) in target_faces {
+                                            let Some(replacement_id) = faces.get(face).copied() else {
+                                                failure = Some(format!("{name} is missing its {face} face"));
+                                                break;
+                                            };
+                                            let rule_name = format!("{name} · {map_name} · {face}");
+                                            if let Err(error) = profile.add_named_rule(&rule_name, target_id, replacement_id) {
+                                                failure = Some(format!("{map_name} {face}: {error:#}"));
+                                                break;
+                                            }
+                                        }
+                                        if failure.is_some() { break; }
+                                    }
+                                    if let Some(error) = failure {
+                                        self.studio_status = format!("Could not prepare skybox: {error}");
+                                    } else {
+                                        actions.push(Action::ApplyGeneratedProfile(profile));
+                                    }
+                                }
+'@ "one-click six-face sky apply"
+
+# Replace the old misleading 'load six front-face IDs' control with the supported-map limitation.
+$oldTargets = @'
+        let map_targets: Vec<String> = assets.iter()
+            .filter(|asset| asset.get("category").and_then(serde_json::Value::as_str) == Some("RIVALS map sky texture"))
+            .filter_map(|asset| asset.get("id").and_then(serde_json::Value::as_str).map(str::to_owned)).collect();
+        ui.horizontal_wrapped(|ui| {
+            ui.label(egui::RichText::new(format!("{} known map-sky target references", map_targets.len())).color(theme::MUTED).small());
+            if !map_targets.is_empty() && ui.small_button("Load as target IDs").on_hover_text("These IDs are targets being replaced, not replacement assets").clicked() {
+                self.studio_target_input = map_targets.join("\n");
+                self.show_tab(Tab::Studio, ui.ctx());
+            }
+        });
+'@
+$newTargets = @'
+        ui.label(egui::RichText::new("Supported original sky targets: Blue, Station and Space. Graveyard, Sudden Death and Westown reuse some original image IDs across different face directions; the cache can only assign one replacement per shared ID, so those three are deliberately excluded to prevent incorrect repeated faces.")
+            .color(theme::WARN).small());
+'@
+$gui = Replace-Once $gui $oldTargets $newTargets "safe sky target explanation"
+
+# Regression: every target face in each advertised map must be distinct.
+$gui = Replace-Once $gui @'
+    #[test]
+    fn a_shared_target_goes_to_one_config() {
+'@ @'
+    #[test]
+    fn advertised_sky_maps_have_six_distinct_target_ids() {
+        for (name, faces) in RIVALS_SKY_FACE_TARGETS {
+            let ids: HashSet<u64> = faces.iter().map(|(_, id)| *id).collect();
+            assert_eq!(ids.len(), 6, "{name} must expose six distinct target IDs");
+            assert_eq!(faces.iter().map(|(face, _)| *face).collect::<Vec<_>>(), ["BK", "DN", "FT", "LF", "RT", "UP"]);
+        }
+    }
+
+    #[test]
+    fn a_shared_target_goes_to_one_config() {
+'@ "unique sky face target regression"
+
+Save-Source $guiPath $gui
+Write-Host "Fixed preset application: arena examples now build and enable standalone cache profiles; complete community skyboxes map to verified Blue, Station and Space target faces only."
