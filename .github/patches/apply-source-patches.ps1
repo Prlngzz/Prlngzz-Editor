@@ -1110,6 +1110,7 @@ $gui = Replace-Once $gui @'
                         Tab::Customization => self.customization_page(ui, actions),
 '@ "Customization page route"
 
+
 $oldRows = @'
         let rows = [
             (Tab::Overview, "Overview", "Your workspace"),
@@ -1120,78 +1121,78 @@ $oldRows = @'
             (Tab::Packs, "Game Library", "Community and local packs"),
             (Tab::Settings, "Settings", "Appearance and behavior"),
         ];
-        for (index, (tab, label, hint)) in rows.iter().enumerate() {
-            let now = ui.input(|i| i.time);
-            let seen = *self.nav_seen.entry(label).or_insert(now);
-            let t = if self.settings.animations { theme::ease_out(((now - seen) as f32 - index as f32 * 0.035) / 0.32) } else { 1.0 };
-            if t < 1.0 { ui.ctx().request_repaint(); }
-            let (rect, response) = ui.allocate_exact_size(Vec2::new(ui.available_width(), 52.0), egui::Sense::click());
-            let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
-            let selected = self.tab == *tab || (*tab == Tab::All && matches!(self.tab, Tab::Live | Tab::Group(_) | Tab::Other));
+'@
+$newRows = @'
+        let rows = [
+            (Tab::Configs, "Config Manager", "Active skin and removal rules"),
+            (Tab::Rivals, "RIVALS Workspace", "Game-specific profiles"),
+            (Tab::Studio, "Config Builder", "Create and edit replacement rules"),
+            (Tab::Overview, "Overview", "Your workspace"),
+            (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),
+            (Tab::All, "Asset Library", "RIVALS catalogue"),
+            (Tab::Packs, "Game Library", "Community and local packs"),
+            (Tab::Customization, "Customization", "Theme, layout and motion"),
+            (Tab::Settings, "Settings", "Cache behavior and application"),
+        ];
+'@
+$gui = Replace-Once $gui $oldRows $newRows "Config Manager first in sidebar"
+
+# Add lightweight vector-font glyphs and adjust the sidebar for compact mode.
+$gui = Replace-Once $gui '            let x = rect.left() + 23.0;' @'
+            let glyph = match tab {
+                Tab::Configs => "▤",
+                Tab::Rivals => "◆",
+                Tab::Studio => "✎",
+                Tab::Overview => "⌂",
+                Tab::AssetIds => "#",
+                Tab::All => "▦",
+                Tab::Packs => "◇",
+                Tab::Customization => "✦",
+                Tab::Settings => "⚙",
+                _ => "•",
+            };
+            let show_icon = self.settings.show_nav_icons;
+            let icon_x = rect.left() + 23.0;
+            let x = rect.left() + if show_icon { 48.0 } else { 23.0 };
+            if show_icon {
+                ui.painter().text(
+                    egui::pos2(icon_x, rect.center().y),
+                    egui::Align2::CENTER_CENTER,
+                    glyph,
+                    egui::FontId::proportional(17.0),
+                    alpha(if selected { theme::accent() } else { theme::MUTED }, t),
+                );
+            }
+'@ "sidebar icon glyphs"
+$gui = Replace-Once $gui '            let (rect, response) = ui.allocate_exact_size(Vec2::new(ui.available_width(), 52.0), egui::Sense::click());' @'
+            let row_height = if self.settings.compact_layout { 46.0 } else { 52.0 };
+            let (rect, response) = ui.allocate_exact_size(Vec2::new(ui.available_width(), row_height), egui::Sense::click());
+'@ "compact sidebar row height"
+$oldSelection = @'
             if selected {
                 ui.painter().rect_filled(rect.shrink2(Vec2::new(8.0, 2.0)), CornerRadius::same(9), alpha(theme::ACCENT, 0.16));
                 ui.painter().rect_filled(Rect::from_min_size(rect.left_top() + Vec2::new(8.0, 10.0), Vec2::new(3.0, rect.height() - 20.0)), CornerRadius::same(2), theme::ACCENT);
             } else if response.hovered() {
                 ui.painter().rect_filled(rect.shrink2(Vec2::new(8.0, 2.0)), CornerRadius::same(9), alpha(theme::RAISED, 0.8));
             }
-            let x = rect.left() + 23.0;
-            ui.painter().text(egui::pos2(x, rect.center().y - 6.0), egui::Align2::LEFT_CENTER, *label, egui::FontId::proportional(14.0), alpha(if selected { theme::TEXT } else { theme::TEXT }, t));
-            ui.painter().text(egui::pos2(x, rect.center().y + 11.0), egui::Align2::LEFT_CENTER, *hint, egui::FontId::proportional(10.5), alpha(theme::MUTED, t));
-            if response.clicked() { actions.push(Action::ShowTab(*tab)); }
-        }
 '@
-$newRows = @'
-        let rows = [
-            (Tab::Configs, "▤", "Config Manager", "Active skin and removal rules"),
-            (Tab::Rivals, "◆", "RIVALS Workspace", "Game-specific profiles"),
-            (Tab::Studio, "✎", "Config Builder", "Create and edit replacement rules"),
-            (Tab::Overview, "⌂", "Overview", "Your workspace"),
-            (Tab::AssetIds, "#", "Asset ID Editor", "Bulk ID management"),
-            (Tab::All, "▦", "Asset Library", "RIVALS catalogue"),
-            (Tab::Packs, "◇", "Game Library", "Community and local packs"),
-            (Tab::Customization, "✦", "Customization", "Theme, layout and motion"),
-            (Tab::Settings, "⚙", "Settings", "Cache behavior and application"),
-        ];
-        for (index, (tab, glyph, label, hint)) in rows.iter().enumerate() {
-            let now = ui.input(|i| i.time);
-            let seen = *self.nav_seen.entry(label).or_insert(now);
-            let entrance = if self.settings.animations { theme::ease_out(((now - seen) as f32 - index as f32 * 0.028) / 0.30) } else { 1.0 };
-            if entrance < 1.0 { ui.ctx().request_repaint(); }
-            let row_height = if self.settings.compact_layout { 46.0 } else { 52.0 };
-            let (rect, response) = ui.allocate_exact_size(Vec2::new(ui.available_width(), row_height), egui::Sense::click());
-            let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
-            let selected = self.tab == *tab || (*tab == Tab::All && matches!(self.tab, Tab::Live | Tab::Group(_) | Tab::Other));
+$newSelection = @'
             let active = if self.settings.animations {
-                ui.ctx().animate_value_with_time(egui::Id::new(("nav-active", label)), if selected { 1.0 } else { 0.0 }, 0.17)
-            } else { if selected { 1.0 } else { 0.0 } };
+                ui.ctx().animate_value_with_time(egui::Id::new(("sidebar-active", label)), if selected { 1.0 } else { 0.0 }, 0.16)
+            } else if selected { 1.0 } else { 0.0 };
             let hover = if self.settings.animations {
-                ui.ctx().animate_bool_with_time(egui::Id::new(("nav-hover", label)), response.hovered(), 0.12)
-            } else { if response.hovered() { 1.0 } else { 0.0 } };
+                ui.ctx().animate_bool_with_time(egui::Id::new(("sidebar-hover", label)), response.hovered(), 0.12)
+            } else if response.hovered() { 1.0 } else { 0.0 };
             if active > 0.001 {
                 ui.painter().rect_filled(rect.shrink2(Vec2::new(8.0, 2.0)), CornerRadius::same(10), alpha(theme::accent(), 0.16 * active));
                 ui.painter().rect_filled(Rect::from_min_size(rect.left_top() + Vec2::new(8.0, 9.0), Vec2::new(3.0, rect.height() - 18.0)), CornerRadius::same(2), alpha(theme::accent(), active));
             } else if hover > 0.001 {
                 ui.painter().rect_filled(rect.shrink2(Vec2::new(8.0, 2.0)), CornerRadius::same(10), alpha(theme::RAISED, 0.75 * hover));
             }
-            let show_icon = self.settings.show_nav_icons;
-            let icon_x = rect.left() + 25.0;
-            let label_x = rect.left() + if show_icon { 48.0 } else { 23.0 };
-            if show_icon {
-                ui.painter().text(egui::pos2(icon_x, rect.center().y), egui::Align2::CENTER_CENTER, *glyph,
-                    egui::FontId::proportional(if self.settings.compact_layout { 15.0 } else { 17.0 }),
-                    alpha(if selected { theme::accent() } else { theme::MUTED }, entrance));
-            }
-            ui.painter().text(egui::pos2(label_x, rect.center().y - 6.0), egui::Align2::LEFT_CENTER, *label,
-                egui::FontId::proportional(if self.settings.compact_layout { 13.0 } else { 14.0 }),
-                alpha(theme::TEXT, entrance));
-            if !self.settings.compact_layout {
-                ui.painter().text(egui::pos2(label_x, rect.center().y + 11.0), egui::Align2::LEFT_CENTER, *hint,
-                    egui::FontId::proportional(10.0), alpha(theme::MUTED, entrance));
-            }
-            if response.clicked() { actions.push(Action::ShowTab(*tab)); }
-        }
 '@
-$gui = Replace-Once $gui $oldRows $newRows "icon navigation with Config Manager pinned first"
+$gui = Replace-Once $gui $oldSelection $newSelection "animated sidebar selection and hover"
+'@;
+
 
 # The Customization page is the single place for visual preferences.
 $customPage = @'
