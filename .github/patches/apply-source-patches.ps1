@@ -1011,7 +1011,7 @@ $theme = Replace-Once $theme @'
 pub fn alpha(color: Color32, a: f32) -> Color32 {
 '@ @'
 static ACCENT_RGB: AtomicU32 = AtomicU32::new(0xA970FF);
-$theme = Replace-RegexOnce $theme '(?m)^pub const ACCENT: Color32 = Color32::from_rgb\(169, 112, 255\);\r?\n' '' "remove superseded fixed accent constant"
+
 
 /// The active accent colour, selected by the user in Customization.
 pub fn accent() -> Color32 {
@@ -1067,6 +1067,7 @@ pub fn apply_density(ctx: &egui::Context, compact: bool) {
 
 pub fn alpha(color: Color32, a: f32) -> Color32 {
 '@ "accent and density helpers"
+$theme = Replace-RegexOnce $theme '(?m)^pub const ACCENT: Color32 = Color32::from_rgb\(169, 112, 255\);\r?\n' '' "remove superseded fixed accent constant"
 $applyStart = $theme.IndexOf("pub fn apply(ctx: &egui::Context) {")
 $kindStart = $theme.IndexOf("/// Colour that identifies a content type", $applyStart)
 if ($applyStart -lt 0 -or $kindStart -lt 0) { throw "Could not locate theme apply function" }
