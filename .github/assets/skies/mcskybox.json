@@ -15,7 +15,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkybox%20Back.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkyboxBack.png"
                               },
                               {
                                   "name":  "SkDown",
@@ -29,7 +29,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkybox%20Down.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkyboxDown.png"
                               },
                               {
                                   "name":  "SkFront",
@@ -43,7 +43,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkybox%20Front.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkyboxFront.png"
                               },
                               {
                                   "name":  "SkLeft",
@@ -57,7 +57,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkybox%20Left.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkyboxLeft.png"
                               },
                               {
                                   "name":  "SkRight",
@@ -71,7 +71,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkybox%20Right.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkyboxRight.png"
                               },
                               {
                                   "name":  "SkUp",
@@ -85,7 +85,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkybox%20Up.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCSkyboxUp.png"
                               }
                           ],
     "sky_library":  {

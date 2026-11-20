@@ -15,7 +15,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/sky_47%20Back.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky47Back.png"
                               },
                               {
                                   "name":  "SkDown",
@@ -29,7 +29,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/sky_47%20Down.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky47Down.png"
                               },
                               {
                                   "name":  "SkFront",
@@ -43,7 +43,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/sky_47%20Front.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky47Front.png"
                               },
                               {
                                   "name":  "SkLeft",
@@ -57,7 +57,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/sky_47%20Left.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky47Left.png"
                               },
                               {
                                   "name":  "SkRight",
@@ -71,7 +71,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/sky_47%20Right.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky47Right.png"
                               },
                               {
                                   "name":  "SkUp",
@@ -85,7 +85,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/sky_47%20Up.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Sky47Up.png"
                               }
                           ],
     "sky_library":  {

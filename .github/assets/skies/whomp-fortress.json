@@ -15,7 +15,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/whomp%20fortress%20Back.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/WhompFortressBack.png"
                               },
                               {
                                   "name":  "SkDown",
@@ -29,7 +29,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/whomp%20fortress%20Down.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/WhompFortressDown.png"
                               },
                               {
                                   "name":  "SkFront",
@@ -43,7 +43,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/whomp%20fortress%20Front.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/WhompFortressFront.png"
                               },
                               {
                                   "name":  "SkLeft",
@@ -57,7 +57,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/whomp%20fortress%20Left.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/WhompFortressLeft.png"
                               },
                               {
                                   "name":  "SkRight",
@@ -71,7 +71,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/whomp%20fortress%20Right.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/WhompFortressRight.png"
                               },
                               {
                                   "name":  "SkUp",
@@ -85,7 +85,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/whomp%20fortress%20Up.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/WhompFortressUp.png"
                               }
                           ],
     "sky_library":  {

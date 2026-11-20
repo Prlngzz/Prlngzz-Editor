@@ -15,7 +15,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Universe%20Back.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/UniverseBack.png"
                               },
                               {
                                   "name":  "SkDown",
@@ -29,7 +29,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Universe%20Down.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/UniverseDown.png"
                               },
                               {
                                   "name":  "SkFront",
@@ -43,7 +43,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Universe%20Front.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/UniverseFront.png"
                               },
                               {
                                   "name":  "SkLeft",
@@ -57,7 +57,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Universe%20Left.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/UniverseLeft.png"
                               },
                               {
                                   "name":  "SkRight",
@@ -71,7 +71,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Universe%20Right.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/UniverseRight.png"
                               },
                               {
                                   "name":  "SkUp",
@@ -85,7 +85,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/Universe%20Up.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/UniverseUp.png"
                               }
                           ],
     "sky_library":  {
