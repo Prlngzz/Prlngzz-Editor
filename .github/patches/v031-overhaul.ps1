@@ -74,7 +74,7 @@ $gui = $gui.Substring(0, $libraryStartAt) + $librarySource + $gui.Substring($lib
 # Move the collection tabs/search above the gallery and keep Skies outside Textures.
 $libraryMethodStart = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
 $libraryMethodEnd = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryMethodStart)
-$navLabelMarker = 'ui.label(egui::RichText::new("CONFIG LIBRARY").strong());'
+$navLabelMarker = 'ui.label(egui::RichText::new("ASSET LIBRARY").strong());'
 $navLabelAt = $gui.IndexOf($navLabelMarker, $libraryMethodStart)
 $navStartAt = $gui.LastIndexOf('        ui.horizontal(|ui| {', $navLabelAt)
 $navEndMarker = '        ui.label(egui::RichText::new(tab_description).color(theme::MUTED).small());'
@@ -562,7 +562,7 @@ $previewMethods = @'
             const MAX_PREVIEW_BYTES: u64 = 8 * 1024 * 1024;
             let result = (|| -> std::result::Result<Vec<u8>, String> {
                 let response = ureq::get(&url)
-                    .set("User-Agent", "Prlngzz-Editor/0.3.35")
+                    .set("User-Agent", "Prlngzz-Editor/0.3.36")
                     .timeout(std::time::Duration::from_secs(15))
                     .call()
                     .map_err(|error| format!("Preview request failed: {error}"))?;
@@ -675,4 +675,4 @@ $gui = Replace-Once $gui @'
 '@ "draw texture image previews"
 
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.35 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.36 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
