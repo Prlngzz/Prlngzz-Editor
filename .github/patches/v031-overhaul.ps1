@@ -81,7 +81,8 @@ $gui = Replace-Once $gui @'
 
 $libraryMethodStart = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
 $libraryMethodEnd = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryMethodStart)
-$navStartMarker = '        ui.horizontal(|ui| {' + [Environment]::NewLine + '            ui.label(egui::RichText::new("CONFIG LIBRARY").strong());'
+$lf = [string][char]10
+$navStartMarker = '        ui.horizontal(|ui| {' + $lf + '            ui.label(egui::RichText::new("CONFIG LIBRARY").strong());'
 $navStart = $gui.IndexOf($navStartMarker, $libraryMethodStart)
 $navEndMarker = '        ui.label(egui::RichText::new(tab_description).color(theme::MUTED).small());'
 $navEndAt = $gui.IndexOf($navEndMarker, $navStart)
@@ -92,7 +93,7 @@ $navEnd = $navEndAt + $navEndMarker.Length
 $libraryNav = $gui.Substring($navStart, $navEnd - $navStart)
 $gui = $gui.Remove($navStart, $navEnd - $navStart)
 $assetAnchor = '        let assets = rivals_asset_catalog();'
-$gui = Replace-Once $gui $assetAnchor ($assetAnchor + [Environment]::NewLine + $libraryNav) "place Skies and Textures tabs above content"
+$gui = Replace-Once $gui $assetAnchor ($assetAnchor + $lf + $libraryNav) "place Skies and Textures tabs above content"
 
 $oldTextureFilter = @'
                     let visible = match self.library_tab {
@@ -500,4 +501,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.33 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.34 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
