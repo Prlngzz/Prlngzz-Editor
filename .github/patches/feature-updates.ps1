@@ -20,7 +20,7 @@ function Save-Source([string]$Path, [string]$Text) {
 # Version identity and Windows file properties.
 $cargoPath = Join-Path $Project "Cargo.toml"
 $cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.3.4"' "package version"
+$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.3.5"' "package version"
 Save-Source $cargoPath $cargo
 
 $lockPath = Join-Path $Project "Cargo.lock"
@@ -30,13 +30,13 @@ name = "prlngzz-editor"
 version = "0.1.0"
 '@ @'
 name = "prlngzz-editor"
-version = "0.3.4"
+version = "0.3.5"
 '@ "Cargo.lock package version"
 Save-Source $lockPath $lock
 
 $changelogPath = Join-Path $Project "changelog.json"
 $changelog = [IO.File]::ReadAllText($changelogPath)
-$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.3.4"' "changelog version"
+$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.3.5"' "changelog version"
 $changelog = $changelog.Replace('"Retains the Rust local cache browser, previews, replacement engine, original backups and cache monitoring from the supplied rbxcache foundation."', '"Groups six-face community skies, adds on-demand asset previews and improves texture preview resolution."')
 $changelog = $changelog.Replace('"Adds optional HTTPS-only community catalog, release and changelog endpoint configuration."', '"Adds multi-ID replacement pairing, reload-before-launch, extra accent choices and embedded Windows version metadata."')
 Save-Source $changelogPath $changelog
@@ -1013,6 +1013,14 @@ $intro = @'
 # Insert the intro immediately after the existing splash call.
 $gui = Replace-Once $gui '        self.show_splash(ctx);' ('        self.show_splash(ctx);' + [char]10 + $intro.TrimEnd())
 Save-Source $guiPath $gui
+
+# Clippy fixes for the splash drawing literals and formatting call.
+$gui = $gui.Replace('Stroke::new(1.0, alpha(theme::accent(), 0.30 * opacity))', 'Stroke::new(1.0_f32, alpha(theme::accent(), 0.30 * opacity))')
+$gui = $gui.Replace('Stroke::new(1.0, alpha(theme::SPLASH_INK, 0.09 * opacity))', 'Stroke::new(1.0_f32, alpha(theme::SPLASH_INK, 0.09 * opacity))')
+$gui = $gui.Replace('Stroke::new(1.5, alpha(theme::accent(), 0.72 * opacity))', 'Stroke::new(1.5_f32, alpha(theme::accent(), 0.72 * opacity))')
+$gui = $gui.Replace('&format!("VERSION  {}  ·  MADE FOR YOUR WORKFLOW", update::CURRENT)', 'format!("VERSION  {}  ·  MADE FOR YOUR WORKFLOW", update::CURRENT)')
+Save-Source $guiPath $gui
+
 
 # Parser regression for the supplied Flow CDN example and HTTPS-only enforcement.
 $configPath = Join-Path $Project "src/config.rs"
