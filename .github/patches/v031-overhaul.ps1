@@ -70,12 +70,7 @@ $gui = Replace-Once $gui '            (Tab::Rivals, "RIVALS Workspace", "Game-sp
 $gui = Replace-Once $gui '            (Tab::Studio, "Config Builder", "Create and edit replacement rules"),' '' "remove Config Builder nav"
 $gui = Replace-Once $gui '            (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),' '' "remove Asset ID Editor nav"
 $gui = $gui.Replace("RIVALS CONFIG BUILDER", "CONFIG MANAGER").Replace("Asset ID Editor", "cache asset tools")
-$gui = Replace-Once $gui @'
-                if !map_targets.is_empty() && ui.small_button("Load as target IDs").clicked() {
-                    self.studio_target_input = map_targets.join("\n");
-                    self.show_tab(Tab::Studio, ui.ctx());
-                }
-'@ '                ui.label(egui::RichText::new("Manage imported replacement profiles in Config Manager.").color(theme::MUTED).small());' "remove hidden Builder sky shortcut"
+# The feature update already replaces the legacy map-target shortcut with a safe supported-map explanation.
 $gui = Replace-Once $gui @'
                         if bubbly_small_button(ui, if category == "RIVALS map sky texture" { "Use as target" } else { "Use as replacement" }).clicked() {
                             if category == "RIVALS map sky texture" {
@@ -441,4 +436,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.21 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.22 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
