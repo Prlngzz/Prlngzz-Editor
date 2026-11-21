@@ -23,7 +23,7 @@ $arenaHeader = 'egui::CollapsingHeader::new("RIVALS ARENA TEXTURES · 3 verified
 $arenaAt = $gui.IndexOf($arenaHeader)
 if ($arenaAt -lt 0) { throw "Arena texture cards not found" }
 $arenaStart = $gui.LastIndexOf('        ui.add_space(10.0);', $arenaAt)
-$arenaEndMatch = [regex]::Match($gui.Substring($arenaAt), '(?m)^        \\}\);')
+$arenaEndMatch = [regex]::Match($gui.Substring($arenaAt), '(?m)^        \}\);')
 if ($arenaEndMatch.Success) { $arenaEnd = $arenaAt + $arenaEndMatch.Index } else { $arenaEnd = -1 }
 if ($arenaStart -lt 0 -or $arenaEnd -lt 0) { throw "Could not isolate Arena texture cards" }
 $arenaEnd += $arenaEndMatch.Length
@@ -441,4 +441,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.19 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.20 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
