@@ -20,17 +20,17 @@ function Save-Source([string]$Path, [string]$Text) {
 # Version identity and Windows file properties.
 $cargoPath = Join-Path $Project "Cargo.toml"
 $cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = Replace-RegexOnce $cargo '(?sm)(\[package\]\s*.*?^version = ")\d+\.\d+\.\d+(")' '${1}0.3.16${2}' "package version"
+$cargo = Replace-RegexOnce $cargo '(?sm)(\[package\]\s*.*?^version = ")\d+\.\d+\.\d+(")' '${1}0.3.17${2}' "package version"
 Save-Source $cargoPath $cargo
 
 $lockPath = Join-Path $Project "Cargo.lock"
 $lock = [IO.File]::ReadAllText($lockPath)
-$lock = Replace-RegexOnce $lock '(?sm)(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")\d+\.\d+\.\d+(")' '${1}0.3.16${2}' "Cargo.lock package version"
+$lock = Replace-RegexOnce $lock '(?sm)(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")\d+\.\d+\.\d+(")' '${1}0.3.17${2}' "Cargo.lock package version"
 Save-Source $lockPath $lock
 
 $changelogPath = Join-Path $Project "changelog.json"
 $changelog = [IO.File]::ReadAllText($changelogPath)
-$changelog = Replace-RegexOnce $changelog '"version": "\d+\.\d+\.\d+"' '"version": "0.3.16"' "changelog version"
+$changelog = Replace-RegexOnce $changelog '"version": "\d+\.\d+\.\d+"' '"version": "0.3.17"' "changelog version"
 $changelog = $changelog.Replace('"Retains the Rust local cache browser, previews, replacement engine, original backups and cache monitoring from the supplied rbxcache foundation."', '"Adds a Config Library with front-face sky previews, consolidated texture presets and a refreshed startup experience."')
 $changelog = $changelog.Replace('"Adds optional HTTPS-only community catalog, release and changelog endpoint configuration."', '"Automatically disables conflicting presets with notifications, adds No Hands cache-removal profiles and expands theme customization."')
 Save-Source $changelogPath $changelog
