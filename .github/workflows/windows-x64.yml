@@ -233,9 +233,9 @@ jobs:
           if (!(Test-Path $binary)) { throw "Expected executable not found: $binary" }
           $versionOutput = & $binary --version
           if ($LASTEXITCODE -ne 0) { throw "Executable --version invocation failed" }
-          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.37") { throw "Unexpected version: $versionOutput" }
+          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.38") { throw "Unexpected version: $versionOutput" }
           $versionInfo = (Get-Item $binary).VersionInfo
-          if ($versionInfo.FileVersion -ne "0.3.37" -or $versionInfo.ProductVersion -ne "0.3.37") { throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)" }
+          if ($versionInfo.FileVersion -ne "0.3.38" -or $versionInfo.ProductVersion -ne "0.3.38") { throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)" }
           $bytes = [IO.File]::ReadAllBytes($binary)
           if ($bytes.Length -lt 256 -or $bytes[0] -ne 0x4d -or $bytes[1] -ne 0x5a) { throw "Invalid PE file" }
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
@@ -243,14 +243,14 @@ jobs:
           $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
           if ($machine -ne 0x8664) { throw "Expected AMD64 PE; found 0x$('{0:X4}' -f $machine)" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.37-Windows-x64.exe" -Force
+          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.38-Windows-x64.exe" -Force
 
 
       - name: Upload Windows x64 executable
         uses: actions/upload-artifact@v4
         with:
-          name: Prlngzz-Editor-v0.3.37-Windows-x64
-          path: dist/Prlngzz-Editor-v0.3.37-Windows-x64.exe
+          name: Prlngzz-Editor-v0.3.38-Windows-x64
+          path: dist/Prlngzz-Editor-v0.3.38-Windows-x64.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -258,9 +258,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/editor-v') || github.ref == 'refs/heads/codex/sky-library-gallery-functional-v031'
         uses: softprops/action-gh-release@v2
         with:
-          name: Prlngzz Editor v0.3.37
-          tag_name: editor-v0.3.37
+          name: Prlngzz Editor v0.3.38
+          tag_name: editor-v0.3.38
           target_commitish: ${{ github.sha }}
           make_latest: true
           generate_release_notes: true
-          files: dist/Prlngzz-Editor-v0.3.37-Windows-x64.exe
+          files: dist/Prlngzz-Editor-v0.3.38-Windows-x64.exe

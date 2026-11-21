@@ -564,7 +564,7 @@ $previewMethods = @'
             const MAX_PREVIEW_BYTES: u64 = 8 * 1024 * 1024;
             let result = (|| -> std::result::Result<Vec<u8>, String> {
                 let response = ureq::get(&url)
-                    .set("User-Agent", "Prlngzz-Editor/0.3.37")
+                    .set("User-Agent", "Prlngzz-Editor/0.3.38")
                     .timeout(std::time::Duration::from_secs(15))
                     .call()
                     .map_err(|error| format!("Preview request failed: {error}"))?;
@@ -611,70 +611,70 @@ $previewMethods = @'
 $gui = Replace-Once $gui '    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {' ($previewMethods + '    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {') "preview worker methods"
 
 $gui = Replace-Once $gui @'
-                            for (index, entry) in visible_skies.iter().enumerate() {
-                                let column = &mut columns[index % 3];
-                                column.push_id(("sky-library-card", &entry.name), |ui| {
+                    for (index, entry) in visible_skies.iter().enumerate() {
+                        let column = &mut columns[index % 3];
+                        column.push_id(("sky-library-card", &entry.name), |ui| {
 '@ @'
-                            for (index, entry) in visible_skies.iter().enumerate() {
-                                let column = &mut columns[index % 3];
-                                let preview_url = entry.preview_url.clone();
-                                let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
-                                if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
-                                let preview_texture = self.image_previews.get(&preview_url).cloned();
-                                let preview_failed = self.image_preview_failed.contains(&preview_url);
-                                column.push_id(("sky-library-card", &entry.name), |ui| {
+                    for (index, entry) in visible_skies.iter().enumerate() {
+                        let column = &mut columns[index % 3];
+                        let preview_url = entry.preview_url.clone();
+                        let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
+                        if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
+                        let preview_texture = self.image_previews.get(&preview_url).cloned();
+                        let preview_failed = self.image_preview_failed.contains(&preview_url);
+                        column.push_id(("sky-library-card", &entry.name), |ui| {
 '@ "fetch visible sky thumbnails"
 $gui = Replace-Once $gui @'
-                                        if !entry.preview_url.is_empty() {
-                                            ui.hyperlink_to("Preview front.png", entry.preview_url.as_str());
-                                        }
-                                        ui.add_space(6.0);
+                                if !entry.preview_url.is_empty() {
+                                    ui.hyperlink_to("Preview front.png", entry.preview_url.as_str());
+                                }
+                                ui.add_space(6.0);
 '@ @'
-                                        if let Some(texture) = preview_texture.as_ref() {
-                                            let size = texture.size_vec2();
-                                            let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
-                                            ui.image((texture.id(), size * scale));
-                                        } else if preview_failed {
-                                            ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
-                                        } else if !preview_url.is_empty() {
-                                            ui.label(egui::RichText::new("Loading front preview…").color(theme::MUTED).small());
-                                        }
-                                        if !preview_url.is_empty() { ui.hyperlink_to("Open full-size image", preview_url.as_str()); }
-                                        ui.add_space(6.0);
+                                if let Some(texture) = preview_texture.as_ref() {
+                                    let size = texture.size_vec2();
+                                    let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
+                                    ui.image((texture.id(), size * scale));
+                                } else if preview_failed {
+                                    ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
+                                } else if !preview_url.is_empty() {
+                                    ui.label(egui::RichText::new("Loading front preview…").color(theme::MUTED).small());
+                                }
+                                if !preview_url.is_empty() { ui.hyperlink_to("Open full-size image", preview_url.as_str()); }
+                                ui.add_space(6.0);
 '@ "draw sky image previews"
 
 $gui = Replace-Once $gui @'
-                            for (index, entry) in visible_textures.iter().enumerate() {
-                                let column = &mut columns[index % 3];
-                                column.push_id(("texture-library-card", &entry.name), |ui| {
+                        for (index, entry) in visible_textures.iter().enumerate() {
+                            let column = &mut columns[index % 3];
+                            column.push_id(("texture-library-card", &entry.name), |ui| {
 '@ @'
-                            for (index, entry) in visible_textures.iter().enumerate() {
-                                let column = &mut columns[index % 3];
-                                let preview_url = entry.preview_url.clone();
-                                let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
-                                if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
-                                let preview_texture = self.image_previews.get(&preview_url).cloned();
-                                let preview_failed = self.image_preview_failed.contains(&preview_url);
-                                column.push_id(("texture-library-card", &entry.name), |ui| {
+                        for (index, entry) in visible_textures.iter().enumerate() {
+                            let column = &mut columns[index % 3];
+                            let preview_url = entry.preview_url.clone();
+                            let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
+                            if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
+                            let preview_texture = self.image_previews.get(&preview_url).cloned();
+                            let preview_failed = self.image_preview_failed.contains(&preview_url);
+                            column.push_id(("texture-library-card", &entry.name), |ui| {
 '@ "fetch visible texture thumbnails"
 $gui = Replace-Once $gui @'
-                                        ui.add_space(6.0);
-                                        ui.hyperlink_to("Open image preview", entry.preview_url.as_str());
-                                        ui.add_space(6.0);
+                                    ui.add_space(6.0);
+                                    ui.hyperlink_to("Open image preview", entry.preview_url.as_str());
+                                    ui.add_space(6.0);
 '@ @'
-                                        ui.add_space(6.0);
-                                        if let Some(texture) = preview_texture.as_ref() {
-                                            let size = texture.size_vec2();
-                                            let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
-                                            ui.image((texture.id(), size * scale));
-                                        } else if preview_failed {
-                                            ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
-                                        } else if !preview_url.is_empty() {
-                                            ui.label(egui::RichText::new("Loading texture preview…").color(theme::MUTED).small());
-                                        }
-                                        ui.hyperlink_to("Open full-size image", preview_url.as_str());
-                                        ui.add_space(6.0);
+                                    ui.add_space(6.0);
+                                    if let Some(texture) = preview_texture.as_ref() {
+                                        let size = texture.size_vec2();
+                                        let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
+                                        ui.image((texture.id(), size * scale));
+                                    } else if preview_failed {
+                                        ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
+                                    } else if !preview_url.is_empty() {
+                                        ui.label(egui::RichText::new("Loading texture preview…").color(theme::MUTED).small());
+                                    }
+                                    ui.hyperlink_to("Open full-size image", preview_url.as_str());
+                                    ui.add_space(6.0);
 '@ "draw texture image previews"
 
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.37 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.38 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
