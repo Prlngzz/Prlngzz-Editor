@@ -604,7 +604,7 @@ $previewMethods = @'
             const MAX_PREVIEW_BYTES: u64 = 8 * 1024 * 1024;
             let fetch = |endpoint: &str| -> std::result::Result<Vec<u8>, String> {
                 let response = ureq::get(endpoint)
-                    .set("User-Agent", "Prlngzz-Editor/0.3.40")
+                    .set("User-Agent", "Prlngzz-Editor/0.3.41")
                     .timeout(std::time::Duration::from_secs(15))
                     .call()
                     .map_err(|error| format!("Preview request failed: {error}"))?;
@@ -637,11 +637,7 @@ $previewMethods = @'
     }
 
     fn poll_image_previews(&mut self, ctx: &egui::Context) {
-        loop {
-            let (url, result) = match self.image_preview_rx.try_recv() {
-                Ok(message) => message,
-                Err(TryRecvError::Empty | TryRecvError::Disconnected) => break,
-            };
+        while let Ok((url, result)) = self.image_preview_rx.try_recv() {
             self.image_preview_jobs.remove(&url);
             match result {
                 Ok(bytes) => match image::load_from_memory(&bytes) {
@@ -735,4 +731,4 @@ $textureRender = (($texturePreviewBody.TrimEnd() -split "`r?`n") | ForEach-Objec
 $gui = $gui.Insert($texturePreviewLineStart, $textureRender + [string][char]10)
 
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.40 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.41 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
