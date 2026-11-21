@@ -31,7 +31,7 @@ $arenaCard = $gui.Substring($arenaStart, $arenaEnd - $arenaStart)
 $gui = $gui.Substring(0, $arenaStart) + $gui.Substring($arenaEnd)
 
 $textureAnchor = @'
-        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
+        if self.library_tab == LibraryTab::Textures {
 '@
 $texturePrefix = @'
         if self.library_tab == LibraryTab::Textures {
@@ -52,8 +52,6 @@ $textureSuffix = @'
                 }
             });
             ui.add_space(10.0);
-        }
-        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
 '@
 $textureBlock = $texturePrefix + $arenaCard + $textureSuffix
 $gui = Replace-Once $gui $textureAnchor $textureBlock "move Arena presets and add No Hands card to Textures"
