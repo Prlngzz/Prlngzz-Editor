@@ -32,6 +32,36 @@ $gui = $gui.Substring(0, $arenaStart) + $gui.Substring($arenaEnd)
 
 # Reuse the single No Hands card already present in the restored source.
 
+$textureSuffix = @'
+            card(ui, 1.0, |ui| {
+                ui.label(egui::RichText::new("NO HANDS · CACHE REMOVAL").strong().color(theme::accent()));
+                ui.label(egui::RichText::new("Paste exact arm asset IDs from your current RIVALS build. This creates a local-cache removal profile; IDs are never guessed.").color(theme::MUTED).small());
+                ui.add(egui::TextEdit::multiline(&mut self.studio_target_input)
+                    .desired_rows(2).desired_width(f32::INFINITY)
+                    .hint_text("Exact arm asset IDs, separated by spaces, commas or new lines"));
+                if bubbly_small_button(ui, "Build & apply No Hands profile").clicked() {
+                    match build_no_hands_cache_profile(&self.studio_target_input) {
+                        Ok(profile) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                        Err(error) => self.studio_status = format!("Could not prepare No Hands profile: {error:#}"),
+                    }
+                }
+            });
+            ui.add_space(10.0);
+'@
+
+$legacyNoHandsAt = $gui.IndexOf('NO HANDS · CACHE REMOVAL')
+if ($legacyNoHandsAt -ge 0) {
+    $legacyCardAt = $gui.LastIndexOf('card(ui, 1.0, |ui| {', $legacyNoHandsAt)
+    if ($legacyCardAt -lt 0) { throw "Found the No Hands label but could not locate its card" }
+    $legacyCardLine = $gui.LastIndexOf([string][char]10, $legacyCardAt)
+    if ($legacyCardLine -lt 0) { $legacyCardLine = 0 } else { $legacyCardLine += 1 }
+    $legacySpaceAt = $gui.IndexOf('ui.add_space(10.0);', $legacyNoHandsAt)
+    if ($legacySpaceAt -lt 0) { throw "Could not find the end of the legacy No Hands card" }
+    $legacyEnd = $gui.IndexOf([string][char]10, $legacySpaceAt)
+    if ($legacyEnd -lt 0) { $legacyEnd = $legacySpaceAt + 'ui.add_space(10.0);'.Length } else { $legacyEnd += 1 }
+    $gui = $gui.Remove($legacyCardLine, $legacyEnd - $legacyCardLine)
+}
+
 $libraryStartAt = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
 $libraryEndAt = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryStartAt)
 if ($libraryStartAt -lt 0 -or $libraryEndAt -le $libraryStartAt) { throw "Could not isolate Config Library page" }
@@ -48,31 +78,45 @@ $textureBlock = @'
         if self.library_tab == LibraryTab::Textures {
 '@
 $textureBlock += $arenaCard
+$textureBlock += $textureSuffix
 $textureBlock += @'
         }
 '@
 $librarySource = Replace-Once $librarySource $libraryAnchor ($libraryAnchor + [Environment]::NewLine + $textureBlock) "Textures tab presets and No Hands card"
 $gui = $gui.Substring(0, $libraryStartAt) + $librarySource + $gui.Substring($libraryEndAt)
-# The old source wrapped the Skies gallery and the rest of the library in a Textures-only guard.
+# Close the old Textures wrapper before Skies; texture rows have their own LibraryTab filter.
 $libraryMethodStart = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
 $skiesBranchAt = $gui.IndexOf('if self.library_tab == LibraryTab::Skies {', $libraryMethodStart)
-if ($libraryMethodStart -lt 0 -or $skiesBranchAt -lt $libraryMethodStart) { throw "Could not locate the Skies gallery branch" }
+if ($libraryMethodStart -lt 0 -or $skiesBranchAt -lt 0 -or $skiesBranchAt -le $libraryMethodStart) {
+    throw "Could not locate the Skies gallery branch in the Config Library method"
+}
 $skiesLineStart = $gui.LastIndexOf([string][char]10, $skiesBranchAt) + 1
 $gui = $gui.Insert($skiesLineStart, '        }' + [string][char]10)
 
-$noHandsAt = $gui.IndexOf('NO HANDS · CACHE REMOVAL', $libraryMethodStart)
-$noHandsCardAt = $gui.LastIndexOf('card(ui, 1.0, |ui| {', $noHandsAt)
-if ($noHandsAt -lt 0 -or $noHandsCardAt -lt $libraryMethodStart) { throw "Could not locate the existing No Hands card" }
-$noHandsLineStart = $gui.LastIndexOf([string][char]10, $noHandsCardAt) + 1
-$gui = $gui.Insert($noHandsLineStart, '        if self.library_tab == LibraryTab::Textures {' + [string][char]10)
-
+# Remove the original closing brace for that old Textures guard at the end of the page.
+$navLabelMarker = 'ui.label(egui::RichText::new("ASSET LIBRARY").strong());'
+$navLabelAt = $gui.IndexOf($navLabelMarker, $libraryMethodStart)
+if ($navLabelAt -lt 0) { throw "Could not locate the original Asset Library heading" }
+$navStartAt = $gui.LastIndexOf('        ui.horizontal(|ui| {', $navLabelAt)
+if ($navStartAt -lt $libraryMethodStart) { throw "Could not locate the collection navigation header" }
+$beforeNav = $gui.Substring($libraryMethodStart, $navStartAt - $libraryMethodStart)
+$outerCloses = [regex]::Matches($beforeNav, '(?m)^        }?$')
+if ($outerCloses.Count -eq 0) { throw "Could not locate the old Textures wrapper closing brace" }
+$outerClose = $outerCloses[$outerCloses.Count - 1]
+$outerCloseAt = $libraryMethodStart + $outerClose.Index
+$outerCloseLength = $outerClose.Length
+if ($outerCloseAt + $outerCloseLength -lt $gui.Length -and $gui[$outerCloseAt + $outerCloseLength] -eq [char]13) { $outerCloseLength += 2 }
+elseif ($outerCloseAt + $outerCloseLength -lt $gui.Length -and $gui[$outerCloseAt + $outerCloseLength] -eq [char]10) { $outerCloseLength += 1 }
+$gui = $gui.Remove($outerCloseAt, $outerCloseLength)
 
 # Move the collection tabs/search above the gallery and keep Skies outside Textures.
 $libraryMethodStart = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
 $libraryMethodEnd = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryMethodStart)
 $navLabelMarker = 'ui.label(egui::RichText::new("ASSET LIBRARY").strong());'
 $navLabelAt = $gui.IndexOf($navLabelMarker, $libraryMethodStart)
+if ($navLabelAt -lt 0) { throw "Could not locate Config Library navigation label" }
 $navStartAt = $gui.LastIndexOf('        ui.horizontal(|ui| {', $navLabelAt)
+if ($navStartAt -lt $libraryMethodStart) { throw "Could not locate Config Library navigation row" }
 $navEndMarker = '        ui.label(egui::RichText::new(tab_description).color(theme::MUTED).small());'
 $navEndAt = $gui.IndexOf($navEndMarker, $navStartAt)
 if ($libraryMethodStart -lt 0 -or $libraryMethodEnd -le $libraryMethodStart -or $navLabelAt -lt 0 -or $navStartAt -lt $libraryMethodStart -or $navEndAt -lt $navStartAt) {
@@ -560,7 +604,7 @@ $previewMethods = @'
             const MAX_PREVIEW_BYTES: u64 = 8 * 1024 * 1024;
             let fetch = |endpoint: &str| -> std::result::Result<Vec<u8>, String> {
                 let response = ureq::get(endpoint)
-                    .set("User-Agent", "Prlngzz-Editor/0.3.39")
+                    .set("User-Agent", "Prlngzz-Editor/0.3.40")
                     .timeout(std::time::Duration::from_secs(15))
                     .call()
                     .map_err(|error| format!("Preview request failed: {error}"))?;
@@ -691,4 +735,4 @@ $textureRender = (($texturePreviewBody.TrimEnd() -split "`r?`n") | ForEach-Objec
 $gui = $gui.Insert($texturePreviewLineStart, $textureRender + [string][char]10)
 
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.39 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.40 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
