@@ -18,21 +18,18 @@ function Save-Source([string]$Path, [string]$Text) {
 $guiPath = Join-Path $Project "src/gui.rs"
 $gui = [IO.File]::ReadAllText($guiPath)
 
-# Relocate the three community texture presets into the Textures collection.
+# Move the verified arena presets into the Config Library's Textures tab and add No Hands cache removal.
 $arenaHeader = 'egui::CollapsingHeader::new("RIVALS ARENA TEXTURES · 3 verified config examples")'
 $arenaAt = $gui.IndexOf($arenaHeader)
 if ($arenaAt -lt 0) { throw "Arena texture cards not found" }
 $arenaStart = $gui.LastIndexOf('        ui.add_space(10.0);', $arenaAt)
 $arenaEndMatch = [regex]::Match($gui.Substring($arenaAt), '(?m)^        \}\);')
-if ($arenaEndMatch.Success) { $arenaEnd = $arenaAt + $arenaEndMatch.Index } else { $arenaEnd = -1 }
-if ($arenaStart -lt 0 -or $arenaEnd -lt 0) { throw "Could not isolate Arena texture cards" }
-$arenaEnd += $arenaEndMatch.Length
+if (!$arenaEndMatch.Success) { throw "Could not isolate Arena texture cards" }
+$arenaEnd = $arenaAt + $arenaEndMatch.Index + $arenaEndMatch.Length
+if ($arenaStart -lt 0 -or $arenaEnd -le $arenaStart) { throw "Could not isolate Arena texture cards" }
 $arenaCard = $gui.Substring($arenaStart, $arenaEnd - $arenaStart)
 $gui = $gui.Substring(0, $arenaStart) + $gui.Substring($arenaEnd)
 
-$textureAnchor = 'if\s+self\.library_tab\s*==\s*LibraryTab::Textures\s*\{'
-$textureMatches = [regex]::Matches($gui, $textureAnchor)
-if ($textureMatches.Count -ne 1) { throw "Expected exactly one Textures tab branch; found $($textureMatches.Count)" }
 $textureSuffix = @'
             card(ui, 1.0, |ui| {
                 ui.label(egui::RichText::new("NO HANDS · CACHE REMOVAL").strong().color(theme::accent()));
@@ -49,9 +46,21 @@ $textureSuffix = @'
             });
             ui.add_space(10.0);
 '@
-$textureMatch = $textureMatches[0]
-$textureBlock = $textureMatch.Value + [Environment]::NewLine + $arenaCard + $textureSuffix
-$gui = $gui.Substring(0, $textureMatch.Index) + $textureBlock + $gui.Substring($textureMatch.Index + $textureMatch.Length)
+
+$libraryStartAt = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
+$libraryEndAt = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryStartAt)
+if ($libraryStartAt -lt 0 -or $libraryEndAt -le $libraryStartAt) { throw "Could not isolate Config Library page" }
+$librarySource = $gui.Substring($libraryStartAt, $libraryEndAt - $libraryStartAt)
+$textureAnchor = '        let matches: Vec<usize> = assets'
+$textureMatches = [regex]::Matches($librarySource, [regex]::Escape($textureAnchor))
+if ($textureMatches.Count -ne 1) { throw "Expected exactly one Config Library asset-list anchor; found $($textureMatches.Count)" }
+$textureBlock = @'
+        if self.library_tab == LibraryTab::Textures {
+'@ + $arenaCard + $textureSuffix + @'
+        }
+'@
+$librarySource = Replace-Once $librarySource $textureAnchor ($textureBlock + $textureAnchor) "Textures tab presets and No Hands card"
+$gui = $gui.Substring(0, $libraryStartAt) + $librarySource + $gui.Substring($libraryEndAt)
 # Remove the Sounds tab (sounds remain discoverable through All).
 $gui = Replace-Once $gui 'enum LibraryTab { All, Skies, Textures, Sounds }' 'enum LibraryTab { All, Skies, Textures }' "remove Sounds tab state"
 $gui = Replace-Once $gui '            ui.selectable_value(&mut self.library_tab, LibraryTab::Sounds, "Sounds");' '' "remove Sounds selector"
@@ -435,4 +444,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.23 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.28 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
