@@ -66,34 +66,30 @@ $textureBlock = @'
 '@
 $textureBlock += $arenaCard
 $textureBlock += $textureSuffix
-$textureBlock += [Environment]::NewLine
+$textureBlock += @'
+        }
+'@
 $librarySource = Replace-Once $librarySource $libraryAnchor ($libraryAnchor + [Environment]::NewLine + $textureBlock) "Textures tab presets and No Hands card"
 $gui = $gui.Substring(0, $libraryStartAt) + $librarySource + $gui.Substring($libraryEndAt)
-# Keep the collection navigation visible at the top, and render the Skies gallery independently from Textures.
-$gui = Replace-Once $gui @'
-            });
-            if self.library_tab == LibraryTab::Skies {
-'@ @'
-            });
-        }
-        if self.library_tab == LibraryTab::Skies {
-'@ "separate Skies gallery from Textures-only presets"
-
+# Move the collection tabs/search above the gallery and keep Skies outside Textures.
 $libraryMethodStart = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
 $libraryMethodEnd = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryMethodStart)
-$lf = [string][char]10
-$navStartMarker = '        ui.horizontal(|ui| {' + $lf + '            ui.label(egui::RichText::new("CONFIG LIBRARY").strong());'
-$navStart = $gui.IndexOf($navStartMarker, $libraryMethodStart)
+$navLabelMarker = 'ui.label(egui::RichText::new("CONFIG LIBRARY").strong());'
+$navLabelAt = $gui.IndexOf($navLabelMarker, $libraryMethodStart)
+$navStartAt = $gui.LastIndexOf('        ui.horizontal(|ui| {', $navLabelAt)
 $navEndMarker = '        ui.label(egui::RichText::new(tab_description).color(theme::MUTED).small());'
-$navEndAt = $gui.IndexOf($navEndMarker, $navStart)
-if ($libraryMethodStart -lt 0 -or $libraryMethodEnd -le $libraryMethodStart -or $navStart -lt 0 -or $navEndAt -lt $navStart) {
-    throw "Could not relocate Config Library navigation to the top of the page"
+$navEndAt = $gui.IndexOf($navEndMarker, $navStartAt)
+if ($libraryMethodStart -lt 0 -or $libraryMethodEnd -le $libraryMethodStart -or $navLabelAt -lt 0 -or $navStartAt -lt $libraryMethodStart -or $navEndAt -lt $navStartAt) {
+    throw "Could not locate Config Library navigation block"
 }
 $navEnd = $navEndAt + $navEndMarker.Length
-$libraryNav = $gui.Substring($navStart, $navEnd - $navStart)
-$gui = $gui.Remove($navStart, $navEnd - $navStart)
+$libraryNav = $gui.Substring($navStartAt, $navEnd - $navStartAt)
+$gui = $gui.Remove($navStartAt, $navEnd - $navStartAt)
 $assetAnchor = '        let assets = rivals_asset_catalog();'
-$gui = Replace-Once $gui $assetAnchor ($assetAnchor + $lf + $libraryNav) "place Skies and Textures tabs above content"
+$assetAt = $gui.IndexOf($assetAnchor, $libraryMethodStart)
+if ($assetAt -lt 0 -or $assetAt -ge $libraryMethodEnd) { throw "Could not locate Config Library catalogue declaration" }
+$gui = $gui.Insert($assetAt + $assetAnchor.Length, [string][char]10 + $libraryNav)
+$gui = Replace-Once $gui 'LibraryTab::Skies => "66 individual six-face sky configurations."' 'LibraryTab::Skies => "66 sky profiles · 63 ready to apply."' "update sky description"
 
 $oldTextureFilter = @'
                     let visible = match self.library_tab {
@@ -147,83 +143,100 @@ if ($gui.Contains($legacyShortcut)) {
     Write-Host "Legacy per-row Builder shortcut is already absent; no change needed."
 }
 
-# Cinematic intro with aurora trails and a faceted, pulsing prism mark.
-$gui = Replace-Once $gui '            let duration = 4.0_f32;' '            let duration = 5.2_f32;' "intro duration"
-$gui = Replace-Once $gui @'
-                        let panel_width = (surface.width() * 0.72).clamp(460.0, 760.0);
-'@ @'
-                        for band in 0..9 {
-                            let drift = elapsed * (18.0 + band as f32 * 2.4);
-                            let y = surface.top() + surface.height() * 0.18 + band as f32 * 22.0;
-                            let x = surface.left() + (band as f32 * 71.0 + drift) % surface.width().max(1.0);
-                            painter.line_segment(
-                                [egui::pos2(x, y), egui::pos2((x + 230.0).min(surface.right()), y - 36.0)],
-                                Stroke::new(1.0_f32, alpha(theme::accent(), 0.055 * opacity)),
-                            );
+# Full-screen app intro: keep the P wordmark and orbit rotating material swatches around it.
+$gui = Replace-Once $gui '            let duration = 4.0_f32;' '            let duration = 4.8_f32;' "intro duration"
+$introStartAt = $gui.IndexOf('                egui::Area::new(egui::Id::new("prlngzz-startup-intro"))')
+$introEndMarker = '                    });' + [string][char]10 + '                ctx.request_repaint_after(std::time::Duration::from_millis(16));'
+$introEndAt = $gui.IndexOf($introEndMarker, $introStartAt)
+if ($introStartAt -lt 0 -or $introEndAt -le $introStartAt) { throw "Could not isolate startup intro draw area" }
+$newIntro = @'
+                egui::Area::new(egui::Id::new("prlngzz-startup-intro"))
+                    .order(egui::Order::Foreground)
+                    .fixed_pos(rect.min)
+                    .show(ctx, |ui| {
+                        ui.set_min_size(rect.size());
+                        let (surface, _) = ui.allocate_exact_size(rect.size(), egui::Sense::hover());
+                        let painter = ui.painter_at(surface);
+                        theme::splash_gradient(&painter, surface, 0.985 * opacity);
+                        let center = surface.center();
+                        let shortest = surface.width().min(surface.height());
+                        for i in 0..24 {
+                            let x = ((i * 73 + 19) % 997) as f32 / 997.0;
+                            let y = ((i * 151 + 47) % 991) as f32 / 991.0;
+                            let twinkle = 0.10 + 0.16 * (((elapsed * 1.25 + i as f32).sin() + 1.0) * 0.5);
+                            let point = egui::pos2(surface.left() + x * surface.width(), surface.top() + y * surface.height());
+                            painter.circle_filled(point, 0.8 + (i % 3) as f32 * 0.3, alpha(theme::SPLASH_INK, twinkle * opacity));
                         }
-                        for spark in 0..18 {
-                            let angle = elapsed * 0.34 + spark as f32 * std::f32::consts::TAU / 18.0;
-                            let radius = 150.0 + 90.0 * ((elapsed * 0.42 + spark as f32).sin() * 0.5 + 0.5);
-                            let from = center + Vec2::new(angle.cos(), angle.sin()) * radius;
-                            let to = center + Vec2::new(angle.cos(), angle.sin()) * (radius + 20.0 + 16.0 * (elapsed + spark as f32).sin().abs());
-                            painter.line_segment([from, to], Stroke::new(1.5_f32, alpha(theme::accent(), 0.24 * opacity)));
+                        painter.circle_stroke(center, shortest * 0.27, Stroke::new(1.0_f32, alpha(theme::accent(), 0.12 * opacity)));
+                        painter.circle_stroke(center, shortest * 0.39, Stroke::new(1.0_f32, alpha(theme::SPLASH_INK, 0.075 * opacity)));
+                        let labels = ["SKY", "TEXTURE", "PNG", "MATERIAL", "ASSET", "MESH", "CACHE", "RIVALS"];
+                        for index in 0..16 {
+                            let lane = (index % 4) as f32;
+                            let direction = if index % 2 == 0 { 1.0 } else { -1.0 };
+                            let angle = elapsed * (0.24 + lane * 0.055) * direction + index as f32 * std::f32::consts::TAU / 16.0;
+                            let rx = surface.width() * (0.20 + lane * 0.065);
+                            let ry = surface.height() * (0.19 + lane * 0.065);
+                            let position = center + Vec2::new(rx * angle.cos(), ry * angle.sin());
+                            let spin = elapsed * (0.30 + lane * 0.12) * direction + index as f32 * 0.31;
+                            let (sin, cos) = spin.sin_cos();
+                            let rotate = |point: Vec2| Vec2::new(point.x * cos - point.y * sin, point.x * sin + point.y * cos);
+                            let size = Vec2::new(62.0 + (index % 3) as f32 * 9.0, 43.0 + (index % 2) as f32 * 7.0);
+                            let half = size * 0.5;
+                            let corners = vec![
+                                position + rotate(Vec2::new(-half.x, -half.y)),
+                                position + rotate(Vec2::new(half.x, -half.y)),
+                                position + rotate(Vec2::new(half.x, half.y)),
+                                position + rotate(Vec2::new(-half.x, half.y)),
+                            ];
+                            let previous = center + Vec2::new(rx * (angle - direction * 0.075).cos(), ry * (angle - direction * 0.075).sin());
+                            painter.line_segment([previous, position], Stroke::new(1.2_f32, alpha(theme::accent(), 0.10 * opacity)));
+                            painter.add(egui::Shape::convex_polygon(corners, alpha(theme::CARD, 0.72 * opacity), Stroke::new(1.0_f32, alpha(theme::accent(), 0.34 * opacity))));
+                            painter.add(egui::Shape::convex_polygon(
+                                vec![
+                                    position + rotate(Vec2::new(-half.x + 5.0, -half.y + 5.0)),
+                                    position + rotate(Vec2::new(half.x - 5.0, -half.y + 5.0)),
+                                    position + rotate(Vec2::new(half.x - 5.0, half.y - 5.0)),
+                                    position + rotate(Vec2::new(-half.x + 5.0, half.y - 5.0)),
+                                ],
+                                alpha(theme::RAISED, 0.58 * opacity), Stroke::NONE,
+                            ));
+                            for stripe in 0..3 {
+                                let offset = -half.y * 0.30 + stripe as f32 * 8.0;
+                                let from = position + rotate(Vec2::new(-half.x * 0.58, offset));
+                                let to = position + rotate(Vec2::new(half.x * 0.58, offset));
+                                painter.line_segment([from, to], Stroke::new(2.0_f32, alpha(theme::accent(), (0.22 + stripe as f32 * 0.06) * opacity)));
+                            }
+                            painter.text(position + rotate(Vec2::new(0.0, half.y * 0.20)), egui::Align2::CENTER_CENTER,
+                                labels[index % labels.len()], egui::FontId::proportional(7.5), alpha(theme::SPLASH_INK, 0.88 * opacity));
                         }
-                        let panel_width = (surface.width() * 0.72).clamp(460.0, 760.0);
-'@ "intro aurora trails"
-$oldMark = @'
-                        let mark_center = center + Vec2::new(0.0, -86.0 + lift);
-                        painter.circle_filled(mark_center, 43.0, alpha(theme::accent(), 0.16 * opacity));
-                        painter.circle_stroke(mark_center, 42.0,
-                            Stroke::new(1.5_f32, alpha(theme::accent(), 0.72 * opacity)));
-                        painter.text(mark_center, egui::Align2::CENTER_CENTER, "P",
-                            egui::FontId::new(48.0, theme::wordmark_font()),
-                            alpha(theme::SPLASH_INK, opacity));
-
-                        let title_at = center + Vec2::new(0.0, -14.0 + lift);
+                        let pulse = 1.0 + 0.018 * (elapsed * 1.8).sin();
+                        painter.circle_filled(center, 88.0 * pulse, alpha(theme::accent(), 0.10 * opacity));
+                        painter.circle_stroke(center, 76.0 * pulse, Stroke::new(1.2_f32, alpha(theme::accent(), 0.50 * opacity)));
+                        painter.circle_stroke(center, 91.0 * pulse, Stroke::new(1.0_f32, alpha(theme::SPLASH_INK, 0.18 * opacity)));
+                        for i in 0..4 {
+                            let angle = elapsed * (0.38 + i as f32 * 0.07) + i as f32 * std::f32::consts::FRAC_PI_2;
+                            let radius = 84.0 + i as f32 * 3.0;
+                            painter.circle_filled(center + Vec2::new(angle.cos(), angle.sin()) * radius, 2.1 + (i % 2) as f32, alpha(theme::accent(), 0.95 * opacity));
+                        }
+                        painter.text(center + Vec2::new(0.0, 4.0), egui::Align2::CENTER_CENTER, "P",
+                            egui::FontId::new(148.0 * pulse, theme::wordmark_font()), alpha(theme::accent(), 0.56 * opacity));
+                        painter.text(center, egui::Align2::CENTER_CENTER, "P",
+                            egui::FontId::new(148.0 * pulse, theme::wordmark_font()), alpha(theme::SPLASH_INK, opacity));
+                        painter.text(center + Vec2::new(0.0, 112.0), egui::Align2::CENTER_CENTER, "PRLNGZZ EDITOR",
+                            egui::FontId::new(25.0, theme::wordmark_font()), alpha(theme::SPLASH_INK, opacity));
+                        painter.text(center + Vec2::new(0.0, 139.0), egui::Align2::CENTER_CENTER, "ASSET  ·  CONFIG  ·  WORKSPACE",
+                            egui::FontId::proportional(10.5), alpha(theme::SPLASH_MUTED, opacity));
+                        let version = format!("v{}  ·  BUILT FOR YOUR WORKFLOW", update::CURRENT);
+                        painter.text(egui::pos2(center.x, surface.bottom() - 48.0), egui::Align2::CENTER_CENTER, version,
+                            egui::FontId::proportional(9.5), alpha(theme::SPLASH_MUTED, opacity));
+                        let width = (surface.width() * 0.24).clamp(190.0, 360.0);
+                        let bar = Rect::from_center_size(egui::pos2(center.x, surface.bottom() - 28.0), Vec2::new(width, 2.5));
+                        painter.rect_filled(bar, CornerRadius::same(2), alpha(theme::BORDER, opacity));
+                        painter.rect_filled(Rect::from_min_size(bar.min, Vec2::new(width * t, bar.height())),
+                            CornerRadius::same(2), alpha(theme::SPLASH_BAR, opacity));
+                    });
 '@
-$newMark = @'
-                        let mark_center = center + Vec2::new(0.0, -86.0 + lift);
-                        let pulse = 1.0 + 0.045 * (elapsed * 2.2).sin();
-                        let sx = pulse;
-                        let sy = pulse * (1.0 + 0.025 * (elapsed * 1.4).cos());
-                        let top = egui::pos2(mark_center.x, mark_center.y - 55.0 * sy);
-                        let right = egui::pos2(mark_center.x + 52.0 * sx, mark_center.y - 2.0);
-                        let lower = egui::pos2(mark_center.x + 15.0 * sx, mark_center.y + 49.0 * sy);
-                        let left = egui::pos2(mark_center.x - 44.0 * sx, mark_center.y + 28.0 * sy);
-                        let shoulder = egui::pos2(mark_center.x - 50.0 * sx, mark_center.y - 19.0);
-                        painter.circle_filled(mark_center, 84.0 * pulse, alpha(theme::accent(), 0.075 * opacity));
-                        painter.add(egui::Shape::convex_polygon(
-                            vec![top, right, lower, left, shoulder],
-                            alpha(theme::accent(), 0.82 * opacity),
-                            Stroke::new(1.8_f32, alpha(Color32::WHITE, 0.48 * opacity)),
-                        ));
-                        painter.add(egui::Shape::convex_polygon(
-                            vec![
-                                egui::pos2(mark_center.x - 14.0, mark_center.y - 31.0 * sy),
-                                egui::pos2(mark_center.x + 30.0 * sx, mark_center.y - 3.0),
-                                egui::pos2(mark_center.x + 5.0, mark_center.y + 29.0 * sy),
-                                egui::pos2(mark_center.x - 22.0, mark_center.y + 3.0),
-                            ],
-                            alpha(theme::SPLASH_INK, 0.22 * opacity),
-                            Stroke::new(1.0_f32, alpha(Color32::WHITE, 0.40 * opacity)),
-                        ));
-                        painter.line_segment(
-                            [egui::pos2(mark_center.x - 34.0, mark_center.y + 15.0), egui::pos2(mark_center.x + 5.0, mark_center.y - 32.0)],
-                            Stroke::new(3.0_f32, alpha(Color32::WHITE, 0.82 * opacity)),
-                        );
-                        painter.line_segment(
-                            [egui::pos2(mark_center.x + 5.0, mark_center.y - 32.0), egui::pos2(mark_center.x + 32.0, mark_center.y + 4.0)],
-                            Stroke::new(2.0_f32, alpha(theme::SPLASH_INK, 0.75 * opacity)),
-                        );
-                        painter.circle_filled(egui::pos2(mark_center.x + 53.0, mark_center.y - 40.0), 4.0, alpha(Color32::WHITE, 0.9 * opacity));
-
-                        let title_at = center + Vec2::new(0.0, -14.0 + lift);
-'@
-$gui = Replace-Once $gui $oldMark $newMark "replace circle P mark with prism"
-$gui = Replace-Once $gui 'egui::FontId::new(30.0, theme::wordmark_font()),' 'egui::FontId::new(34.0, theme::wordmark_font()),' "intro wordmark size"
-$gui = Replace-Once $gui '"YOUR ROBLOX ASSET WORKSPACE",' '"CREATIVE CONTROL CENTER  ·  BUILT FOR RIVALS",' "intro tagline"
-$gui = Replace-Once $gui 'let chip_labels = ["SKY LIBRARY", "CONFIG BUILDER", "CACHE CONTROL"];' 'let chip_labels = ["CONFIG LIBRARY", "SKINCHANGER", "NO HANDS"];' "intro feature chips"
-
+$gui = $gui.Substring(0, $introStartAt) + $newIntro + $gui.Substring($introEndAt + ('                    });').Length)
 # Attach the corresponding front.png preview URL to every sky JSON profile.
 $skyDirectory = Join-Path $Project "sky_profiles"
 foreach ($skyFile in Get-ChildItem -LiteralPath $skyDirectory -File -Filter "*.json") {
@@ -234,7 +247,7 @@ foreach ($skyFile in Get-ChildItem -LiteralPath $skyDirectory -File -Filter "*.j
     } else {
         $slug = $skyName.ToLowerInvariant() -replace '[^a-z0-9]+', '-'
         $slug = $slug.Trim('-')
-        $previewUrl = "https://media.githubusercontent.com/media/Prlngzz/Prlngzz-Editor/sky-library-cdn-assets/.github/assets/sky-faces/$slug/front.png"
+        $previewUrl = "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Editor/sky-library-cdn-assets/.github/assets/sky-faces/$slug/front.png"
     }
     $document.sky_library | Add-Member -NotePropertyName preview_url -NotePropertyValue $previewUrl -Force
     [IO.File]::WriteAllText($skyFile.FullName, ($document | ConvertTo-Json -Depth 100) + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
@@ -420,6 +433,10 @@ $gui = Replace-Once $gui @'
 '@ @'
             assert!(sky.preview_url.ends_with("/front.png") || sky.preview_url.ends_with("PurpleFlowFront.png"),
                 "{} must have its front preview URL", sky.name);
+            if sky.name != "Purple goo sky" {
+                assert!(sky.preview_url.starts_with("https://raw.githubusercontent.com/Prlngzz/Prlngzz-Editor/sky-library-cdn-assets/"),
+                    "{} must use a direct public preview URL", sky.name);
+            }
             if sky.status == "ready" {
                 applyable += 1;
 '@ "front preview assertion"
@@ -500,5 +517,162 @@ $presets = @'
                 ui.label(egui::RichText::new("Live preview").color(theme::MUTED));
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
+# Asynchronous remote thumbnails for Skies and community texture galleries.
+$gui = Replace-Once $gui '    lookup_pictures: HashMap<u64, egui::TextureHandle>,' @'
+    lookup_pictures: HashMap<u64, egui::TextureHandle>,
+    image_previews: HashMap<String, egui::TextureHandle>,
+    image_preview_jobs: HashSet<String>,
+    image_preview_failed: HashSet<String>,
+    image_preview_tx: std::sync::mpsc::Sender<(String, std::result::Result<Vec<u8>, String>)>,
+    image_preview_rx: Receiver<(String, std::result::Result<Vec<u8>, String>)>,
+'@ "preview state"
+
+$gui = Replace-Once $gui '        let settings = Settings::load();' @'
+        let (image_preview_tx, image_preview_rx) = channel();
+        let settings = Settings::load();
+'@ "preview channel"
+$gui = Replace-Once $gui '            lookup_pictures: HashMap::new(),' @'
+            lookup_pictures: HashMap::new(),
+            image_previews: HashMap::new(),
+            image_preview_jobs: HashSet::new(),
+            image_preview_failed: HashSet::new(),
+            image_preview_tx,
+            image_preview_rx,
+'@ "preview init"
+$gui = Replace-Once $gui '        self.poll_lookup(ctx);' @'
+        self.poll_lookup(ctx);
+        self.poll_image_previews(ctx);
+'@ "poll preview responses"
+
+$previewMethods = @'
+    fn request_image_preview(&mut self, ctx: &egui::Context, url: &str) {
+        if !url.starts_with("https://")
+            || self.image_previews.contains_key(url)
+            || self.image_preview_jobs.contains(url)
+            || self.image_preview_failed.contains(url)
+        {
+            return;
+        }
+        let url = url.to_owned();
+        self.image_preview_jobs.insert(url.clone());
+        let tx = self.image_preview_tx.clone();
+        let ctx = ctx.clone();
+        std::thread::spawn(move || {
+            use std::io::Read;
+            const MAX_PREVIEW_BYTES: u64 = 8 * 1024 * 1024;
+            let result = (|| -> std::result::Result<Vec<u8>, String> {
+                let response = ureq::get(&url)
+                    .set("User-Agent", "Prlngzz-Editor/0.3.35")
+                    .timeout(std::time::Duration::from_secs(15))
+                    .call()
+                    .map_err(|error| format!("Preview request failed: {error}"))?;
+                let mut reader = response.into_reader().take(MAX_PREVIEW_BYTES + 1);
+                let mut bytes = Vec::new();
+                reader.read_to_end(&mut bytes).map_err(|error| format!("Preview download failed: {error}"))?;
+                if bytes.len() as u64 > MAX_PREVIEW_BYTES {
+                    return Err("Preview image is larger than 8 MiB".to_owned());
+                }
+                Ok(bytes)
+            })();
+            let _ = tx.send((url, result));
+            ctx.request_repaint();
+        });
+    }
+
+    fn poll_image_previews(&mut self, ctx: &egui::Context) {
+        loop {
+            let (url, result) = match self.image_preview_rx.try_recv() {
+                Ok(message) => message,
+                Err(TryRecvError::Empty | TryRecvError::Disconnected) => break,
+            };
+            self.image_preview_jobs.remove(&url);
+            match result {
+                Ok(bytes) => match image::load_from_memory(&bytes) {
+                    Ok(image) => {
+                        let small = image.thumbnail(480, 270).to_rgba8();
+                        let pixels = egui::ColorImage::from_rgba_unmultiplied(
+                            [small.width() as usize, small.height() as usize],
+                            small.as_raw(),
+                        );
+                        let name = format!("library-preview-{}", self.image_previews.len());
+                        let texture = ctx.load_texture(name, pixels, egui::TextureOptions::LINEAR);
+                        self.image_previews.insert(url, texture);
+                    }
+                    Err(_) => { self.image_preview_failed.insert(url); }
+                },
+                Err(_) => { self.image_preview_failed.insert(url); }
+            }
+        }
+    }
+
+'@
+$gui = Replace-Once $gui '    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {' ($previewMethods + '    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {') "preview worker methods"
+
+$gui = Replace-Once $gui @'
+                            for (index, entry) in visible_skies.iter().enumerate() {
+                                let column = &mut columns[index % 3];
+                                column.push_id(("sky-library-card", &entry.name), |ui| {
+'@ @'
+                            for (index, entry) in visible_skies.iter().enumerate() {
+                                let column = &mut columns[index % 3];
+                                let preview_url = entry.preview_url.clone();
+                                let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
+                                if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
+                                let preview_texture = self.image_previews.get(&preview_url).cloned();
+                                let preview_failed = self.image_preview_failed.contains(&preview_url);
+                                column.push_id(("sky-library-card", &entry.name), |ui| {
+'@ "fetch visible sky thumbnails"
+$gui = Replace-Once $gui @'
+                                        if !entry.preview_url.is_empty() {
+                                            ui.hyperlink_to("Preview front.png", entry.preview_url.as_str());
+                                        }
+                                        ui.add_space(6.0);
+'@ @'
+                                        if let Some(texture) = preview_texture.as_ref() {
+                                            let size = texture.size_vec2();
+                                            let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
+                                            ui.image((texture.id(), size * scale));
+                                        } else if preview_failed {
+                                            ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
+                                        } else if !preview_url.is_empty() {
+                                            ui.label(egui::RichText::new("Loading front preview…").color(theme::MUTED).small());
+                                        }
+                                        if !preview_url.is_empty() { ui.hyperlink_to("Open full-size image", preview_url.as_str()); }
+                                        ui.add_space(6.0);
+'@ "draw sky image previews"
+
+$gui = Replace-Once $gui @'
+                            for (index, entry) in visible_textures.iter().enumerate() {
+                                let column = &mut columns[index % 3];
+                                column.push_id(("texture-library-card", &entry.name), |ui| {
+'@ @'
+                            for (index, entry) in visible_textures.iter().enumerate() {
+                                let column = &mut columns[index % 3];
+                                let preview_url = entry.preview_url.clone();
+                                let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
+                                if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
+                                let preview_texture = self.image_previews.get(&preview_url).cloned();
+                                let preview_failed = self.image_preview_failed.contains(&preview_url);
+                                column.push_id(("texture-library-card", &entry.name), |ui| {
+'@ "fetch visible texture thumbnails"
+$gui = Replace-Once $gui @'
+                                        ui.add_space(6.0);
+                                        ui.hyperlink_to("Open image preview", entry.preview_url.as_str());
+                                        ui.add_space(6.0);
+'@ @'
+                                        ui.add_space(6.0);
+                                        if let Some(texture) = preview_texture.as_ref() {
+                                            let size = texture.size_vec2();
+                                            let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
+                                            ui.image((texture.id(), size * scale));
+                                        } else if preview_failed {
+                                            ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
+                                        } else if !preview_url.is_empty() {
+                                            ui.label(egui::RichText::new("Loading texture preview…").color(theme::MUTED).small());
+                                        }
+                                        ui.hyperlink_to("Open full-size image", preview_url.as_str());
+                                        ui.add_space(6.0);
+'@ "draw texture image previews"
+
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.34 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.35 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
