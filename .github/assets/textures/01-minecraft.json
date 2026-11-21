@@ -1,0 +1,25 @@
+{
+  "name": "Minecraft textures",
+  "game": "RIVALS",
+  "description": "Minecraft textures community texture preset. Uses the same Arena 2.0 RIVALS target as the existing Tism and Flow texture presets.",
+  "replacement_rules": [
+    {
+      "name": "Arena 2.0",
+      "replace_ids": [
+        7658055825
+      ],
+      "mode": "cdn",
+      "enabled": true,
+      "cdn_url": "https://raw.githubusercontent.com/66buncer/Rivals-Pack-Assets/main/item_slot_3_blue_hollow.png"
+    }
+  ],
+  "texture_library": {
+    "id": "minecraft",
+    "name": "Minecraft textures",
+    "target_ids": [
+      7658055825
+    ],
+    "preview_url": "https://raw.githubusercontent.com/66buncer/Rivals-Pack-Assets/main/item_slot_3_blue_hollow.png",
+    "status": "ready"
+  }
+}

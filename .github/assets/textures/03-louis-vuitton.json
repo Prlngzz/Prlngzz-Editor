@@ -1,0 +1,25 @@
+{
+  "name": "Louis Vuitton textures",
+  "game": "RIVALS",
+  "description": "Louis Vuitton textures community texture preset. Uses the same Arena 2.0 RIVALS target as the existing Tism and Flow texture presets.",
+  "replacement_rules": [
+    {
+      "name": "Arena 2.0",
+      "replace_ids": [
+        7658055825
+      ],
+      "mode": "cdn",
+      "enabled": true,
+      "cdn_url": "https://hostforever.org/uploads/1781475092354-0f082ed48ca0c7b3-louis-vuitton-pattern-lv-pattern-01-fashion-and-lifestyle-tuscan-afternoon-removebg-preview.png"
+    }
+  ],
+  "texture_library": {
+    "id": "louis-vuitton",
+    "name": "Louis Vuitton textures",
+    "target_ids": [
+      7658055825
+    ],
+    "preview_url": "https://hostforever.org/uploads/1781475092354-0f082ed48ca0c7b3-louis-vuitton-pattern-lv-pattern-01-fashion-and-lifestyle-tuscan-afternoon-removebg-preview.png",
+    "status": "ready"
+  }
+}

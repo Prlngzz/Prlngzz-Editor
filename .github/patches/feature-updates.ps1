@@ -20,7 +20,7 @@ function Save-Source([string]$Path, [string]$Text) {
 # Version identity and Windows file properties.
 $cargoPath = Join-Path $Project "Cargo.toml"
 $cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.3.5"' "package version"
+$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.3.6"' "package version"
 Save-Source $cargoPath $cargo
 
 $lockPath = Join-Path $Project "Cargo.lock"
@@ -30,13 +30,13 @@ name = "prlngzz-editor"
 version = "0.1.0"
 '@ @'
 name = "prlngzz-editor"
-version = "0.3.5"
+version = "0.3.6"
 '@ "Cargo.lock package version"
 Save-Source $lockPath $lock
 
 $changelogPath = Join-Path $Project "changelog.json"
 $changelog = [IO.File]::ReadAllText($changelogPath)
-$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.3.5"' "changelog version"
+$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.3.6"' "changelog version"
 $changelog = $changelog.Replace('"Retains the Rust local cache browser, previews, replacement engine, original backups and cache monitoring from the supplied rbxcache foundation."', '"Groups six-face community skies, adds on-demand asset previews and improves texture preview resolution."')
 $changelog = $changelog.Replace('"Adds optional HTTPS-only community catalog, release and changelog endpoint configuration."', '"Adds multi-ID replacement pairing, reload-before-launch, extra accent choices and embedded Windows version metadata."')
 Save-Source $changelogPath $changelog
@@ -233,7 +233,7 @@ $libraryMethod = @'
         });
         let tab_description = match self.library_tab {
             LibraryTab::All => "Browse every collection in one place.",
-            LibraryTab::Skies => "65 individual six-face sky configurations.",
+            LibraryTab::Skies => "66 individual six-face sky configurations.",
             LibraryTab::Textures => "Community weapon textures and icons.",
             LibraryTab::Sounds => "Community sound assets.",
         };
@@ -1633,9 +1633,9 @@ impl egui::Widget for BubblyButton<'_> {
         let text_color = if self.primary { Color32::WHITE } else { theme::TEXT };
         let font = egui::FontId::proportional(if self.compact { 12.5 } else if self.primary { 15.5 } else { 14.0 });
         let galley = ui.painter().layout_no_wrap(self.text.to_owned(), font, text_color);
-        let horizontal_padding = if self.compact { 10.0 } else if self.primary { 22.0 } else { 16.0 };
-        let height: f32 = if self.compact { 29.0 } else if self.primary { 48.0 } else { 36.0 };
-        let minimum_width: f32 = if self.primary { 176.0 } else if self.compact { 46.0 } else { 68.0 };
+        let horizontal_padding = if self.compact { 14.0 } else if self.primary { 24.0 } else { 18.0 };
+        let height: f32 = if self.compact { 36.0 } else if self.primary { 52.0 } else { 40.0 };
+        let minimum_width: f32 = if self.primary { 184.0 } else if self.compact { 56.0 } else { 76.0 };
         let size = Vec2::new((galley.size().x + horizontal_padding * 2.0).max(minimum_width), height);
         let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
         let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
@@ -1772,10 +1772,51 @@ Write-Host "Applied the glossy button system, all button wrappers, home launch h
 $skySource = Join-Path $PSScriptRoot "..\assets\skies"
 $skyDestination = Join-Path $Project "sky_profiles"
 $skyFiles = @(Get-ChildItem -LiteralPath $skySource -File -Filter "*.json" | Sort-Object Name)
-if ($skyFiles.Count -ne 65) { throw "Expected exactly 65 individual sky JSON profiles in $skySource; found $($skyFiles.Count)" }
+if ($skyFiles.Count -ne 66) { throw "Expected exactly 65 individual sky JSON profiles in $skySource; found $($skyFiles.Count)" }
 if (Test-Path $skyDestination) { Remove-Item -LiteralPath $skyDestination -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $skyDestination | Out-Null
 foreach ($skyFile in $skyFiles) { Copy-Item -LiteralPath $skyFile.FullName -Destination $skyDestination }
+
+$textureSource = Join-Path $PSScriptRoot "..\assets\textures"
+$textureFiles = @(Get-ChildItem -LiteralPath $textureSource -File -Filter "*.json" | Sort-Object Name)
+if ($textureFiles.Count -ne 5) { throw "Expected exactly 5 texture profile JSON files in $textureSource; found $($textureFiles.Count)" }
+$textureDestination = Join-Path $Project "texture_profiles"
+if (Test-Path $textureDestination) { Remove-Item -LiteralPath $textureDestination -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $textureDestination | Out-Null
+foreach ($textureFile in $textureFiles) { Copy-Item -LiteralPath $textureFile.FullName -Destination $textureDestination }
+
+$textureIncludes = ($textureFiles | ForEach-Object { '    include_str!("../texture_profiles/' + $_.Name + '"),' }) -join [Environment]::NewLine
+$textureHelpers = @'
+const TEXTURE_LIBRARY_JSON: &[&str] = &[
+__TEXTURE_JSON_INCLUDES__
+];
+
+struct TextureLibraryEntry {
+    name: String,
+    preview_url: String,
+    json: &'static str,
+}
+
+fn texture_library_entries() -> &'static [TextureLibraryEntry] {
+    static ENTRIES: std::sync::OnceLock<Vec<TextureLibraryEntry>> = std::sync::OnceLock::new();
+    ENTRIES.get_or_init(|| {
+        TEXTURE_LIBRARY_JSON.iter().map(|raw| {
+            let json = *raw;
+            let value: serde_json::Value = serde_json::from_str(json)
+                .expect("embedded texture library JSON must be valid");
+            let metadata = value.get("texture_library")
+                .expect("texture JSON must contain texture_library metadata");
+            let name = metadata.get("name").and_then(serde_json::Value::as_str)
+                .unwrap_or("Unnamed texture").to_owned();
+            let preview_url = metadata.get("preview_url").and_then(serde_json::Value::as_str)
+                .unwrap_or("").to_owned();
+            TextureLibraryEntry { name, preview_url, json }
+        }).collect()
+    }).as_slice()
+}
+
+'@
+$textureHelpers = $textureHelpers.Replace("__TEXTURE_JSON_INCLUDES__", $textureIncludes)
 
 $skyIncludes = ($skyFiles | ForEach-Object { '    include_str!("../sky_profiles/' + $_.Name + '"),' }) -join [Environment]::NewLine
 $skyHelpers = @'
@@ -1821,7 +1862,7 @@ fn sky_library_entries() -> &'static [SkyLibraryEntry] {
 $skyHelpers = $skyHelpers.Replace("__SKY_JSON_INCLUDES__", $skyIncludes)
 $guiPath = Join-Path $Project "src/gui.rs"
 $gui = [IO.File]::ReadAllText($guiPath)
-$gui = Replace-Once $gui 'impl Tab {' ($skyHelpers + 'impl Tab {') "individual JSON sky library loader"
+$gui = Replace-Once $gui 'impl Tab {' ($skyHelpers + $textureHelpers + 'impl Tab {') "individual JSON sky library loader"
 
 $skyUi = @'
         if self.library_tab == LibraryTab::Skies {
@@ -1841,7 +1882,7 @@ $skyUi = @'
             ui.add_space(8.0);
             ui.label(egui::RichText::new(format!("{} matching sky profiles", visible_skies.len()))
                 .color(theme::MUTED).small());
-            egui::ScrollArea::vertical().max_height(500.0).auto_shrink([false, false]).show(ui, |ui| {
+            egui::ScrollArea::vertical().id_salt("sky-library-gallery").max_height(ui.available_height().clamp(240.0, 520.0)).auto_shrink([false, false]).show(ui, |ui| {
                 ui.columns(3, |columns| {
                     for (index, entry) in visible_skies.iter().enumerate() {
                         let column = &mut columns[index % 3];
@@ -1861,7 +1902,7 @@ $skyUi = @'
                                 ui.horizontal_wrapped(|ui| {
                                     for face in ["BK", "DN", "FT", "LF", "RT", "UP"] {
                                         if let Some(id) = entry.faces.get(face) {
-                                            if ui.small_button(face).on_hover_text(format!("Preview replacement asset {id}")).clicked() {
+                                            if bubbly_small_button(ui, face).on_hover_text(format!("Preview replacement asset {id}")).clicked() {
                                                 actions.push(Action::PreviewCatalog(*id));
                                             }
                                         }
@@ -1904,6 +1945,56 @@ $skyUi = @'
                 }
             });
         }
+
+        if self.library_tab == LibraryTab::Textures {
+            let textures = texture_library_entries();
+            let visible_textures: Vec<&TextureLibraryEntry> = textures.iter()
+                .filter(|entry| query.is_empty() || entry.name.to_lowercase().contains(&query))
+                .collect();
+            ui.horizontal_wrapped(|ui| {
+                ui.label(egui::RichText::new("COMMUNITY TEXTURE PROFILES").strong());
+                theme::pill(ui, &format!("{} profiles", textures.len()), theme::MUTED);
+            });
+            ui.label(egui::RichText::new("One-click RIVALS presets using the same Arena 2.0 target as Tism and Flow textures. Open Preview to inspect the exact source image.")
+                .color(theme::MUTED).small());
+            ui.label(egui::RichText::new(format!("{} matching texture profiles", visible_textures.len()))
+                .color(theme::MUTED).small());
+            egui::ScrollArea::vertical().id_salt("texture-library-gallery")
+                .max_height(ui.available_height().clamp(240.0, 520.0))
+                .auto_shrink([false, false]).show(ui, |ui| {
+                    ui.columns(3, |columns| {
+                        for (index, entry) in visible_textures.iter().enumerate() {
+                            let column = &mut columns[index % 3];
+                            column.push_id(("texture-library-card", &entry.name), |ui| {
+                                card(ui, 1.0, |ui| {
+                                    ui.horizontal_wrapped(|ui| {
+                                        ui.label(egui::RichText::new(&entry.name).strong().size(15.0));
+                                        theme::pill(ui, "READY", theme::OK);
+                                    });
+                                    ui.label(egui::RichText::new("RIVALS · ARENA 2.0 TEXTURE").color(theme::MUTED).small());
+                                    ui.label("Target asset: 7658055825");
+                                    ui.add_space(6.0);
+                                    ui.hyperlink_to("Open image preview", entry.preview_url.as_str());
+                                    ui.add_space(6.0);
+                                    if bubbly_small_button(ui, "Apply texture").clicked() {
+                                        match crate::studio::ProfileDocument::import_fleasion(entry.json) {
+                                            Ok(profile) => {
+                                                let validation = profile.validation();
+                                                if validation.errors.is_empty() && validation.enabled_rules == 1 {
+                                                    actions.push(Action::ApplyGeneratedProfile(profile));
+                                                } else {
+                                                    self.studio_status = format!("{} profile failed validation: {}", entry.name, validation.errors.join("; "));
+                                                }
+                                            }
+                                            Err(error) => self.studio_status = format!("Could not load {} profile: {error:#}", entry.name),
+                                        }
+                                    }
+                                });
+                            });
+                        }
+                    });
+                });
+        }
         let matches: Vec<usize> = assets
 '@
 $gui = Replace-RegexOnce $gui '        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new\(\);[\s\S]*?        let matches: Vec<usize> = assets' $skyUi "replace grouped catalogue skies with individual JSON profiles"
@@ -1915,7 +2006,7 @@ $gui = Replace-Once $gui @'
     #[test]
     fn all_individual_sky_json_profiles_are_embedded_and_validated() {
         let skies = sky_library_entries();
-        assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
+        assert_eq!(skies.len(), 66, "one JSON must exist for every indexed sky");
         let mut applyable = 0usize;
         for sky in skies {
             let order = ["BK", "DN", "FT", "LF", "RT", "UP"];
@@ -1932,6 +2023,29 @@ $gui = Replace-Once $gui @'
             }
         }
         assert_eq!(applyable, 63, "all catalog-complete skies should be one-click applyable");
+    }
+
+    #[test]
+    fn all_five_texture_library_profiles_are_embedded_and_validated() {
+        const EXPECTED: [&str; 5] = [
+            "Minecraft textures", "Gray textures", "Louis Vuitton textures",
+            "Spiked textures", "Brick textures",
+        ];
+        let textures = texture_library_entries();
+        assert_eq!(textures.len(), EXPECTED.len());
+        for (texture, expected_name) in textures.iter().zip(EXPECTED) {
+            assert_eq!(texture.name, expected_name);
+            assert!(texture.preview_url.starts_with("https://"));
+            let raw: serde_json::Value = serde_json::from_str(texture.json).unwrap();
+            assert_eq!(raw["replacement_rules"][0]["name"].as_str(), Some("Arena 2.0"));
+            assert_eq!(raw["replacement_rules"][0]["mode"].as_str(), Some("cdn"));
+            assert_eq!(raw["replacement_rules"][0]["replace_ids"][0].as_u64(), Some(7658055825));
+            assert_eq!(raw["replacement_rules"][0]["cdn_url"].as_str(), Some(texture.preview_url.as_str()));
+            let profile = crate::studio::ProfileDocument::import_fleasion(texture.json).unwrap();
+            let validation = profile.validation();
+            assert!(validation.errors.is_empty(), "{} errors: {:?}", texture.name, validation.errors);
+            assert_eq!(validation.enabled_rules, 1, "{} should have one Arena 2.0 rule", texture.name);
+        }
     }
 
     #[test]
@@ -1972,27 +2086,13 @@ if (Test-Path $archiveFaceMapPath) {
     }
 }
 
-# Legacy verified texture-repository names remain a fallback when an original archive has no usable face.
+# Purple Goo is the only explicit non-archive source; all other skies use faces extracted from the collection archive.
 $hostedSkyFiles = @{
-    "Beautfil [From tutorial]" = @{ Back = "backmembu.png"; Down = "ddownmembu.png"; Front = "beautifulmembuFront.png"; Left = "leftmembu.png"; Right = "rtmembu.png"; Up = "upmembu.png" }
-    "Blue" = @{ Back = "blueCloudback.png.png"; Down = "blueClouddown.png.png"; Front = "blueCloudfront.png.png"; Left = "blueCloudleft.png.png"; Right = "blueCloudright.png.png"; Up = "blueCloudup.png.png" }
-    "Chill pink" = @{ Back = "Chill Pink Back.png"; Down = "Chill Pink Down.png"; Front = "Chill Pink Front.png"; Left = "Chill Pink Left.png"; Right = "Chill Pink Right.png"; Up = "Chill Pink Up.png" }
-    "Hades" = @{ Back = "HadesBack.png"; Down = "HadesDown.png"; Front = "HadesFront.png"; Left = "HadesLeft.png"; Right = "HadesRight.png"; Up = "HadesUp.png" }
-    "Light pink" = @{ Back = "BK pink.png"; Down = "DN pink.png"; Front = "FT  pink.png"; Left = "LF pink.png"; Right = "RT pink.png"; Up = "UP pink.png" }
-    "PeacefullMorningSky" = @{ Back = "peaceefulbk.png"; Down = "peacefuldn.png"; Front = "peacefulft.png"; Left = "peacefulLf.png"; Right = "peacefulrt.png"; Up = "peacefulUp.png" }
-    "Pink Sunrise" = @{ Back = "PinkSunriseBack.png"; Down = "PinkSunriseDown.png"; Front = "PinkSunriseFront.png"; Left = "PinkSunriseLeft.png"; Right = "PinkSunriseRight.png"; Up = "PinkSunriseUp.png" }
-    "sky_05" = @{ Back = "Sky05Back.png"; Down = "Sky05Down.png"; Front = "Sky05Front.png"; Left = "Sky05Left.png"; Right = "Sky05Right.png"; Up = "Sky05Up.png" }
-    "sky_13" = @{ Back = "Sky13Back.png"; Down = "Sky13Down.png"; Front = "Sky13Front.png"; Left = "Sky13Left.png"; Right = "Sky13Right.png"; Up = "Sky13Up.png" }
-    "sky_31" = @{ Back = "Sky31Back.png"; Down = "Sky31Down.png"; Front = "Sky31Front.png"; Left = "Sky31Left.png"; Right = "Sky31Right.png"; Up = "Sky31Up.png" }
-    "sky_38" = @{ Back = "Sky38Back.png"; Down = "Sky38Down.png"; Front = "Sky38Front.png"; Left = "Sky38Left.png"; Right = "Sky38Right.png"; Up = "Sky38Up.png" }
-    "sky_purple" = @{ Back = "PurpleFlowback.png"; Down = "PurpleFlowDown.png"; Front = "PurpleFlowFront.png"; Left = "PurpleFlowLeft.png"; Right = "PurpleFlowRight.png"; Up = "PurpleFlowUp.png" }
-    "sky_sunset" = @{ Back = "SunsetBack.png"; Down = "SunsetDown.png"; Front = "SunsetFront.png"; Left = "SunsetLeft.png"; Right = "SunsetRight.png"; Up = "SunsetUp.png" }
-    "Spooky" = @{ Back = "stizspookyccbk.png"; Down = "stizspookydn.png"; Front = "stizspookyftez.png"; Left = "stizspookylf.png"; Right = "stizspookyrt.png"; Up = "stizspookyup.png" }
-    "Space Blue" = @{ Back = "BlueSpaceBack.png"; Down = "BlueSpaceDown.png"; Left = "BlueSpaceLeft.png"; Right = "BlueSpaceRight.png"; Up = "BlueSpaceUp.png" }
+    "Purple goo sky" = @{ Back = "PurpleFlowback.png"; Down = "PurpleFlowDown.png"; Front = "PurpleFlowFront.png"; Left = "PurpleFlowLeft.png"; Right = "PurpleFlowRight.png"; Up = "PurpleFlowUp.png" }
 }
 
 $skyFiles = @(Get-ChildItem -LiteralPath $skySource -File -Filter "*.json" | Sort-Object Name)
-if ($skyFiles.Count -ne 65) { throw "Expected 65 sky JSON files before conversion; found $($skyFiles.Count)" }
+if ($skyFiles.Count -ne 66) { throw "Expected 65 sky JSON files before conversion; found $($skyFiles.Count)" }
 $applyReady = 0
 foreach ($skyFile in $skyFiles) {
     $old = [IO.File]::ReadAllText($skyFile.FullName) | ConvertFrom-Json
@@ -2055,7 +2155,7 @@ foreach ($skyFile in $skyFiles) {
     $json = $newDocument | ConvertTo-Json -Depth 100
     [IO.File]::WriteAllText($skyFile.FullName, $json + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
 }
-if ($applyReady -ne 65) { Write-Warning "Only $applyReady of 65 archive skyboxes have six real faces. Incomplete entries will remain marked unavailable; see skybox-archive-manifest.json." }
+if ($applyReady -ne 63) { Write-Warning "Expected 63 applyable skies (62 complete archive sets plus Purple goo sky); found $applyReady. Incomplete entries remain unavailable; see skybox-archive-manifest.json." }
 
 # Re-copy the converted Fleasion JSONs so include_str! embeds the final, exact files.
 $skyDestination = Join-Path $Project "sky_profiles"
@@ -2069,7 +2169,7 @@ $oldTest = @'
     #[test]
     fn all_individual_sky_json_profiles_are_embedded_and_validated() {
         let skies = sky_library_entries();
-        assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
+        assert_eq!(skies.len(), 66, "one JSON must exist for every indexed sky");
         let mut applyable = 0usize;
         for sky in skies {
             let order = ["BK", "DN", "FT", "LF", "RT", "UP"];
@@ -2101,7 +2201,7 @@ $newTest = @'
             [14147881297, 72960281658487, 92138082970751, 2108482676, 10196567794, 12261813678],
         ];
         let skies = sky_library_entries();
-        assert_eq!(skies.len(), 65, "one JSON must exist for every indexed sky");
+        assert_eq!(skies.len(), 66, "one JSON must exist for every indexed sky");
         let mut applyable = 0usize;
         for sky in skies {
             let raw: serde_json::Value = serde_json::from_str(sky.json).unwrap();
@@ -2126,11 +2226,13 @@ $newTest = @'
                     .map(|id| id.as_u64().unwrap()).collect::<Vec<_>>();
                 assert_eq!(ids, TARGETS[index].to_vec(), "{} {} target IDs", sky.name, rule_name);
                 let cdn_url = source_rule["cdn_url"].as_str().unwrap();
-                assert!(
-                    cdn_url.starts_with("https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/")
-                        || cdn_url.starts_with("https://media.githubusercontent.com/media/Prlngzz/Prlngzz-Editor/"),
-                    "{} {} must use a verified hosted face URL: {cdn_url}", sky.name, rule_name
-                );
+                if sky.name == "Purple goo sky" {
+                    assert!(cdn_url.starts_with("https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/PurpleFlow"),
+                        "Purple goo sky must use its supplied PurpleFlow face URLs: {cdn_url}");
+                } else {
+                    assert!(cdn_url.starts_with("https://media.githubusercontent.com/media/Prlngzz/Prlngzz-Editor/sky-library-cdn-assets/.github/assets/sky-faces/"),
+                        "{} {} must use the separate archive-asset CDN branch: {cdn_url}", sky.name, rule_name);
+                }
                 let expected_targets = TARGETS[index].iter().copied()
                     .map(crate::config::Target::Asset).collect::<Vec<_>>();
                 assert_eq!(parsed_rule.targets, expected_targets, "{} {} parsed target IDs", sky.name, rule_name);
@@ -2146,13 +2248,13 @@ $newTest = @'
                 assert!(source_rules.len() < 6, "{} should not advertise a broken six-face profile", sky.name);
             }
         }
-        assert_eq!(applyable, 14, "only the 14 sky profiles with six verified hosted faces are applyable");
+        assert_eq!(applyable, 63, "62 complete archive skies plus Purple goo sky must be applyable");
     }
 '@
 $gui = Replace-Once $gui $oldTest $newTest "six-rule Fleasion sky JSON regression"
 Save-Source $guiPath $gui
 
-Write-Host "Converted 65 sky JSONs to Fleasion CDN schema; only the 14 complete hosted image sets are applyable."
+Write-Host "Converted 66 sky JSONs to Fleasion CDN schema; 63 complete six-face profiles are applyable (62 archive skies plus Purple goo sky)."
 
 
 # Navigation tabs are text-only; remove the icon drawing path and its preference toggle.

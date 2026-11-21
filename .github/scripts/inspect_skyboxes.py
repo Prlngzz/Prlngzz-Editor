@@ -112,8 +112,8 @@ def main() -> None:
         raise SystemExit(f"Git LFS archive was not materialized: {ARCHIVE} ({size} bytes)")
 
     index = json.loads(INDEX.read_text(encoding="utf-8"))
-    branch = os.environ.get("GITHUB_REF_NAME", "codex/sky-library-gallery-functional-v031")
-    media_base = f"https://media.githubusercontent.com/media/Prlngzz/Prlngzz-Editor/{branch}/"
+    asset_branch = os.environ.get("SKY_ASSET_BRANCH", "sky-library-cdn-assets")
+    media_base = f"https://media.githubusercontent.com/media/Prlngzz/Prlngzz-Editor/{asset_branch}/"
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     records = []
     face_map = {}
@@ -181,7 +181,7 @@ def main() -> None:
                     record["errors"][side] = str(exc)
                     record["missing_faces"].append(side)
 
-            if len(urls) == 6:
+            if urls:
                 face_map[sky_name] = urls
 
             status = f"{len(urls)}/6 faces"

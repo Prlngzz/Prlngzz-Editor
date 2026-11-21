@@ -50,8 +50,39 @@ jobs:
             git lfs logs last
             throw "Git LFS still left the pointer in the worktree. Tracked files: $(git lfs ls-files --long)"
           }
+          $env:SKY_ASSET_BRANCH = "sky-library-cdn-assets"
           python .github/scripts/inspect_skyboxes.py
           if ($LASTEXITCODE -ne 0) { throw "Could not extract the original skybox faces" }
+
+
+      - name: Publish collection sky faces to the dedicated CDN branch
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $assetBranch = "sky-library-cdn-assets"
+          $assetWorktree = Join-Path $env:RUNNER_TEMP "sky-cdn-assets"
+          git fetch origin "refs/heads/$assetBranch:refs/remotes/origin/$assetBranch"
+          if ($LASTEXITCODE -ne 0) { throw "Could not fetch the dedicated sky CDN branch" }
+          git worktree add --detach $assetWorktree "origin/$assetBranch"
+          if ($LASTEXITCODE -ne 0) { throw "Could not prepare the sky CDN worktree" }
+          $assetDirectory = Join-Path $assetWorktree ".github/assets"
+          $destination = Join-Path $assetDirectory "sky-faces"
+          if (Test-Path $destination) { Remove-Item -LiteralPath $destination -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $assetDirectory | Out-Null
+          Copy-Item -LiteralPath ".github/assets/sky-faces" -Destination $assetDirectory -Recurse -Force
+          git -C $assetWorktree config user.name "github-actions[bot]"
+          git -C $assetWorktree config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C $assetWorktree add --all .github/assets/sky-faces
+          git -C $assetWorktree diff --cached --quiet
+          if ($LASTEXITCODE -eq 1) {
+            git -C $assetWorktree commit -m "Update collection sky face CDN assets"
+            if ($LASTEXITCODE -ne 0) { throw "Could not commit extracted sky faces" }
+            git -C $assetWorktree push origin "HEAD:refs/heads/$assetBranch"
+            if ($LASTEXITCODE -ne 0) { throw "Could not publish extracted sky faces to the CDN branch" }
+          } elseif ($LASTEXITCODE -ne 0) {
+            throw "Could not inspect changes to the sky CDN assets"
+          }
+          git worktree remove --force $assetWorktree
 
       - name: Upload original skybox face manifest
         uses: actions/upload-artifact@v4
@@ -137,7 +168,8 @@ jobs:
             (Join-Path $project "changelog.json"),
             (Join-Path $project "rivals_asset_catalog.json"),
             (Join-Path $project "rivals_asset_ids.json"),
-            (Join-Path $project "sky_profiles")
+            (Join-Path $project "sky_profiles"),
+            (Join-Path $project "texture_profiles")
           )
           Compress-Archive -Path $paths -DestinationPath $snapshot -Force
           if (!(Test-Path $snapshot)) { throw "Source snapshot was not created" }
@@ -194,9 +226,9 @@ jobs:
           if (!(Test-Path $binary)) { throw "Expected executable not found: $binary" }
           $versionOutput = & $binary --version
           if ($LASTEXITCODE -ne 0) { throw "Executable --version invocation failed" }
-          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.5") { throw "Unexpected version: $versionOutput" }
+          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.6") { throw "Unexpected version: $versionOutput" }
           $versionInfo = (Get-Item $binary).VersionInfo
-          if ($versionInfo.FileVersion -ne "0.3.5" -or $versionInfo.ProductVersion -ne "0.3.5") { throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)" }
+          if ($versionInfo.FileVersion -ne "0.3.6" -or $versionInfo.ProductVersion -ne "0.3.6") { throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)" }
           $bytes = [IO.File]::ReadAllBytes($binary)
           if ($bytes.Length -lt 256 -or $bytes[0] -ne 0x4d -or $bytes[1] -ne 0x5a) { throw "Invalid PE file" }
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
@@ -204,29 +236,14 @@ jobs:
           $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
           if ($machine -ne 0x8664) { throw "Expected AMD64 PE; found 0x$('{0:X4}' -f $machine)" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.5-Windows-x64.exe" -Force
+          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.6-Windows-x64.exe" -Force
 
-
-      - name: Commit converted sky JSON profiles
-        if: success() && startsWith(github.ref, 'refs/heads/codex/')
-        shell: pwsh
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .gitattributes .github/assets/skies .github/assets/sky-faces .github/assets/sky-face-map.json
-          git diff --cached --quiet
-          if ($LASTEXITCODE -ne 0) {
-            git commit -m "Convert sky library JSONs to multi-ID CDN rules"
-            if ($LASTEXITCODE -ne 0) { throw "Could not commit converted sky JSON profiles" }
-            git push origin "HEAD:$env:GITHUB_REF_NAME"
-            if ($LASTEXITCODE -ne 0) { throw "Could not push converted sky JSON profiles" }
-          }
 
       - name: Upload Windows x64 executable
         uses: actions/upload-artifact@v4
         with:
-          name: Prlngzz-Editor-v0.3.5-Windows-x64
-          path: dist/Prlngzz-Editor-v0.3.5-Windows-x64.exe
+          name: Prlngzz-Editor-v0.3.6-Windows-x64
+          path: dist/Prlngzz-Editor-v0.3.6-Windows-x64.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -236,4 +253,4 @@ jobs:
         with:
           name: Prlngzz Editor ${{ github.ref_name }}
           generate_release_notes: true
-          files: dist/Prlngzz-Editor-v0.3.5-Windows-x64.exe
+          files: dist/Prlngzz-Editor-v0.3.6-Windows-x64.exe

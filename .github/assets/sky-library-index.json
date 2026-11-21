@@ -1,7 +1,7 @@
 {
   "version": 1,
   "source": "PrlngzzSkies.zip",
-  "count": 65,
+  "count": 66,
   "items": [
     {
       "name": "Aurora",
@@ -327,6 +327,11 @@
       "name": "ZenEnd",
       "archive": "Skyboxes/ZenEnd.zip",
       "archive_type": "zip"
+    },
+    {
+      "name": "Purple goo sky",
+      "archive": "Skyboxes/Purple goo sky.zip",
+      "archive_type": "custom"
     }
   ]
 }

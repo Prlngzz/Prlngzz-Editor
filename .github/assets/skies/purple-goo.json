@@ -1,0 +1,34 @@
+{
+  "name": "Purple goo sky Skybox",
+  "game": "RIVALS",
+  "description": "Fleasion-compatible Purple Goo six-face RIVALS skybox using the supplied PurpleFlow CDN images and exact six-face target ID arrays.",
+  "replacement_rules": [],
+  "sky_library": {
+    "id": "purple-goo",
+    "name": "Purple goo sky",
+    "archive": "Skyboxes/Purple goo sky.zip",
+    "archive_type": "custom",
+    "catalog_name": "Purple goo sky",
+    "status": "needs_face_assets",
+    "available_faces": 0,
+    "required_faces": 6,
+    "cdn_files_found": 0,
+    "cdn_files_missing": [
+      "Back",
+      "Down",
+      "Front",
+      "Left",
+      "Right",
+      "Up"
+    ],
+    "replacement_rule_count": 0
+  },
+  "faces": {
+    "BK": 2108482005,
+    "DN": 2108545280,
+    "FT": 14147882761,
+    "LF": 14147883091,
+    "RT": 14147882405,
+    "UP": 14147881297
+  }
+}
