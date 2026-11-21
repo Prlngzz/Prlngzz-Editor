@@ -30,24 +30,7 @@ if ($arenaStart -lt 0 -or $arenaEnd -le $arenaStart) { throw "Could not isolate 
 $arenaCard = $gui.Substring($arenaStart, $arenaEnd - $arenaStart)
 $gui = $gui.Substring(0, $arenaStart) + $gui.Substring($arenaEnd)
 
-$textureSuffix = @'
-            if self.library_tab == LibraryTab::Textures {
-                card(ui, 1.0, |ui| {
-                    ui.label(egui::RichText::new("NO HANDS · CACHE REMOVAL").strong().color(theme::accent()));
-                    ui.label(egui::RichText::new("Paste exact arm asset IDs from your current RIVALS build. This creates a local-cache removal profile; IDs are never guessed.").color(theme::MUTED).small());
-                    ui.add(egui::TextEdit::multiline(&mut self.studio_target_input)
-                        .desired_rows(2).desired_width(f32::INFINITY)
-                        .hint_text("Exact arm asset IDs, separated by spaces, commas or new lines"));
-                    if bubbly_small_button(ui, "Build & apply No Hands profile").clicked() {
-                        match build_no_hands_cache_profile(&self.studio_target_input) {
-                            Ok(profile) => actions.push(Action::ApplyGeneratedProfile(profile)),
-                            Err(error) => self.studio_status = format!("Could not prepare No Hands profile: {error:#}"),
-                        }
-                    }
-                });
-                ui.add_space(10.0);
-            }
-'@
+# Reuse the single No Hands card already present in the restored source.
 
 $libraryStartAt = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
 $libraryEndAt = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryStartAt)
@@ -65,12 +48,25 @@ $textureBlock = @'
         if self.library_tab == LibraryTab::Textures {
 '@
 $textureBlock += $arenaCard
-$textureBlock += $textureSuffix
 $textureBlock += @'
         }
 '@
 $librarySource = Replace-Once $librarySource $libraryAnchor ($libraryAnchor + [Environment]::NewLine + $textureBlock) "Textures tab presets and No Hands card"
 $gui = $gui.Substring(0, $libraryStartAt) + $librarySource + $gui.Substring($libraryEndAt)
+# The old source wrapped the Skies gallery and the rest of the library in a Textures-only guard.
+$libraryMethodStart = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
+$skiesBranchAt = $gui.IndexOf('if self.library_tab == LibraryTab::Skies {', $libraryMethodStart)
+if ($libraryMethodStart -lt 0 -or $skiesBranchAt -lt $libraryMethodStart) { throw "Could not locate the Skies gallery branch" }
+$skiesLineStart = $gui.LastIndexOf([string][char]10, $skiesBranchAt) + 1
+$gui = $gui.Insert($skiesLineStart, '        }' + [string][char]10)
+
+$noHandsAt = $gui.IndexOf('NO HANDS · CACHE REMOVAL', $libraryMethodStart)
+$noHandsCardAt = $gui.LastIndexOf('card(ui, 1.0, |ui| {', $noHandsAt)
+if ($noHandsAt -lt 0 -or $noHandsCardAt -lt $libraryMethodStart) { throw "Could not locate the existing No Hands card" }
+$noHandsLineStart = $gui.LastIndexOf([string][char]10, $noHandsCardAt) + 1
+$gui = $gui.Insert($noHandsLineStart, '        if self.library_tab == LibraryTab::Textures {' + [string][char]10)
+
+
 # Move the collection tabs/search above the gallery and keep Skies outside Textures.
 $libraryMethodStart = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
 $libraryMethodEnd = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryMethodStart)
@@ -562,9 +558,9 @@ $previewMethods = @'
         std::thread::spawn(move || {
             use std::io::Read;
             const MAX_PREVIEW_BYTES: u64 = 8 * 1024 * 1024;
-            let result = (|| -> std::result::Result<Vec<u8>, String> {
-                let response = ureq::get(&url)
-                    .set("User-Agent", "Prlngzz-Editor/0.3.38")
+            let fetch = |endpoint: &str| -> std::result::Result<Vec<u8>, String> {
+                let response = ureq::get(endpoint)
+                    .set("User-Agent", "Prlngzz-Editor/0.3.39")
                     .timeout(std::time::Duration::from_secs(15))
                     .call()
                     .map_err(|error| format!("Preview request failed: {error}"))?;
@@ -573,6 +569,21 @@ $previewMethods = @'
                 reader.read_to_end(&mut bytes).map_err(|error| format!("Preview download failed: {error}"))?;
                 if bytes.len() as u64 > MAX_PREVIEW_BYTES {
                     return Err("Preview image is larger than 8 MiB".to_owned());
+                }
+                Ok(bytes)
+            };
+            let result = (|| -> std::result::Result<Vec<u8>, String> {
+                let mut bytes = fetch(&url)?;
+                // Git LFS raw URLs return a pointer file; retry via GitHub's media host for the real image.
+                if bytes.starts_with(b"version https://git-lfs.github.com/spec/v1") {
+                    let media_url = url
+                        .strip_prefix("https://raw.githubusercontent.com/")
+                        .map(|path| format!("https://media.githubusercontent.com/media/{path}"))
+                        .ok_or_else(|| "Preview is an LFS pointer without a raw.githubusercontent.com URL".to_owned())?;
+                    bytes = fetch(&media_url)?;
+                    if bytes.starts_with(b"version https://git-lfs.github.com/spec/v1") {
+                        return Err("Git LFS preview fallback returned a pointer instead of image data".to_owned());
+                    }
                 }
                 Ok(bytes)
             })();
@@ -606,75 +617,78 @@ $previewMethods = @'
             }
         }
     }
-
 '@
 $gui = Replace-Once $gui '    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {' ($previewMethods + '    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {') "preview worker methods"
 
-$gui = Replace-Once $gui @'
-                    for (index, entry) in visible_skies.iter().enumerate() {
-                        let column = &mut columns[index % 3];
-                        column.push_id(("sky-library-card", &entry.name), |ui| {
-'@ @'
-                    for (index, entry) in visible_skies.iter().enumerate() {
-                        let column = &mut columns[index % 3];
-                        let preview_url = entry.preview_url.clone();
-                        let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
-                        if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
-                        let preview_texture = self.image_previews.get(&preview_url).cloned();
-                        let preview_failed = self.image_preview_failed.contains(&preview_url);
-                        column.push_id(("sky-library-card", &entry.name), |ui| {
-'@ "fetch visible sky thumbnails"
-$gui = Replace-Once $gui @'
-                                if !entry.preview_url.is_empty() {
-                                    ui.hyperlink_to("Preview front.png", entry.preview_url.as_str());
-                                }
-                                ui.add_space(6.0);
-'@ @'
-                                if let Some(texture) = preview_texture.as_ref() {
-                                    let size = texture.size_vec2();
-                                    let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
-                                    ui.image((texture.id(), size * scale));
-                                } else if preview_failed {
-                                    ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
-                                } else if !preview_url.is_empty() {
-                                    ui.label(egui::RichText::new("Loading front preview…").color(theme::MUTED).small());
-                                }
-                                if !preview_url.is_empty() { ui.hyperlink_to("Open full-size image", preview_url.as_str()); }
-                                ui.add_space(6.0);
-'@ "draw sky image previews"
+# Insert thumbnail requests and image widgets using the generated source's actual indentation.
+$libraryMethodStart = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
+$skyLoopAt = $gui.IndexOf('for (index, entry) in visible_skies.iter().enumerate() {', $libraryMethodStart)
+$skyPushAt = $gui.IndexOf('column.push_id(("sky-library-card", &entry.name), |ui| {', $skyLoopAt)
+if ($skyLoopAt -lt $libraryMethodStart -or $skyPushAt -lt $skyLoopAt) { throw "Could not locate generated sky card loop" }
+$skyLineStart = $gui.LastIndexOf([string][char]10, $skyPushAt) + 1
+$skyIndent = $gui.Substring($skyLineStart, $skyPushAt - $skyLineStart)
+$skyFetchBody = @'
+let preview_url = entry.preview_url.clone();
+let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
+if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
+let preview_texture = self.image_previews.get(&preview_url).cloned();
+let preview_failed = self.image_preview_failed.contains(&preview_url);
+'@
+$skyFetch = (($skyFetchBody.TrimEnd() -split "`r?`n") | ForEach-Object { $skyIndent + $_ }) -join [string][char]10
+$gui = $gui.Insert($skyLineStart, $skyFetch + [string][char]10)
 
-$gui = Replace-Once $gui @'
-                        for (index, entry) in visible_textures.iter().enumerate() {
-                            let column = &mut columns[index % 3];
-                            column.push_id(("texture-library-card", &entry.name), |ui| {
-'@ @'
-                        for (index, entry) in visible_textures.iter().enumerate() {
-                            let column = &mut columns[index % 3];
-                            let preview_url = entry.preview_url.clone();
-                            let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
-                            if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
-                            let preview_texture = self.image_previews.get(&preview_url).cloned();
-                            let preview_failed = self.image_preview_failed.contains(&preview_url);
-                            column.push_id(("texture-library-card", &entry.name), |ui| {
-'@ "fetch visible texture thumbnails"
-$gui = Replace-Once $gui @'
-                                    ui.add_space(6.0);
-                                    ui.hyperlink_to("Open image preview", entry.preview_url.as_str());
-                                    ui.add_space(6.0);
-'@ @'
-                                    ui.add_space(6.0);
-                                    if let Some(texture) = preview_texture.as_ref() {
-                                        let size = texture.size_vec2();
-                                        let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
-                                        ui.image((texture.id(), size * scale));
-                                    } else if preview_failed {
-                                        ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
-                                    } else if !preview_url.is_empty() {
-                                        ui.label(egui::RichText::new("Loading texture preview…").color(theme::MUTED).small());
-                                    }
-                                    ui.hyperlink_to("Open full-size image", preview_url.as_str());
-                                    ui.add_space(6.0);
-'@ "draw texture image previews"
+$skyPreviewMarker = 'ui.hyperlink_to("Preview front.png", entry.preview_url.as_str());'
+$skyPreviewAt = $gui.IndexOf($skyPreviewMarker, $skyPushAt)
+if ($skyPreviewAt -lt $skyPushAt) { throw "Could not locate sky preview link" }
+$skyPreviewLineStart = $gui.LastIndexOf([string][char]10, $skyPreviewAt) + 1
+$skyPreviewIndent = $gui.Substring($skyPreviewLineStart, $skyPreviewAt - $skyPreviewLineStart)
+$skyPreviewBody = @'
+if let Some(texture) = preview_texture.as_ref() {
+    let size = texture.size_vec2();
+    let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
+    ui.image((texture.id(), size * scale));
+} else if preview_failed {
+    ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
+} else if !preview_url.is_empty() {
+    ui.label(egui::RichText::new("Loading front preview…").color(theme::MUTED).small());
+}
+'@
+$skyRender = (($skyPreviewBody.TrimEnd() -split "`r?`n") | ForEach-Object { $skyPreviewIndent + $_ }) -join [string][char]10
+$gui = $gui.Insert($skyPreviewLineStart, $skyRender + [string][char]10)
+
+$textureLoopAt = $gui.IndexOf('for (index, entry) in visible_textures.iter().enumerate() {', $libraryMethodStart)
+$texturePushAt = $gui.IndexOf('column.push_id(("texture-library-card", &entry.name), |ui| {', $textureLoopAt)
+if ($textureLoopAt -lt $libraryMethodStart -or $texturePushAt -lt $textureLoopAt) { throw "Could not locate generated texture card loop" }
+$textureLineStart = $gui.LastIndexOf([string][char]10, $texturePushAt) + 1
+$textureIndent = $gui.Substring($textureLineStart, $texturePushAt - $textureLineStart)
+$textureFetchBody = @'
+let preview_url = entry.preview_url.clone();
+let preview_rect = Rect::from_min_size(column.cursor().min, Vec2::new(column.available_width().max(100.0), 132.0));
+if column.is_rect_visible(preview_rect) { self.request_image_preview(column.ctx(), &preview_url); }
+let preview_texture = self.image_previews.get(&preview_url).cloned();
+let preview_failed = self.image_preview_failed.contains(&preview_url);
+'@
+$textureFetch = (($textureFetchBody.TrimEnd() -split "`r?`n") | ForEach-Object { $textureIndent + $_ }) -join [string][char]10
+$gui = $gui.Insert($textureLineStart, $textureFetch + [string][char]10)
+
+$texturePreviewMarker = 'ui.hyperlink_to("Open image preview", entry.preview_url.as_str());'
+$texturePreviewAt = $gui.IndexOf($texturePreviewMarker, $texturePushAt)
+if ($texturePreviewAt -lt $texturePushAt) { throw "Could not locate texture preview link" }
+$texturePreviewLineStart = $gui.LastIndexOf([string][char]10, $texturePreviewAt) + 1
+$texturePreviewIndent = $gui.Substring($texturePreviewLineStart, $texturePreviewAt - $texturePreviewLineStart)
+$texturePreviewBody = @'
+if let Some(texture) = preview_texture.as_ref() {
+    let size = texture.size_vec2();
+    let scale = (ui.available_width() / size.x.max(1.0)).min(132.0 / size.y.max(1.0)).min(1.0);
+    ui.image((texture.id(), size * scale));
+} else if preview_failed {
+    ui.label(egui::RichText::new("Preview unavailable").color(theme::WARN).small());
+} else if !preview_url.is_empty() {
+    ui.label(egui::RichText::new("Loading texture preview…").color(theme::MUTED).small());
+}
+'@
+$textureRender = (($texturePreviewBody.TrimEnd() -split "`r?`n") | ForEach-Object { $texturePreviewIndent + $_ }) -join [string][char]10
+$gui = $gui.Insert($texturePreviewLineStart, $textureRender + [string][char]10)
 
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.38 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.39 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
