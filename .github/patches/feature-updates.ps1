@@ -20,17 +20,17 @@ function Save-Source([string]$Path, [string]$Text) {
 # Version identity and Windows file properties.
 $cargoPath = Join-Path $Project "Cargo.toml"
 $cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = Replace-RegexOnce $cargo '(?sm)(\[package\]\s*.*?^version = ")\d+\.\d+\.\d+(")' '${1}0.3.12${2}' "package version"
+$cargo = Replace-RegexOnce $cargo '(?sm)(\[package\]\s*.*?^version = ")\d+\.\d+\.\d+(")' '${1}0.3.13${2}' "package version"
 Save-Source $cargoPath $cargo
 
 $lockPath = Join-Path $Project "Cargo.lock"
 $lock = [IO.File]::ReadAllText($lockPath)
-$lock = Replace-RegexOnce $lock '(?sm)(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")\d+\.\d+\.\d+(")' '${1}0.3.12${2}' "Cargo.lock package version"
+$lock = Replace-RegexOnce $lock '(?sm)(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")\d+\.\d+\.\d+(")' '${1}0.3.13${2}' "Cargo.lock package version"
 Save-Source $lockPath $lock
 
 $changelogPath = Join-Path $Project "changelog.json"
 $changelog = [IO.File]::ReadAllText($changelogPath)
-$changelog = Replace-RegexOnce $changelog '"version": "\d+\.\d+\.\d+"' '"version": "0.3.12"' "changelog version"
+$changelog = Replace-RegexOnce $changelog '"version": "\d+\.\d+\.\d+"' '"version": "0.3.13"' "changelog version"
 $changelog = $changelog.Replace('"Retains the Rust local cache browser, previews, replacement engine, original backups and cache monitoring from the supplied rbxcache foundation."', '"Groups six-face community skies, adds on-demand asset previews and improves texture preview resolution."')
 $changelog = $changelog.Replace('"Adds optional HTTPS-only community catalog, release and changelog endpoint configuration."', '"Adds multi-ID replacement pairing, reload-before-launch, extra accent choices and embedded Windows version metadata."')
 Save-Source $changelogPath $changelog
@@ -2053,8 +2053,18 @@ if (Test-Path $archiveFaceMapPath) {
     $archiveFaceMapJson = Get-Content -LiteralPath $archiveFaceMapPath -Raw | ConvertFrom-Json
     $archiveFaceMap = @{}
     foreach ($property in $archiveFaceMapJson.PSObject.Properties) {
-        $archiveFaceMap[$property.Name] = $property.Value
+        # Convert nested JSON objects to real hashtables; PSCustomObject string indexing
+        # can otherwise return no face URLs in Windows PowerShell.
+        $faceUrls = @{}
+        foreach ($faceProperty in $property.Value.PSObject.Properties) {
+            $faceUrls[$faceProperty.Name] = [string]$faceProperty.Value
+        }
+        $archiveFaceMap[$property.Name] = $faceUrls
     }
+}
+$archiveReadyCount = @($archiveFaceMap.Values | Where-Object { $_.Count -eq 6 }).Count
+if ($archiveReadyCount -ne 62) {
+    throw "Expected 62 complete archive sky face maps; found $archiveReadyCount. Check sky-face-map.json."
 }
 
 # Purple Goo is the only explicit non-archive source; all other skies use faces extracted from the collection archive.
@@ -2126,7 +2136,7 @@ foreach ($skyFile in $skyFiles) {
     $json = $newDocument | ConvertTo-Json -Depth 100
     [IO.File]::WriteAllText($skyFile.FullName, $json + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
 }
-if ($applyReady -ne 63) { Write-Warning "Expected 63 applyable skies (62 complete archive sets plus Purple goo sky); found $applyReady. Incomplete entries remain unavailable; see skybox-archive-manifest.json." }
+if ($applyReady -ne 63) { throw "Expected 63 applyable skies (62 complete archive sets plus Purple goo sky); found $applyReady. Check archive face map and Purple Goo CDN URLs." }
 
 # Re-copy the converted Fleasion JSONs so include_str! embeds the final, exact files.
 $skyDestination = Join-Path $Project "sky_profiles"
