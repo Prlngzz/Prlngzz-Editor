@@ -41,7 +41,7 @@ $textureSuffix = @'
 
             card(ui, 1.0, |ui| {
                 ui.label(egui::RichText::new("NO HANDS · CACHE REMOVAL").strong().color(theme::accent()));
-                ui.label(egui::RichText::new("Paste exact arm asset IDs from your current RIVALS build. This creates a reversible local-cache removal profile; IDs are never guessed.").color(theme::MUTED).small());
+                ui.label(egui::RichText::new("Paste exact arm asset IDs from your current RIVALS build. This creates a local-cache removal profile; IDs are never guessed.").color(theme::MUTED).small());
                 ui.add(egui::TextEdit::multiline(&mut self.studio_target_input)
                     .desired_rows(2).desired_width(f32::INFINITY)
                     .hint_text("Exact arm asset IDs, separated by spaces, commas or new lines"));
@@ -114,7 +114,7 @@ $oldMark = @'
                         let mark_center = center + Vec2::new(0.0, -86.0 + lift);
                         painter.circle_filled(mark_center, 43.0, alpha(theme::accent(), 0.16 * opacity));
                         painter.circle_stroke(mark_center, 42.0,
-                            Stroke::new(1.5, alpha(theme::accent(), 0.72 * opacity)));
+                            Stroke::new(1.5_f32, alpha(theme::accent(), 0.72 * opacity)));
                         painter.text(mark_center, egui::Align2::CENTER_CENTER, "P",
                             egui::FontId::new(48.0, theme::wordmark_font()),
                             alpha(theme::SPLASH_INK, opacity));
@@ -441,4 +441,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.17 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.18 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
