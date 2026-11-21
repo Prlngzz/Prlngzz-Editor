@@ -30,14 +30,10 @@ $arenaEnd += $arenaEndMatch.Length
 $arenaCard = $gui.Substring($arenaStart, $arenaEnd - $arenaStart)
 $gui = $gui.Substring(0, $arenaStart) + $gui.Substring($arenaEnd)
 
-$textureAnchor = @'
-        if self.library_tab == LibraryTab::Textures {
-'@
-$texturePrefix = @'
-        if self.library_tab == LibraryTab::Textures {
-'@
+$textureAnchor = 'let\s+textures\s*=\s*texture_library_entries\(\)\s*;'
+$textureMatches = [regex]::Matches($gui, $textureAnchor)
+if ($textureMatches.Count -ne 1) { throw "Expected exactly one Texture gallery insertion point; found $($textureMatches.Count)" }
 $textureSuffix = @'
-
             card(ui, 1.0, |ui| {
                 ui.label(egui::RichText::new("NO HANDS · CACHE REMOVAL").strong().color(theme::accent()));
                 ui.label(egui::RichText::new("Paste exact arm asset IDs from your current RIVALS build. This creates a local-cache removal profile; IDs are never guessed.").color(theme::MUTED).small());
@@ -53,8 +49,9 @@ $textureSuffix = @'
             });
             ui.add_space(10.0);
 '@
-$textureBlock = $texturePrefix + $arenaCard + $textureSuffix
-$gui = Replace-Once $gui $textureAnchor $textureBlock "move Arena presets and add No Hands card to Textures"
+$textureBlock = $arenaCard + $textureSuffix
+$textureMatch = $textureMatches[0]
+$gui = $gui.Substring(0, $textureMatch.Index) + $textureBlock + $gui.Substring($textureMatch.Index)
 
 # Remove the Sounds tab (sounds remain discoverable through All).
 $gui = Replace-Once $gui 'enum LibraryTab { All, Skies, Textures, Sounds }' 'enum LibraryTab { All, Skies, Textures }' "remove Sounds tab state"
@@ -68,8 +65,8 @@ $gui = Replace-Once $gui '            (Tab::Rivals, "RIVALS Workspace", "Game-sp
 $gui = Replace-Once $gui '            (Tab::Studio, "Config Builder", "Create and edit replacement rules"),' '' "remove Config Builder nav"
 $gui = Replace-Once $gui '            (Tab::AssetIds, "Asset ID Editor", "RIVALS asset IDs"),' '' "remove Asset ID Editor nav"
 $gui = $gui.Replace("RIVALS CONFIG BUILDER", "CONFIG MANAGER").Replace("Asset ID Editor", "cache asset tools")
-# The feature update already replaces the legacy map-target shortcut with a safe supported-map explanation.
-$gui = Replace-Once $gui @'
+# Remove the obsolete per-row shortcut if the restored source still contains it.
+$legacyShortcut = @'
                         if ui.small_button(if category == "RIVALS map sky texture" { "Use as target" } else { "Use as replacement" }).clicked() {
                             if category == "RIVALS map sky texture" {
                                 self.studio_target_input = id.to_owned();
@@ -78,7 +75,12 @@ $gui = Replace-Once $gui @'
                             }
                             self.show_tab(Tab::Studio, ui.ctx());
                         }
-'@ '' "remove hidden Builder asset shortcut"
+'@
+if ($gui.Contains($legacyShortcut)) {
+    $gui = Replace-Once $gui $legacyShortcut '' "remove hidden Builder asset shortcut"
+} else {
+    Write-Host "Legacy per-row Builder shortcut is already absent; no change needed."
+}
 
 # Cinematic intro with aurora trails and a faceted, pulsing prism mark.
 $gui = Replace-Once $gui '            let duration = 4.0_f32;' '            let duration = 5.2_f32;' "intro duration"
