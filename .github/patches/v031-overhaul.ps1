@@ -30,9 +30,9 @@ $arenaEnd += $arenaEndMatch.Length
 $arenaCard = $gui.Substring($arenaStart, $arenaEnd - $arenaStart)
 $gui = $gui.Substring(0, $arenaStart) + $gui.Substring($arenaEnd)
 
-$textureAnchor = 'let\s+textures\s*=\s*texture_library_entries\(\)\s*;'
+$textureAnchor = 'if\s+self\.library_tab\s*==\s*LibraryTab::Textures\s*\{'
 $textureMatches = [regex]::Matches($gui, $textureAnchor)
-if ($textureMatches.Count -ne 1) { throw "Expected exactly one Texture gallery insertion point; found $($textureMatches.Count)" }
+if ($textureMatches.Count -ne 1) { throw "Expected exactly one Textures tab branch; found $($textureMatches.Count)" }
 $textureSuffix = @'
             card(ui, 1.0, |ui| {
                 ui.label(egui::RichText::new("NO HANDS · CACHE REMOVAL").strong().color(theme::accent()));
@@ -49,10 +49,9 @@ $textureSuffix = @'
             });
             ui.add_space(10.0);
 '@
-$textureBlock = $arenaCard + $textureSuffix
 $textureMatch = $textureMatches[0]
-$gui = $gui.Substring(0, $textureMatch.Index) + $textureBlock + $gui.Substring($textureMatch.Index)
-
+$textureBlock = $textureMatch.Value + [Environment]::NewLine + $arenaCard + $textureSuffix
+$gui = $gui.Substring(0, $textureMatch.Index) + $textureBlock + $gui.Substring($textureMatch.Index + $textureMatch.Length)
 # Remove the Sounds tab (sounds remain discoverable through All).
 $gui = Replace-Once $gui 'enum LibraryTab { All, Skies, Textures, Sounds }' 'enum LibraryTab { All, Skies, Textures }' "remove Sounds tab state"
 $gui = Replace-Once $gui '            ui.selectable_value(&mut self.library_tab, LibraryTab::Sounds, "Sounds");' '' "remove Sounds selector"
