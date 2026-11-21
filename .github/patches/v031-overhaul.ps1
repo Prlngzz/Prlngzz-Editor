@@ -31,8 +31,7 @@ $arenaCard = $gui.Substring($arenaStart, $arenaEnd - $arenaStart)
 $gui = $gui.Substring(0, $arenaStart) + $gui.Substring($arenaEnd)
 
 $textureAnchor = @'
-        if self.library_tab == LibraryTab::Textures {
-            let textures = texture_library_entries();
+        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
 '@
 $texturePrefix = @'
         if self.library_tab == LibraryTab::Textures {
@@ -53,7 +52,8 @@ $textureSuffix = @'
                 }
             });
             ui.add_space(10.0);
-            let textures = texture_library_entries();
+        }
+        let mut skies: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
 '@
 $textureBlock = $texturePrefix + $arenaCard + $textureSuffix
 $gui = Replace-Once $gui $textureAnchor $textureBlock "move Arena presets and add No Hands card to Textures"
@@ -441,4 +441,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.20 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.21 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
