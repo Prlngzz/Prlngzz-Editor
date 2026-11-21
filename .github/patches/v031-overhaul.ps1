@@ -72,7 +72,7 @@ $gui = Replace-Once $gui '            (Tab::AssetIds, "Asset ID Editor", "RIVALS
 $gui = $gui.Replace("RIVALS CONFIG BUILDER", "CONFIG MANAGER").Replace("Asset ID Editor", "cache asset tools")
 # The feature update already replaces the legacy map-target shortcut with a safe supported-map explanation.
 $gui = Replace-Once $gui @'
-                        if bubbly_small_button(ui, if category == "RIVALS map sky texture" { "Use as target" } else { "Use as replacement" }).clicked() {
+                        if ui.small_button(if category == "RIVALS map sky texture" { "Use as target" } else { "Use as replacement" }).clicked() {
                             if category == "RIVALS map sky texture" {
                                 self.studio_target_input = id.to_owned();
                             } else {
@@ -436,4 +436,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.22 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.23 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
