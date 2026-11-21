@@ -31,20 +31,22 @@ $arenaCard = $gui.Substring($arenaStart, $arenaEnd - $arenaStart)
 $gui = $gui.Substring(0, $arenaStart) + $gui.Substring($arenaEnd)
 
 $textureSuffix = @'
-            card(ui, 1.0, |ui| {
-                ui.label(egui::RichText::new("NO HANDS · CACHE REMOVAL").strong().color(theme::accent()));
-                ui.label(egui::RichText::new("Paste exact arm asset IDs from your current RIVALS build. This creates a local-cache removal profile; IDs are never guessed.").color(theme::MUTED).small());
-                ui.add(egui::TextEdit::multiline(&mut self.studio_target_input)
-                    .desired_rows(2).desired_width(f32::INFINITY)
-                    .hint_text("Exact arm asset IDs, separated by spaces, commas or new lines"));
-                if bubbly_small_button(ui, "Build & apply No Hands profile").clicked() {
-                    match build_no_hands_cache_profile(&self.studio_target_input) {
-                        Ok(profile) => actions.push(Action::ApplyGeneratedProfile(profile)),
-                        Err(error) => self.studio_status = format!("Could not prepare No Hands profile: {error:#}"),
+            if self.library_tab == LibraryTab::Textures {
+                card(ui, 1.0, |ui| {
+                    ui.label(egui::RichText::new("NO HANDS · CACHE REMOVAL").strong().color(theme::accent()));
+                    ui.label(egui::RichText::new("Paste exact arm asset IDs from your current RIVALS build. This creates a local-cache removal profile; IDs are never guessed.").color(theme::MUTED).small());
+                    ui.add(egui::TextEdit::multiline(&mut self.studio_target_input)
+                        .desired_rows(2).desired_width(f32::INFINITY)
+                        .hint_text("Exact arm asset IDs, separated by spaces, commas or new lines"));
+                    if bubbly_small_button(ui, "Build & apply No Hands profile").clicked() {
+                        match build_no_hands_cache_profile(&self.studio_target_input) {
+                            Ok(profile) => actions.push(Action::ApplyGeneratedProfile(profile)),
+                            Err(error) => self.studio_status = format!("Could not prepare No Hands profile: {error:#}"),
+                        }
                     }
-                }
-            });
-            ui.add_space(10.0);
+                });
+                ui.add_space(10.0);
+            }
 '@
 
 $libraryStartAt = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
@@ -64,11 +66,57 @@ $textureBlock = @'
 '@
 $textureBlock += $arenaCard
 $textureBlock += $textureSuffix
-$textureBlock += @'
-        }
-'@
+$textureBlock += [Environment]::NewLine
 $librarySource = Replace-Once $librarySource $libraryAnchor ($libraryAnchor + [Environment]::NewLine + $textureBlock) "Textures tab presets and No Hands card"
 $gui = $gui.Substring(0, $libraryStartAt) + $librarySource + $gui.Substring($libraryEndAt)
+# Keep the collection navigation visible at the top, and render the Skies gallery independently from Textures.
+$gui = Replace-Once $gui @'
+            });
+            if self.library_tab == LibraryTab::Skies {
+'@ @'
+            });
+        }
+        if self.library_tab == LibraryTab::Skies {
+'@ "separate Skies gallery from Textures-only presets"
+
+$libraryMethodStart = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {')
+$libraryMethodEnd = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryMethodStart)
+$navStartMarker = '        ui.horizontal(|ui| {' + [Environment]::NewLine + '            ui.label(egui::RichText::new("CONFIG LIBRARY").strong());'
+$navStart = $gui.IndexOf($navStartMarker, $libraryMethodStart)
+$navEndMarker = '        ui.label(egui::RichText::new(tab_description).color(theme::MUTED).small());'
+$navEndAt = $gui.IndexOf($navEndMarker, $navStart)
+if ($libraryMethodStart -lt 0 -or $libraryMethodEnd -le $libraryMethodStart -or $navStart -lt 0 -or $navEndAt -lt $navStart) {
+    throw "Could not relocate Config Library navigation to the top of the page"
+}
+$navEnd = $navEndAt + $navEndMarker.Length
+$libraryNav = $gui.Substring($navStart, $navEnd - $navStart)
+$gui = $gui.Remove($navStart, $navEnd - $navStart)
+$assetAnchor = '        let assets = rivals_asset_catalog();'
+$gui = Replace-Once $gui $assetAnchor ($assetAnchor + [Environment]::NewLine + $libraryNav) "place Skies and Textures tabs above content"
+
+$oldTextureFilter = @'
+                    let visible = match self.library_tab {
+                        LibraryTab::All => category != Some("Community skybox"),
+                        LibraryTab::Skies => false,
+                        LibraryTab::Textures => category == Some("Weapon icon") || category == Some("RIVALS map sky texture"),
+                    };
+'@
+$newTextureFilter = @'
+                    let visible = match self.library_tab {
+                        LibraryTab::All => category != Some("Community skybox"),
+                        LibraryTab::Skies => false,
+                        // Blue, Station and Space front-face refs are already represented by the Skies collection.
+                        LibraryTab::Textures => category == Some("Weapon icon") || (
+                            category == Some("RIVALS map sky texture")
+                                && !matches!(
+                                    asset.get("id").and_then(serde_json::Value::as_str),
+                                    Some("14147882761" | "2108482231" | "10196550367")
+                                )
+                        ),
+                    };
+'@
+$gui = Replace-Once $gui $oldTextureFilter $newTextureFilter "remove three duplicate sky targets from Textures"
+
 # Remove the Sounds tab (sounds remain discoverable through All).
 $gui = Replace-Once $gui 'enum LibraryTab { All, Skies, Textures, Sounds }' 'enum LibraryTab { All, Skies, Textures }' "remove Sounds tab state"
 $gui = Replace-Once $gui '            ui.selectable_value(&mut self.library_tab, LibraryTab::Sounds, "Sounds");' '' "remove Sounds selector"
@@ -452,4 +500,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.32 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.33 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
