@@ -1585,3 +1585,4 @@ Save-Source $guiPath $gui
 
 # Apply the requested grouped asset library, previews, version metadata, launcher and customization update.
 & (Join-Path $PSScriptRoot "feature-updates.ps1") -Project $Project
+& (Join-Path $PSScriptRoot "v031-overhaul.ps1") -Project $Project
