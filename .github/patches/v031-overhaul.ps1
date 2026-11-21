@@ -92,27 +92,29 @@ $gui = $gui.Insert($assetAt + $assetAnchor.Length, [string][char]10 + $libraryNa
 $gui = Replace-Once $gui 'LibraryTab::Skies => "66 individual six-face sky configurations."' 'LibraryTab::Skies => "66 sky profiles · 63 ready to apply."' "update sky description"
 
 $oldTextureFilter = @'
-                    let visible = match self.library_tab {
-                        LibraryTab::All => category != Some("Community skybox"),
-                        LibraryTab::Skies => false,
-                        LibraryTab::Textures => category == Some("Weapon icon") || category == Some("RIVALS map sky texture"),
-                    };
+            let visible = match self.library_tab {
+                LibraryTab::All => category != Some("Community skybox"),
+                LibraryTab::Skies => false,
+                LibraryTab::Textures => category == Some("Weapon icon") || category == Some("RIVALS map sky texture"),
+                LibraryTab::Sounds => category == Some("Community sound"),
+            };
 '@
 $newTextureFilter = @'
-                    let visible = match self.library_tab {
-                        LibraryTab::All => category != Some("Community skybox"),
-                        LibraryTab::Skies => false,
-                        // Blue, Station and Space front-face refs are already represented by the Skies collection.
-                        LibraryTab::Textures => category == Some("Weapon icon") || (
-                            category == Some("RIVALS map sky texture")
-                                && !matches!(
-                                    asset.get("id").and_then(serde_json::Value::as_str),
-                                    Some("14147882761" | "2108482231" | "10196550367")
-                                )
-                        ),
-                    };
+            let visible = match self.library_tab {
+                LibraryTab::All => category != Some("Community skybox"),
+                LibraryTab::Skies => false,
+                // Blue, Station and Space are available in Skies, not as duplicate texture rows.
+                LibraryTab::Textures => category == Some("Weapon icon") || (
+                    category == Some("RIVALS map sky texture")
+                        && !matches!(
+                            asset.get("id").and_then(serde_json::Value::as_str),
+                            Some("14147882761" | "2108482231" | "10196550367")
+                        )
+                ),
+                LibraryTab::Sounds => category == Some("Community sound"),
+            };
 '@
-$gui = Replace-Once $gui $oldTextureFilter $newTextureFilter "remove three duplicate sky targets from Textures"
+$gui = Replace-Once $gui $oldTextureFilter $newTextureFilter "remove duplicate sky rows from Textures"
 
 # Remove the Sounds tab (sounds remain discoverable through All).
 $gui = Replace-Once $gui 'enum LibraryTab { All, Skies, Textures, Sounds }' 'enum LibraryTab { All, Skies, Textures }' "remove Sounds tab state"
@@ -562,7 +564,7 @@ $previewMethods = @'
             const MAX_PREVIEW_BYTES: u64 = 8 * 1024 * 1024;
             let result = (|| -> std::result::Result<Vec<u8>, String> {
                 let response = ureq::get(&url)
-                    .set("User-Agent", "Prlngzz-Editor/0.3.36")
+                    .set("User-Agent", "Prlngzz-Editor/0.3.37")
                     .timeout(std::time::Duration::from_secs(15))
                     .call()
                     .map_err(|error| format!("Preview request failed: {error}"))?;
@@ -675,4 +677,4 @@ $gui = Replace-Once $gui @'
 '@ "draw texture image previews"
 
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.36 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.37 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
