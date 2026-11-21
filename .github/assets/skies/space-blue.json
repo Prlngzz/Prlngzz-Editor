@@ -1,7 +1,7 @@
 {
     "name":  "Space Blue Skybox",
     "game":  "RIVALS",
-    "description":  "Six CDN skybox face rules. Each rule targets the six default RIVALS sky asset IDs and replaces them with this sky\u0027s corresponding image.",
+    "description":  "Fleasion-compatible six-face RIVALS skybox. Each enabled Sk* rule targets the six original IDs for that face and uses the corresponding hosted image.",
     "replacement_rules":  [
                               {
                                   "name":  "SkBack",
@@ -15,7 +15,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/SpaceBlueBack.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/BlueSpaceBack.png"
                               },
                               {
                                   "name":  "SkDown",
@@ -29,21 +29,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/SpaceBlueDown.png"
-                              },
-                              {
-                                  "name":  "SkFront",
-                                  "replace_ids":  [
-                                                      14147882761,
-                                                      12261809766,
-                                                      135908632589654,
-                                                      84214501374682,
-                                                      10196550367,
-                                                      2108482231
-                                                  ],
-                                  "mode":  "cdn",
-                                  "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/SpaceBlueFront.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/BlueSpaceDown.png"
                               },
                               {
                                   "name":  "SkLeft",
@@ -57,7 +43,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/SpaceBlueLeft.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/BlueSpaceLeft.png"
                               },
                               {
                                   "name":  "SkRight",
@@ -71,7 +57,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/SpaceBlueRight.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/BlueSpaceRight.png"
                               },
                               {
                                   "name":  "SkUp",
@@ -85,7 +71,7 @@
                                                   ],
                                   "mode":  "cdn",
                                   "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/SpaceBlueUp.png"
+                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/BlueSpaceUp.png"
                               }
                           ],
     "sky_library":  {
@@ -94,14 +80,14 @@
                         "archive":  "Skyboxes/Space Blue.zip",
                         "archive_type":  "zip",
                         "catalog_name":  "Space Blue",
-                        "status":  "ready",
-                        "available_faces":  6,
+                        "status":  "needs_face_assets",
+                        "available_faces":  5,
                         "required_faces":  6,
-                        "cdn_files_found":  6,
+                        "cdn_files_found":  5,
                         "cdn_files_missing":  [
-
+                                                  "Front"
                                               ],
-                        "replacement_rule_count":  6
+                        "replacement_rule_count":  5
                     },
     "faces":  {
                   "BK":  119997319906862,

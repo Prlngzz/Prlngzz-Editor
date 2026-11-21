@@ -1,92 +1,9 @@
 {
     "name":  "MCEndSkybytoby109tt Skybox",
     "game":  "RIVALS",
-    "description":  "Six CDN skybox face rules. Each rule targets the six default RIVALS sky asset IDs and replaces them with this sky\u0027s corresponding image.",
+    "description":  "Fleasion-compatible six-face RIVALS skybox. Each enabled Sk* rule targets the six original IDs for that face and uses the corresponding hosted image.",
     "replacement_rules":  [
-                              {
-                                  "name":  "SkBack",
-                                  "replace_ids":  [
-                                                      2108482005,
-                                                      14147881792,
-                                                      135908632589654,
-                                                      84214501374682,
-                                                      10196550937,
-                                                      12261809766
-                                                  ],
-                                  "mode":  "cdn",
-                                  "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCEndSkybytoby109ttBack.png"
-                              },
-                              {
-                                  "name":  "SkDown",
-                                  "replace_ids":  [
-                                                      2108545280,
-                                                      10196550667,
-                                                      14147882149,
-                                                      103020541883227,
-                                                      89972436184102,
-                                                      12261813110
-                                                  ],
-                                  "mode":  "cdn",
-                                  "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCEndSkybytoby109ttDown.png"
-                              },
-                              {
-                                  "name":  "SkFront",
-                                  "replace_ids":  [
-                                                      14147882761,
-                                                      12261809766,
-                                                      135908632589654,
-                                                      84214501374682,
-                                                      10196550367,
-                                                      2108482231
-                                                  ],
-                                  "mode":  "cdn",
-                                  "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCEndSkybytoby109ttFront.png"
-                              },
-                              {
-                                  "name":  "SkLeft",
-                                  "replace_ids":  [
-                                                      14147883091,
-                                                      135908632589654,
-                                                      84214501374682,
-                                                      2108482395,
-                                                      12261809766,
-                                                      10196550128
-                                                  ],
-                                  "mode":  "cdn",
-                                  "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCEndSkybytoby109ttLeft.png"
-                              },
-                              {
-                                  "name":  "SkRight",
-                                  "replace_ids":  [
-                                                      14147882405,
-                                                      135908632589654,
-                                                      84214501374682,
-                                                      2108482542,
-                                                      12261809766,
-                                                      10196549902
-                                                  ],
-                                  "mode":  "cdn",
-                                  "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCEndSkybytoby109ttRight.png"
-                              },
-                              {
-                                  "name":  "SkUp",
-                                  "replace_ids":  [
-                                                      14147881297,
-                                                      72960281658487,
-                                                      92138082970751,
-                                                      2108482676,
-                                                      10196567794,
-                                                      12261813678
-                                                  ],
-                                  "mode":  "cdn",
-                                  "enabled":  true,
-                                  "cdn_url":  "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/MCEndSkybytoby109ttUp.png"
-                              }
+
                           ],
     "sky_library":  {
                         "id":  "mcendskybytoby109tt",
@@ -94,14 +11,19 @@
                         "archive":  "Skyboxes/MCEndSkybytoby109tt.zip",
                         "archive_type":  "zip",
                         "catalog_name":  "Minecraft End",
-                        "status":  "ready",
-                        "available_faces":  6,
+                        "status":  "needs_face_assets",
+                        "available_faces":  0,
                         "required_faces":  6,
-                        "cdn_files_found":  6,
+                        "cdn_files_found":  0,
                         "cdn_files_missing":  [
-
+                                                  "Back",
+                                                  "Down",
+                                                  "Front",
+                                                  "Left",
+                                                  "Right",
+                                                  "Up"
                                               ],
-                        "replacement_rule_count":  6
+                        "replacement_rule_count":  0
                     },
     "faces":  {
                   "BK":  116945895581974,
