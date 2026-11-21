@@ -604,7 +604,7 @@ $previewMethods = @'
             const MAX_PREVIEW_BYTES: u64 = 8 * 1024 * 1024;
             let fetch = |endpoint: &str| -> std::result::Result<Vec<u8>, String> {
                 let response = ureq::get(endpoint)
-                    .set("User-Agent", "Prlngzz-Editor/0.3.41")
+                    .set("User-Agent", "Prlngzz-Editor/0.3.42")
                     .timeout(std::time::Duration::from_secs(15))
                     .call()
                     .map_err(|error| format!("Preview request failed: {error}"))?;
@@ -731,4 +731,4 @@ $textureRender = (($texturePreviewBody.TrimEnd() -split "`r?`n") | ForEach-Objec
 $gui = $gui.Insert($texturePreviewLineStart, $textureRender + [string][char]10)
 
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.41 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.42 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."

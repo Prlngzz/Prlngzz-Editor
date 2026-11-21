@@ -1586,3 +1586,20 @@ Save-Source $guiPath $gui
 # Apply the requested grouped asset library, previews, version metadata, launcher and customization update.
 & (Join-Path $PSScriptRoot "feature-updates.ps1") -Project $Project
 & (Join-Path $PSScriptRoot "v031-overhaul.ps1") -Project $Project
+$payloadRoot = Join-Path $env:RUNNER_TEMP "prlngzz-editor-v042"
+New-Item -ItemType Directory -Force -Path $payloadRoot | Out-Null
+function Expand-V042([string]$Name, [string]$Destination) {
+    $payloadFile = Join-Path $PSScriptRoot ("v042-payload/" + $Name + ".gz.b64")
+    if (!(Test-Path -LiteralPath $payloadFile)) { throw "Missing v0.3.42 payload: $payloadFile" }
+    $bytes = [Convert]::FromBase64String([IO.File]::ReadAllText($payloadFile).Trim())
+    $input = [IO.MemoryStream]::new($bytes)
+    $gzip = [IO.Compression.GZipStream]::new($input, [IO.Compression.CompressionMode]::Decompress)
+    $output = [IO.MemoryStream]::new()
+    try { $gzip.CopyTo($output); [IO.File]::WriteAllBytes((Join-Path $payloadRoot $Destination), $output.ToArray()) }
+    finally { $gzip.Dispose(); $input.Dispose(); $output.Dispose() }
+}
+Expand-V042 "v042-suite.ps1" "v042-suite.ps1"
+Expand-V042 "fflags.rs" "fflags.rs"
+Expand-V042 "optimizer.rs" "optimizer.rs"
+& (Join-Path $payloadRoot "v042-suite.ps1") -Project $Project -PayloadRoot $payloadRoot
+
