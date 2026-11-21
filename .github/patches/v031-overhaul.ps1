@@ -34,9 +34,10 @@ $textureAnchor = @'
         if self.library_tab == LibraryTab::Textures {
             let textures = texture_library_entries();
 '@
-$textureBlock = (@'
+$texturePrefix = @'
         if self.library_tab == LibraryTab::Textures {
-'@) + $arenaCard + (@'
+'@
+$textureSuffix = @'
 
             card(ui, 1.0, |ui| {
                 ui.label(egui::RichText::new("NO HANDS · CACHE REMOVAL").strong().color(theme::accent()));
@@ -53,7 +54,8 @@ $textureBlock = (@'
             });
             ui.add_space(10.0);
             let textures = texture_library_entries();
-'@)
+'@
+$textureBlock = $texturePrefix + $arenaCard + $textureSuffix
 $gui = Replace-Once $gui $textureAnchor $textureBlock "move Arena presets and add No Hands card to Textures"
 
 # Remove the Sounds tab (sounds remain discoverable through All).
@@ -439,4 +441,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.15 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.16 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
