@@ -56,7 +56,10 @@ $textureMatches = [regex]::Matches($librarySource, [regex]::Escape($textureAncho
 if ($textureMatches.Count -ne 1) { throw "Expected exactly one Config Library asset-list anchor; found $($textureMatches.Count)" }
 $textureBlock = @'
         if self.library_tab == LibraryTab::Textures {
-'@ + $arenaCard + $textureSuffix + @'
+'@
+$textureBlock += $arenaCard
+$textureBlock += $textureSuffix
+$textureBlock += @'
         }
 '@
 $librarySource = Replace-Once $librarySource $textureAnchor ($textureBlock + $textureAnchor) "Textures tab presets and No Hands card"
@@ -444,4 +447,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.28 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.29 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
