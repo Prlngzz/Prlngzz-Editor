@@ -54,7 +54,8 @@ $librarySource = $gui.Substring($libraryStartAt, $libraryEndAt - $libraryStartAt
 $librarySource = Replace-Once $librarySource @'
         let query = self.rivals_catalog_search.trim().to_lowercase();
         let assets = rivals_asset_catalog();
-'@ '' "move catalog query and assets before texture presets"
+'@ @'
+'@ "move catalog query and assets before texture presets"
 $libraryAnchor = '    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {'
 $textureBlock = @'
         let query = self.rivals_catalog_search.trim().to_lowercase();
@@ -451,4 +452,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.31 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.32 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
