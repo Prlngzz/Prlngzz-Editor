@@ -51,9 +51,7 @@ $libraryStartAt = $gui.IndexOf('    fn asset_library_page(&mut self, ui: &mut eg
 $libraryEndAt = $gui.IndexOf('    fn table(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {', $libraryStartAt)
 if ($libraryStartAt -lt 0 -or $libraryEndAt -le $libraryStartAt) { throw "Could not isolate Config Library page" }
 $librarySource = $gui.Substring($libraryStartAt, $libraryEndAt - $libraryStartAt)
-$textureAnchor = '        let matches: Vec<usize> = assets'
-$textureMatches = [regex]::Matches($librarySource, [regex]::Escape($textureAnchor))
-if ($textureMatches.Count -ne 1) { throw "Expected exactly one Config Library asset-list anchor; found $($textureMatches.Count)" }
+$libraryAnchor = '    fn asset_library_page(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {'
 $textureBlock = @'
         if self.library_tab == LibraryTab::Textures {
 '@
@@ -62,7 +60,7 @@ $textureBlock += $textureSuffix
 $textureBlock += @'
         }
 '@
-$librarySource = Replace-Once $librarySource $textureAnchor ($textureBlock + $textureAnchor) "Textures tab presets and No Hands card"
+$librarySource = Replace-Once $librarySource $libraryAnchor ($libraryAnchor + [Environment]::NewLine + $textureBlock) "Textures tab presets and No Hands card"
 $gui = $gui.Substring(0, $libraryStartAt) + $librarySource + $gui.Substring($libraryEndAt)
 # Remove the Sounds tab (sounds remain discoverable through All).
 $gui = Replace-Once $gui 'enum LibraryTab { All, Skies, Textures, Sounds }' 'enum LibraryTab { All, Skies, Textures }' "remove Sounds tab state"
@@ -447,4 +445,4 @@ $presets = @'
 '@
 $gui = Replace-Once $gui $customAnchor $presets "one-tap appearance presets"
 Save-Source $guiPath $gui
-Write-Host "Applied v0.3.29 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
+Write-Host "Applied v0.3.30 Config Library overhaul, sky previews, profile hand-off, No Hands cache removal and customization."
