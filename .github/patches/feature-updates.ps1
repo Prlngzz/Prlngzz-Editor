@@ -20,7 +20,7 @@ function Save-Source([string]$Path, [string]$Text) {
 # Version identity and Windows file properties.
 $cargoPath = Join-Path $Project "Cargo.toml"
 $cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.3.6"' "package version"
+$cargo = Replace-Once $cargo 'version = "0.1.0"' 'version = "0.3.7"' "package version"
 Save-Source $cargoPath $cargo
 
 $lockPath = Join-Path $Project "Cargo.lock"
@@ -30,13 +30,13 @@ name = "prlngzz-editor"
 version = "0.1.0"
 '@ @'
 name = "prlngzz-editor"
-version = "0.3.6"
+version = "0.3.7"
 '@ "Cargo.lock package version"
 Save-Source $lockPath $lock
 
 $changelogPath = Join-Path $Project "changelog.json"
 $changelog = [IO.File]::ReadAllText($changelogPath)
-$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.3.6"' "changelog version"
+$changelog = Replace-Once $changelog '"version": "0.1.0"' '"version": "0.3.7"' "changelog version"
 $changelog = $changelog.Replace('"Retains the Rust local cache browser, previews, replacement engine, original backups and cache monitoring from the supplied rbxcache foundation."', '"Groups six-face community skies, adds on-demand asset previews and improves texture preview resolution."')
 $changelog = $changelog.Replace('"Adds optional HTTPS-only community catalog, release and changelog endpoint configuration."', '"Adds multi-ID replacement pairing, reload-before-launch, extra accent choices and embedded Windows version metadata."')
 Save-Source $changelogPath $changelog
@@ -1772,7 +1772,7 @@ Write-Host "Applied the glossy button system, all button wrappers, home launch h
 $skySource = Join-Path $PSScriptRoot "..\assets\skies"
 $skyDestination = Join-Path $Project "sky_profiles"
 $skyFiles = @(Get-ChildItem -LiteralPath $skySource -File -Filter "*.json" | Sort-Object Name)
-if ($skyFiles.Count -ne 66) { throw "Expected exactly 65 individual sky JSON profiles in $skySource; found $($skyFiles.Count)" }
+if ($skyFiles.Count -ne 66) { throw "Expected exactly 66 individual sky JSON profiles in $skySource; found $($skyFiles.Count)" }
 if (Test-Path $skyDestination) { Remove-Item -LiteralPath $skyDestination -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $skyDestination | Out-Null
 foreach ($skyFile in $skyFiles) { Copy-Item -LiteralPath $skyFile.FullName -Destination $skyDestination }
@@ -2026,29 +2026,6 @@ $gui = Replace-Once $gui @'
     }
 
     #[test]
-    fn all_five_texture_library_profiles_are_embedded_and_validated() {
-        const EXPECTED: [&str; 5] = [
-            "Minecraft textures", "Gray textures", "Louis Vuitton textures",
-            "Spiked textures", "Brick textures",
-        ];
-        let textures = texture_library_entries();
-        assert_eq!(textures.len(), EXPECTED.len());
-        for (texture, expected_name) in textures.iter().zip(EXPECTED) {
-            assert_eq!(texture.name, expected_name);
-            assert!(texture.preview_url.starts_with("https://"));
-            let raw: serde_json::Value = serde_json::from_str(texture.json).unwrap();
-            assert_eq!(raw["replacement_rules"][0]["name"].as_str(), Some("Arena 2.0"));
-            assert_eq!(raw["replacement_rules"][0]["mode"].as_str(), Some("cdn"));
-            assert_eq!(raw["replacement_rules"][0]["replace_ids"][0].as_u64(), Some(7658055825));
-            assert_eq!(raw["replacement_rules"][0]["cdn_url"].as_str(), Some(texture.preview_url.as_str()));
-            let profile = crate::studio::ProfileDocument::import_fleasion(texture.json).unwrap();
-            let validation = profile.validation();
-            assert!(validation.errors.is_empty(), "{} errors: {:?}", texture.name, validation.errors);
-            assert_eq!(validation.enabled_rules, 1, "{} should have one Arena 2.0 rule", texture.name);
-        }
-    }
-
-    #[test]
     fn sky_front_face_targets_match_the_curated_rivals_map_references() {
 '@ "65 individual JSON profile regression test"
 [IO.File]::WriteAllText($guiPath,$gui,[Text.UTF8Encoding]::new($false))
@@ -2063,7 +2040,7 @@ $gui = $gui.Replace('crate::studio::ProfileDocument::parse_native(entry.json)', 
 $gui = $gui.Replace('crate::studio::ProfileDocument::parse_native(sky.json)', 'crate::studio::ProfileDocument::import_fleasion(sky.json)')
 Save-Source $guiPath $gui
 
-# Rewrite the 65 repository JSON files into the Fleasion replacement_rules schema.
+# Rewrite the 66 repository JSON files into the Fleasion replacement_rules schema.
 $skySource = Join-Path $PSScriptRoot "..\assets\skies"
 $textureRoot = "https://raw.githubusercontent.com/Prlngzz/Prlngzz-Textures/main/"
 $faceSpecs = @(
@@ -2092,7 +2069,7 @@ $hostedSkyFiles = @{
 }
 
 $skyFiles = @(Get-ChildItem -LiteralPath $skySource -File -Filter "*.json" | Sort-Object Name)
-if ($skyFiles.Count -ne 66) { throw "Expected 65 sky JSON files before conversion; found $($skyFiles.Count)" }
+if ($skyFiles.Count -ne 66) { throw "Expected 66 sky JSON files before conversion; found $($skyFiles.Count)" }
 $applyReady = 0
 foreach ($skyFile in $skyFiles) {
     $old = [IO.File]::ReadAllText($skyFile.FullName) | ConvertFrom-Json
@@ -2252,6 +2229,36 @@ $newTest = @'
     }
 '@
 $gui = Replace-Once $gui $oldTest $newTest "six-rule Fleasion sky JSON regression"
+$gui = Replace-Once $gui @'
+    #[test]
+    fn sky_front_face_targets_match_the_curated_rivals_map_references() {
+'@ @'
+    #[test]
+    fn all_five_texture_library_profiles_are_embedded_and_validated() {
+        const EXPECTED: [&str; 5] = [
+            "Minecraft textures", "Gray textures", "Louis Vuitton textures",
+            "Spiked textures", "Brick textures",
+        ];
+        let textures = texture_library_entries();
+        assert_eq!(textures.len(), EXPECTED.len());
+        for (texture, expected_name) in textures.iter().zip(EXPECTED) {
+            assert_eq!(texture.name, expected_name);
+            assert!(texture.preview_url.starts_with("https://"));
+            let raw: serde_json::Value = serde_json::from_str(texture.json).unwrap();
+            assert_eq!(raw["replacement_rules"][0]["name"].as_str(), Some("Arena 2.0"));
+            assert_eq!(raw["replacement_rules"][0]["mode"].as_str(), Some("cdn"));
+            assert_eq!(raw["replacement_rules"][0]["replace_ids"][0].as_u64(), Some(7658055825));
+            assert_eq!(raw["replacement_rules"][0]["cdn_url"].as_str(), Some(texture.preview_url.as_str()));
+            let profile = crate::studio::ProfileDocument::import_fleasion(texture.json).unwrap();
+            let validation = profile.validation();
+            assert!(validation.errors.is_empty(), "{} errors: {:?}", texture.name, validation.errors);
+            assert_eq!(validation.enabled_rules, 1, "{} should have one Arena 2.0 rule", texture.name);
+        }
+    }
+
+    #[test]
+    fn sky_front_face_targets_match_the_curated_rivals_map_references() {
+'@ "five texture profile regression tests"
 Save-Source $guiPath $gui
 
 Write-Host "Converted 66 sky JSONs to Fleasion CDN schema; 63 complete six-face profiles are applyable (62 archive skies plus Purple goo sky)."
