@@ -1590,7 +1590,7 @@ $payloadRoot = Join-Path $env:RUNNER_TEMP "prlngzz-editor-v042"
 New-Item -ItemType Directory -Force -Path $payloadRoot | Out-Null
 function Expand-V042([string]$Name, [string]$Destination) {
     $payloadFile = Join-Path $PSScriptRoot ("v042-payload/" + $Name + ".gz.b64")
-    if (!(Test-Path -LiteralPath $payloadFile)) { throw "Missing v0.3.43 payload: $payloadFile" }
+    if (!(Test-Path -LiteralPath $payloadFile)) { throw "Missing v0.3.44 payload: $payloadFile" }
     $bytes = [Convert]::FromBase64String([IO.File]::ReadAllText($payloadFile).Trim())
     $input = [IO.MemoryStream]::new($bytes)
     $gzip = [IO.Compression.GZipStream]::new($input, [IO.Compression.CompressionMode]::Decompress)
@@ -1624,4 +1624,13 @@ $optimizerText = [IO.File]::ReadAllText((Join-Path $payloadRoot "optimizer.rs"))
 if (!$fflagText.Contains("pub const ALLOWLIST") -or !$fflagText.Contains("pub fn write")) { throw "Recovered FFlags module failed integrity checks." }
 if (!$optimizerText.Contains("pub fn snapshot") -or !$optimizerText.Contains("recommended_graphics_level")) { throw "Recovered optimizer module failed integrity checks." }
 & (Join-Path $payloadRoot "v042-suite.ps1") -Project $Project -PayloadRoot $payloadRoot
+Expand-V042 "v043-stability.ps1" "v043-stability.ps1"
+$stabilityPath = Join-Path $payloadRoot "v043-stability.ps1"
+$stabilityText = [IO.File]::ReadAllText($stabilityPath)
+$tokens = $null
+$parseErrors = $null
+[System.Management.Automation.Language.Parser]::ParseInput($stabilityText, [ref]$tokens, [ref]$parseErrors) | Out-Null
+if ($parseErrors.Count -gt 0) { throw "The v0.3.44 stability patch is not valid PowerShell: $($parseErrors | ForEach-Object Message | Join-String -Separator '; ')" }
+& $stabilityPath -Project $Project
+
 
