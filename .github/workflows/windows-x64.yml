@@ -157,9 +157,28 @@ jobs:
 
           Push-Location $project
           git apply --check $patchFile
-          if ($LASTEXITCODE -ne 0) { throw "The v0.3.49 patch does not match the last known-good source snapshot." }
+          if ($LASTEXITCODE -ne 0) { throw "The v0.3.50 patch does not match the last known-good source snapshot." }
           git apply $patchFile
-          if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.49 source patch." }
+          if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.50 source patch." }
+
+          $featurePatchEncoded = [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v050.patch.b64")).Trim()
+          $featurePatchBytes = [Convert]::FromBase64String($featurePatchEncoded)
+          $featurePatchInput = [IO.MemoryStream]::new($featurePatchBytes)
+          $featurePatchGzip = [IO.Compression.GZipStream]::new($featurePatchInput, [IO.Compression.CompressionMode]::Decompress)
+          $featurePatchOutput = [IO.MemoryStream]::new()
+          $featurePatchFile = Join-Path $env:RUNNER_TEMP "prlngzz-editor-v050.patch"
+          try {
+            $featurePatchGzip.CopyTo($featurePatchOutput)
+            [IO.File]::WriteAllBytes($featurePatchFile, $featurePatchOutput.ToArray())
+          } finally {
+            $featurePatchGzip.Dispose()
+            $featurePatchInput.Dispose()
+            $featurePatchOutput.Dispose()
+          }
+          git apply --check $featurePatchFile
+          if ($LASTEXITCODE -ne 0) { throw "The v0.3.50 feature patch does not match the restored source." }
+          git apply $featurePatchFile
+          if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.50 feature patch." }
           $themePath = Join-Path $project "src/theme.rs"
           $themeSource = [IO.File]::ReadAllText($themePath)
           $themeSource = $themeSource.Replace("Stroke::new(1.0,", "Stroke::new(1.0_f32,")
@@ -169,7 +188,7 @@ jobs:
           }
           [IO.File]::WriteAllText($themePath, $themeSource, [Text.UTF8Encoding]::new($false))
           cargo fmt --all
-          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after applying the v0.3.49 source patch." }
+          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after applying the v0.3.50 source patch." }
           Pop-Location
 
           if (!(Test-Path (Join-Path $project "src/fflags.rs")) -or !(Test-Path (Join-Path $project "src/optimizer.rs"))) { throw "The new FFlags and performance modules are missing." }
@@ -263,11 +282,11 @@ jobs:
           if (!(Test-Path $binary)) { throw "Expected executable not found: $binary" }
           $versionOutput = & $binary --version
           if ($LASTEXITCODE -ne 0) { throw "Executable --version invocation failed" }
-          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.49") { throw "Unexpected version: $versionOutput" }
+          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.50") { throw "Unexpected version: $versionOutput" }
           $versionInfo = (Get-Item $binary).VersionInfo
           if ([string]::IsNullOrWhiteSpace($versionInfo.FileVersion) -or [string]::IsNullOrWhiteSpace($versionInfo.ProductVersion)) {
             Write-Warning "This recovered source baseline does not embed Windows version resources; the executable --version output was verified above."
-          } elseif ($versionInfo.FileVersion -ne "0.3.49" -or $versionInfo.ProductVersion -ne "0.3.49") {
+          } elseif ($versionInfo.FileVersion -ne "0.3.50" -or $versionInfo.ProductVersion -ne "0.3.50") {
             throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)"
           }
           $bytes = [IO.File]::ReadAllBytes($binary)
@@ -277,24 +296,24 @@ jobs:
           $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
           if ($machine -ne 0x8664) { throw "Expected AMD64 PE; found 0x$('{0:X4}' -f $machine)" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.49-Windows-x64.exe" -Force
+          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.50-Windows-x64.exe" -Force
 
 
       - name: Upload Windows x64 executable
         uses: actions/upload-artifact@v4
         with:
-          name: Prlngzz-Editor-v0.3.49-Windows-x64
-          path: dist/Prlngzz-Editor-v0.3.49-Windows-x64.exe
+          name: Prlngzz-Editor-v0.3.50-Windows-x64
+          path: dist/Prlngzz-Editor-v0.3.50-Windows-x64.exe
           if-no-files-found: error
           retention-days: 30
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/editor-v') || github.ref == 'refs/heads/codex/sky-library-gallery-functional-v031'
+        if: startsWith(github.ref, 'refs/tags/editor-v') || github.ref == 'refs/heads/codex/v0.3.50-feature-fixes'
         uses: softprops/action-gh-release@v2
         with:
-          name: Prlngzz Editor v0.3.49
-          tag_name: editor-v0.3.49
+          name: Prlngzz Editor v0.3.50
+          tag_name: editor-v0.3.50
           target_commitish: ${{ github.sha }}
           make_latest: true
           generate_release_notes: true
-          files: dist/Prlngzz-Editor-v0.3.49-Windows-x64.exe
+          files: dist/Prlngzz-Editor-v0.3.50-Windows-x64.exe
