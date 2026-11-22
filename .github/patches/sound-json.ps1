@@ -150,7 +150,7 @@ Save-Source $lockPath $lock
 
 $changelogPath = Join-Path $Project 'changelog.json'
 $changelog = [IO.File]::ReadAllText($changelogPath)
-$updatedVersion = $false
+$script:updatedVersion = $false
 $changelog = [regex]::Replace($changelog, '(?m)^\s*"version": "[^"]+",', [System.Text.RegularExpressions.MatchEvaluator]{
     param($match)
     if (-not $script:updatedVersion) {
@@ -159,5 +159,5 @@ $changelog = [regex]::Replace($changelog, '(?m)^\s*"version": "[^"]+",', [System
     }
     return $match.Value
 })
-if (-not $updatedVersion) { throw 'Could not update the changelog version to 0.3.52' }
+if (-not $script:updatedVersion) { throw 'Could not update the changelog version to 0.3.52' }
 Save-Source $changelogPath $changelog
