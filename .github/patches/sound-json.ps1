@@ -111,35 +111,23 @@ $config = Replace-Once $config $testNeedle $testBlock 'cache URL resolver tests'
 Save-Source $configPath $config
 $cargoPath = Join-Path $Project 'Cargo.toml'
 $cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = [regex]::Replace($cargo, '(?m)^version = "0\.3\.51"
+$cargo = $cargo.Replace('version = "0.3.51"', 'version = "0.3.52"')
 if ($cargo -notmatch '(?m)^version = "0\.3\.52"$') { throw 'Could not update Cargo.toml to 0.3.52' }
 Save-Source $cargoPath $cargo
+
 $lockPath = Join-Path $Project 'Cargo.lock'
 $lock = [IO.File]::ReadAllText($lockPath)
-$lock = [regex]::Replace($lock, '(?s)(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")0\.3\.51(")', '$1' + '0.3.52' + '$2', 1)
+$lock = [regex]::Replace($lock, '(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")0\.3\.51(")', [System.Text.RegularExpressions.MatchEvaluator]{
+    param($match)
+    return $match.Groups[1].Value + '0.3.52' + $match.Groups[2].Value
+})
 if ($lock -notmatch '(?s)\[\[package\]\]\s*name = "prlngzz-editor"\s*version = "0\.3\.52"') { throw 'Could not update Cargo.lock to 0.3.52' }
 Save-Source $lockPath $lock
+
 $changelogPath = Join-Path $Project 'changelog.json'
 $changelog = [IO.File]::ReadAllText($changelogPath)
 $changelog = $changelog.Replace('"version": "0.3.51"', '"version": "0.3.52"')
 $changelog = $changelog.Replace('"0.3.51": {', '"0.3.52": {')
-$changelog = [regex]::Replace($changelog, '(?s)("0\.3\.52"\s*:\s*\{\s*"title"\s*:\s*")[^"]+', '$1Automatic sound config matching', 1)
-$changelog = [regex]::Replace($changelog, '(?s)(\{\s*"version"\s*:\s*"0\.3\.52".*?"changes"\s*:\s*\[)', '$1' + [Environment]::NewLine + '        "Uses Roblox cache request URLs to automatically match sound asset IDs, including restricted audio that anonymous lookup cannot identify.",', 1)
-if ($changelog -notmatch '0\.3\.52') { throw 'Could not update changelog to 0.3.52' }
-Save-Source $changelogPath $changelog
-, 'version = "0.3.52"', 1)
-if ($cargo -notmatch '(?m)^version = "0\.3\.52"$') { throw 'Could not update Cargo.toml to 0.3.52' }
-Save-Source $cargoPath $cargo
-$lockPath = Join-Path $Project 'Cargo.lock'
-$lock = [IO.File]::ReadAllText($lockPath)
-$lock = [regex]::Replace($lock, '(?s)(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")0\.3\.51(")', '10.3.522', 1)
-if ($lock -notmatch '(?s)\[\[package\]\]\s*name = "prlngzz-editor"\s*version = "0\.3\.52"') { throw 'Could not update Cargo.lock to 0.3.52' }
-Save-Source $lockPath $lock
-$changelogPath = Join-Path $Project 'changelog.json'
-$changelog = [IO.File]::ReadAllText($changelogPath)
-$changelog = $changelog.Replace('"version": "0.3.51"', '"version": "0.3.52"')
-$changelog = $changelog.Replace('"0.3.51": {', '"0.3.52": {')
-$changelog = [regex]::Replace($changelog, '(?s)("0\.3\.52"\s*:\s*\{\s*"title"\s*:\s*")[^"]+', '1Automatic sound config matching', 1)
-$changelog = [regex]::Replace($changelog, '(?s)(\{\s*"version"\s*:\s*"0\.3\.52".*?"changes"\s*:\s*\[)', '1' + [Environment]::NewLine + '        "Uses Roblox cache request URLs to automatically match sound asset IDs, including restricted audio that anonymous lookup cannot identify.",', 1)
+$changelog = $changelog.Replace('"title": "Manual asset linking"', '"title": "Automatic sound config matching"')
 if ($changelog -notmatch '0\.3\.52') { throw 'Could not update changelog to 0.3.52' }
 Save-Source $changelogPath $changelog
