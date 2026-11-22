@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: prlngzz-editor-${{ github.ref }}
@@ -108,41 +109,58 @@ jobs:
           targets: x86_64-pc-windows-msvc
           components: clippy, rustfmt
 
-      - name: Restore and patch source archive
-        shell: powershell
+      - name: Download last known-good source snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: Prlngzz-Editor-source-snapshot
+          path: ${{ runner.temp }}/known-good-source-artifact
+          run-id: 44904019103
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore and patch last known-good source snapshot
+        shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $archive = Join-Path $env:GITHUB_WORKSPACE "Prlngzz-Editor-source.zip"
-          if (!(Test-Path $archive)) { throw "Upload Prlngzz-Editor-source.zip to the repository root." }
+          $artifactContainer = Join-Path $env:RUNNER_TEMP "known-good-source-artifact"
+          $artifactArchive = Join-Path $artifactContainer "Prlngzz-Editor-source-snapshot.zip"
+          if (!(Test-Path $artifactArchive)) { throw "The last known-good source snapshot artifact was not downloaded." }
+          $artifactExpanded = Join-Path $env:RUNNER_TEMP "known-good-source-expanded"
+          if (Test-Path $artifactExpanded) { Remove-Item $artifactExpanded -Recurse -Force }
+          Expand-Archive -LiteralPath $artifactArchive -DestinationPath $artifactExpanded -Force
+          $sourceArchive = Join-Path $artifactExpanded "Prlngzz-Editor-source-snapshot.zip"
+          if (!(Test-Path $sourceArchive)) { throw "The downloaded artifact did not contain the expected source snapshot zip." }
           $destination = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source"
           if (Test-Path $destination) { Remove-Item $destination -Recurse -Force }
-          Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force
           $project = Join-Path $destination "Prlngzz-Editor"
-          if (!(Test-Path (Join-Path $project "Cargo.toml"))) { throw "The archive did not contain Prlngzz-Editor/Cargo.toml" }
+          New-Item -ItemType Directory -Force -Path $project | Out-Null
+          Expand-Archive -LiteralPath $sourceArchive -DestinationPath $project -Force
+          if (!(Test-Path (Join-Path $project "Cargo.toml"))) { throw "The recovered source snapshot did not contain Cargo.toml." }
 
-          # Fix the local replacement helpers before the dedicated formatting check.
-          Write-Host "Source repair: begin"
-          $guiFile = Join-Path $project "src/gui.rs"
-          Write-Host "Source repair: GUI file opened"
-          $guiSource = [IO.File]::ReadAllText($guiFile)
-          $guiSource = [regex]::Replace(
-            $guiSource,
-            'ui\.with_layout\(egui::Layout::right_to_left\(egui::Align::Center\),\s*\|ui\|\s*\{\s*\}\);',
-            ''
-          )
-          [IO.File]::WriteAllText($guiFile, $guiSource, [Text.UTF8Encoding]::new($false))
-          Write-Host "Source repair: GUI file written"
-
-          Write-Host "Source repair: invoking project source patches"
-          & (Join-Path $env:GITHUB_WORKSPACE ".github/patches/apply-source-patches.ps1") -Project $project
+          $patchEncoded = [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.gz.b64")).Trim()
+          $patchBytes = [Convert]::FromBase64String($patchEncoded)
+          $patchInput = [IO.MemoryStream]::new($patchBytes)
+          $patchGzip = [IO.Compression.GZipStream]::new($patchInput, [IO.Compression.CompressionMode]::Decompress)
+          $patchOutput = [IO.MemoryStream]::new()
+          $patchFile = Join-Path $env:RUNNER_TEMP "prlngzz-editor-v048.patch"
+          try {
+            $patchGzip.CopyTo($patchOutput)
+            [IO.File]::WriteAllBytes($patchFile, $patchOutput.ToArray())
+          } finally {
+            $patchGzip.Dispose()
+            $patchInput.Dispose()
+            $patchOutput.Dispose()
+          }
 
           Push-Location $project
+          git apply --check $patchFile
+          if ($LASTEXITCODE -ne 0) { throw "The v0.3.48 patch does not match the last known-good source snapshot." }
+          git apply $patchFile
+          if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.48 source patch." }
           cargo fmt --all
-          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after source patching" }
+          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after applying the v0.3.48 source patch." }
           Pop-Location
 
-          Write-Host "Source repair: complete"
-          if (!(Test-Path (Join-Path $project "src/gui.rs")) -or !(Test-Path (Join-Path $project "src/config.rs"))) { throw "Source repair did not leave the required Rust files in place" }
+          if (!(Test-Path (Join-Path $project "src/fflags.rs")) -or !(Test-Path (Join-Path $project "src/optimizer.rs"))) { throw "The new FFlags and performance modules are missing." }
           $global:LASTEXITCODE = 0
 
       - name: Inspect config compatibility and navigation source
@@ -233,9 +251,9 @@ jobs:
           if (!(Test-Path $binary)) { throw "Expected executable not found: $binary" }
           $versionOutput = & $binary --version
           if ($LASTEXITCODE -ne 0) { throw "Executable --version invocation failed" }
-          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.47") { throw "Unexpected version: $versionOutput" }
+          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.48") { throw "Unexpected version: $versionOutput" }
           $versionInfo = (Get-Item $binary).VersionInfo
-          if ($versionInfo.FileVersion -ne "0.3.47" -or $versionInfo.ProductVersion -ne "0.3.47") { throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)" }
+          if ($versionInfo.FileVersion -ne "0.3.48" -or $versionInfo.ProductVersion -ne "0.3.48") { throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)" }
           $bytes = [IO.File]::ReadAllBytes($binary)
           if ($bytes.Length -lt 256 -or $bytes[0] -ne 0x4d -or $bytes[1] -ne 0x5a) { throw "Invalid PE file" }
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
@@ -243,14 +261,14 @@ jobs:
           $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
           if ($machine -ne 0x8664) { throw "Expected AMD64 PE; found 0x$('{0:X4}' -f $machine)" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.47-Windows-x64.exe" -Force
+          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.48-Windows-x64.exe" -Force
 
 
       - name: Upload Windows x64 executable
         uses: actions/upload-artifact@v4
         with:
-          name: Prlngzz-Editor-v0.3.47-Windows-x64
-          path: dist/Prlngzz-Editor-v0.3.47-Windows-x64.exe
+          name: Prlngzz-Editor-v0.3.48-Windows-x64
+          path: dist/Prlngzz-Editor-v0.3.48-Windows-x64.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -258,9 +276,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/editor-v') || github.ref == 'refs/heads/codex/sky-library-gallery-functional-v031'
         uses: softprops/action-gh-release@v2
         with:
-          name: Prlngzz Editor v0.3.47
-          tag_name: editor-v0.3.47
+          name: Prlngzz Editor v0.3.48
+          tag_name: editor-v0.3.48
           target_commitish: ${{ github.sha }}
           make_latest: true
           generate_release_notes: true
-          files: dist/Prlngzz-Editor-v0.3.47-Windows-x64.exe
+          files: dist/Prlngzz-Editor-v0.3.48-Windows-x64.exe
