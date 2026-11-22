@@ -1,0 +1,59 @@
+diff --git a/src/theme.rs b/src/theme.rs
+--- a/src/theme.rs
++++ b/src/theme.rs
+@@ -3,16 +3,9 @@
+ use eframe::egui::{self, Color32, CornerRadius, FontId, Margin, Rect, Shape, Stroke, TextStyle, Vec2};
+ use std::sync::atomic::{AtomicU32, Ordering};
+ 
+-pub const BG: Color32 = Color32::from_rgb(9, 8, 18);
+-pub const PANEL: Color32 = Color32::from_rgb(17, 15, 30);
+-pub const CARD: Color32 = Color32::from_rgb(25, 21, 43);
+-pub const RAISED: Color32 = Color32::from_rgb(36, 29, 58);
+-pub const BORDER: Color32 = Color32::from_rgb(64, 48, 91);
+ pub const TEXT: Color32 = Color32::from_rgb(248, 245, 255);
+ pub const MUTED: Color32 = Color32::from_rgb(178, 168, 198);
+-pub const WARN: Color32 = Color32::from_rgb(245, 189, 101);
+ pub const DANGER: Color32 = Color32::from_rgb(241, 109, 133);
+-pub const OK: Color32 = Color32::from_rgb(85, 214, 154);
+ 
+ /// Shared Prlngzz purple/black brand palette.
+ pub const SPLASH_BG: Color32 = Color32::from_rgb(11, 9, 18);
+@@ -98,29 +91,29 @@
+     v.window_fill = card_color();
+     v.extreme_bg_color = bg();
+     v.faint_bg_color = panel();
+-    v.window_stroke = Stroke::new(1.0, border());
++    v.window_stroke = Stroke::new(1.0_f32, border());
+     v.warn_fg_color = warn();
+     v.error_fg_color = danger();
+     v.widgets.noninteractive.bg_fill = panel();
+-    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, border());
+-    v.widgets.noninteractive.fg_stroke = Stroke::new(1.0, text_color());
++    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0_f32, border());
++    v.widgets.noninteractive.fg_stroke = Stroke::new(1.0_f32, text_color());
+     v.widgets.inactive.bg_fill = raised();
+     v.widgets.inactive.weak_bg_fill = raised();
+-    v.widgets.inactive.fg_stroke = Stroke::new(1.0, text_color());
++    v.widgets.inactive.fg_stroke = Stroke::new(1.0_f32, text_color());
+     v.widgets.hovered.bg_fill = raised().lerp_to_gamma(Color32::WHITE, 0.10);
+     v.widgets.hovered.weak_bg_fill = v.widgets.hovered.bg_fill;
+-    v.widgets.hovered.bg_stroke = Stroke::new(1.0, accent());
+-    v.widgets.hovered.fg_stroke = Stroke::new(1.0, text_color());
++    v.widgets.hovered.bg_stroke = Stroke::new(1.0_f32, accent());
++    v.widgets.hovered.fg_stroke = Stroke::new(1.0_f32, text_color());
+     v.widgets.active.bg_fill = alpha(accent(), 0.70);
+     v.widgets.active.weak_bg_fill = v.widgets.active.bg_fill;
+-    v.widgets.active.bg_stroke = Stroke::new(1.0, accent());
+-    v.widgets.active.fg_stroke = Stroke::new(1.0, text_color());
++    v.widgets.active.bg_stroke = Stroke::new(1.0_f32, accent());
++    v.widgets.active.fg_stroke = Stroke::new(1.0_f32, text_color());
+     v.widgets.open.bg_fill = raised();
+     v.widgets.open.weak_bg_fill = raised();
+-    v.widgets.open.bg_stroke = Stroke::new(1.0, accent());
+-    v.widgets.open.fg_stroke = Stroke::new(1.0, text_color());
++    v.widgets.open.bg_stroke = Stroke::new(1.0_f32, accent());
++    v.widgets.open.fg_stroke = Stroke::new(1.0_f32, text_color());
+     v.selection.bg_fill = alpha(accent(), 0.26);
+-    v.selection.stroke = Stroke::new(1.0, text_color());
++    v.selection.stroke = Stroke::new(1.0_f32, text_color());
+     ctx.set_style(style);

@@ -163,6 +163,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "The v0.3.48 patch does not match the last known-good source snapshot." }
           git apply $patchFile
           if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.48 source patch." }
+          $followupPatch = Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048-followup.patch"
+          git apply --check $followupPatch
+          if ($LASTEXITCODE -ne 0) { throw "The v0.3.48 compiler compatibility patch did not match." }
+          git apply $followupPatch
+          if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.48 compiler compatibility patch." }
           cargo fmt --all
           if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after applying the v0.3.48 source patch." }
           Pop-Location
