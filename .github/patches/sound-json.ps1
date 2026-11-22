@@ -111,15 +111,15 @@ $config = Replace-Once $config $testNeedle $testBlock 'cache URL resolver tests'
 Save-Source $configPath $config
 $cargoPath = Join-Path $Project 'Cargo.toml'
 $cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = $cargo.Replace('version = "0.3.51"', 'version = "0.3.52"')
+$cargo = [regex]::Replace($cargo, '(?m)^version = "0\.3\.(50|51)"$', 'version = "0.3.52"')
 if ($cargo -notmatch '(?m)^version = "0\.3\.52"$') { throw 'Could not update Cargo.toml to 0.3.52' }
 Save-Source $cargoPath $cargo
 
 $lockPath = Join-Path $Project 'Cargo.lock'
 $lock = [IO.File]::ReadAllText($lockPath)
-$lock = [regex]::Replace($lock, '(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")0\.3\.51(")', [System.Text.RegularExpressions.MatchEvaluator]{
+$lock = [regex]::Replace($lock, '(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")0\.3\.(50|51)(")', [System.Text.RegularExpressions.MatchEvaluator]{
     param($match)
-    return $match.Groups[1].Value + '0.3.52' + $match.Groups[2].Value
+    return $match.Groups[1].Value + '0.3.52' + $match.Groups[3].Value
 })
 if ($lock -notmatch '(?s)\[\[package\]\]\s*name = "prlngzz-editor"\s*version = "0\.3\.52"') { throw 'Could not update Cargo.lock to 0.3.52' }
 Save-Source $lockPath $lock
@@ -127,7 +127,9 @@ Save-Source $lockPath $lock
 $changelogPath = Join-Path $Project 'changelog.json'
 $changelog = [IO.File]::ReadAllText($changelogPath)
 $changelog = $changelog.Replace('"version": "0.3.51"', '"version": "0.3.52"')
+$changelog = $changelog.Replace('"version": "0.3.50"', '"version": "0.3.52"')
 $changelog = $changelog.Replace('"0.3.51": {', '"0.3.52": {')
-$changelog = $changelog.Replace('"title": "Manual asset linking"', '"title": "Automatic sound config matching"')
+$changelog = $changelog.Replace('"0.3.50": {', '"0.3.52": {')
+$changelog = [regex]::Replace($changelog, '(?s)("0\.3\.52"\s*:\s*\{\s*"title"\s*:\s*")[^"]+', '$1Automatic sound config matching', 1)
 if ($changelog -notmatch '0\.3\.52') { throw 'Could not update changelog to 0.3.52' }
 Save-Source $changelogPath $changelog
