@@ -11,6 +11,7 @@ function Replace-Once([string]$Text, [string]$Old, [string]$New, [string]$What) 
 function Save-Source([string]$Path, [string]$Text) {
     [IO.File]::WriteAllText($Path, $Text, [Text.UTF8Encoding]::new($false))
 }
+
 $configPath = Join-Path $Project 'src/config.rs'
 $config = [IO.File]::ReadAllText($configPath)
 $helper = @'
@@ -133,86 +134,10 @@ $loopReplacement = @'
 '@
 $resolve = Replace-Once $resolve $loop $loopReplacement 'identify cached asset IDs from original request URLs'
 Save-Source $resolvePath $resolve
+
 $cargoPath = Join-Path $Project 'Cargo.toml'
-$cargo = [IO.File]::ReadAllText($cargoPath)
-$cargo = [regex]::Replace($cargo, '(?m)^version = "[^"]+"\r?, 'version = "0.3.52"', 1)
-if ($cargo -notmatch '(?m)^version = "0\.3\.52"\r?) { throw 'Could not update Cargo.toml to 0.3.52' }
-Save-Source $cargoPath $cargo
-
-$lockPath = Join-Path $Project 'Cargo.lock'
-$lock = [IO.File]::ReadAllText($lockPath)
-$lock = [regex]::Replace($lock, '(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")[^"]+(")', [System.Text.RegularExpressions.MatchEvaluator]{
-    param($match)
-    return $match.Groups[1].Value + '0.3.52' + $match.Groups[2].Value
-})
-if ($lock -notmatch '(?s)\[\[package\]\]\s*name = "prlngzz-editor"\s*version = "0\.3\.52"') { throw 'Could not update Cargo.lock to 0.3.52' }
-Save-Source $lockPath $lock
-
-$changelogPath = Join-Path $Project 'changelog.json'
-$changelog = [IO.File]::ReadAllText($changelogPath)
-$script:updatedVersion = $false
-$changelog = [regex]::Replace($changelog, '(?m)^\s*"version": "[^"]+",', [System.Text.RegularExpressions.MatchEvaluator]{
-    param($match)
-    if (-not $script:updatedVersion) {
-        $script:updatedVersion = $true
-        return '      "version": "0.3.52",'
-    }
-    return $match.Value
-})
-if (-not $script:updatedVersion) { throw 'Could not update the changelog version to 0.3.52' }
-Save-Source $changelogPath $changelog
-, 'version = "0.3.52"', 1)
-if ($cargo -notmatch '(?m)^version = "0\.3\.52"$') { throw 'Could not update Cargo.toml to 0.3.52' }
-Save-Source $cargoPath $cargo
-
-$lockPath = Join-Path $Project 'Cargo.lock'
-$lock = [IO.File]::ReadAllText($lockPath)
-$lock = [regex]::Replace($lock, '(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")[^"]+(")', [System.Text.RegularExpressions.MatchEvaluator]{
-    param($match)
-    return $match.Groups[1].Value + '0.3.52' + $match.Groups[2].Value
-})
-if ($lock -notmatch '(?s)\[\[package\]\]\s*name = "prlngzz-editor"\s*version = "0\.3\.52"') { throw 'Could not update Cargo.lock to 0.3.52' }
-Save-Source $lockPath $lock
-
-$changelogPath = Join-Path $Project 'changelog.json'
-$changelog = [IO.File]::ReadAllText($changelogPath)
-$script:updatedVersion = $false
-$changelog = [regex]::Replace($changelog, '(?m)^\s*"version": "[^"]+",', [System.Text.RegularExpressions.MatchEvaluator]{
-    param($match)
-    if (-not $script:updatedVersion) {
-        $script:updatedVersion = $true
-        return '      "version": "0.3.52",'
-    }
-    return $match.Value
-})
-if (-not $script:updatedVersion) { throw 'Could not update the changelog version to 0.3.52' }
-Save-Source $changelogPath $changelog
-) { throw 'Could not update Cargo.toml to 0.3.52' }
-Save-Source $cargoPath $cargo
-
-$lockPath = Join-Path $Project 'Cargo.lock'
-$lock = [IO.File]::ReadAllText($lockPath)
-$lock = [regex]::Replace($lock, '(\[\[package\]\]\s*name = "prlngzz-editor"\s*version = ")[^"]+(")', [System.Text.RegularExpressions.MatchEvaluator]{
-    param($match)
-    return $match.Groups[1].Value + '0.3.52' + $match.Groups[2].Value
-})
-if ($lock -notmatch '(?s)\[\[package\]\]\s*name = "prlngzz-editor"\s*version = "0\.3\.52"') { throw 'Could not update Cargo.lock to 0.3.52' }
-Save-Source $lockPath $lock
-
-$changelogPath = Join-Path $Project 'changelog.json'
-$changelog = [IO.File]::ReadAllText($changelogPath)
-$script:updatedVersion = $false
-$changelog = [regex]::Replace($changelog, '(?m)^\s*"version": "[^"]+",', [System.Text.RegularExpressions.MatchEvaluator]{
-    param($match)
-    if (-not $script:updatedVersion) {
-        $script:updatedVersion = $true
-        return '      "version": "0.3.52",'
-    }
-    return $match.Value
-})
-if (-not $script:updatedVersion) { throw 'Could not update the changelog version to 0.3.52' }
-Save-Source $changelogPath $changelog
-, 'version = "0.3.52"', 1)
+$cargo = [IO.File]::ReadAllText($cargoPath).Replace(([string][char]13 + [char]10), [string][char]10)
+$cargo = [regex]::Replace($cargo, '(?m)^version = "[^"]+"$', 'version = "0.3.52"', 1)
 if ($cargo -notmatch '(?m)^version = "0\.3\.52"$') { throw 'Could not update Cargo.toml to 0.3.52' }
 Save-Source $cargoPath $cargo
 
