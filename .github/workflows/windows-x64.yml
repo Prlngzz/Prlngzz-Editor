@@ -263,11 +263,11 @@ jobs:
           if (!(Test-Path $binary)) { throw "Expected executable not found: $binary" }
           $versionOutput = & $binary --version
           if ($LASTEXITCODE -ne 0) { throw "Executable --version invocation failed" }
-          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.48") { throw "Unexpected version: $versionOutput" }
+          if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.49") { throw "Unexpected version: $versionOutput" }
           $versionInfo = (Get-Item $binary).VersionInfo
           if ([string]::IsNullOrWhiteSpace($versionInfo.FileVersion) -or [string]::IsNullOrWhiteSpace($versionInfo.ProductVersion)) {
             Write-Warning "This recovered source baseline does not embed Windows version resources; the executable --version output was verified above."
-          } elseif ($versionInfo.FileVersion -ne "0.3.48" -or $versionInfo.ProductVersion -ne "0.3.48") {
+          } elseif ($versionInfo.FileVersion -ne "0.3.49" -or $versionInfo.ProductVersion -ne "0.3.49") {
             throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)"
           }
           $bytes = [IO.File]::ReadAllBytes($binary)
