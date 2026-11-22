@@ -17,7 +17,7 @@ $helper = @'
 /// Extracts an asset ID from the URL Roblox stored beside a cached response.
 /// This is the authoritative local mapping for assets whose public delivery is
 /// restricted (notably many RIVALS audio assets).
-fn asset_id_from_cache_url(url: &str) -> Option<u64> {
+pub(crate) fn asset_id_from_cache_url(url: &str) -> Option<u64> {
     let (_, rest) = url.split_once("://")?;
     let host = rest.split('/').next()?.to_ascii_lowercase();
     if !(host == "roblox.com"
@@ -109,6 +109,30 @@ mod tests {
 '@
 $config = Replace-Once $config $testNeedle $testBlock 'cache URL resolver tests'
 Save-Source $configPath $config
+
+$resolvePath = Join-Path $Project 'src/resolve.rs'
+$resolve = [IO.File]::ReadAllText($resolvePath)
+$resolve = Replace-Once $resolve 'use crate::config::{fingerprint, Fingerprint, IdMap};' 'use crate::config::{asset_id_from_cache_url, fingerprint, Fingerprint, IdMap};' 'resolver cache URL import'
+$loop = @'
+    for &id in ids {
+        for fp in idmap
+'@
+$loopReplacement = @'
+    for &id in ids {
+        // The cache wrapper preserves Roblox's original asset URL. Prefer this
+        // local ID mapping for restricted sounds before attempting public delivery.
+        if entries.iter().any(|entry| {
+            entry.wrapped
+                && !matches!(entry.kind, "redirect" | "missing" | "empty")
+                && asset_id_from_cache_url(&entry.url) == Some(id)
+        }) {
+            outcomes.insert(id, Outcome::Known);
+            continue;
+        }
+        for fp in idmap
+'@
+$resolve = Replace-Once $resolve $loop $loopReplacement 'identify cached asset IDs from original request URLs'
+Save-Source $resolvePath $resolve
 $cargoPath = Join-Path $Project 'Cargo.toml'
 $cargo = [IO.File]::ReadAllText($cargoPath)
 $cargo = [regex]::Replace($cargo, '(?m)^version = "0\.3\.(50|51)"$', 'version = "0.3.52"')
