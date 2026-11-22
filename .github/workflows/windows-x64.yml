@@ -128,11 +128,8 @@ jobs:
           $artifactContainer = Join-Path $env:RUNNER_TEMP "known-good-source-artifact"
           $artifactArchive = Join-Path $artifactContainer "Prlngzz-Editor-source-snapshot.zip"
           if (!(Test-Path $artifactArchive)) { throw "The last known-good source snapshot artifact was not downloaded." }
-          $artifactExpanded = Join-Path $env:RUNNER_TEMP "known-good-source-expanded"
-          if (Test-Path $artifactExpanded) { Remove-Item $artifactExpanded -Recurse -Force }
-          Expand-Archive -LiteralPath $artifactArchive -DestinationPath $artifactExpanded -Force
-          $sourceArchive = Join-Path $artifactExpanded "Prlngzz-Editor-source-snapshot.zip"
-          if (!(Test-Path $sourceArchive)) { throw "The downloaded artifact did not contain the expected source snapshot zip." }
+          # download-artifact already extracts the artifact container; this is the source snapshot zip itself.
+          $sourceArchive = $artifactArchive
           $destination = Join-Path $env:RUNNER_TEMP "prlngzz-editor-source"
           if (Test-Path $destination) { Remove-Item $destination -Recurse -Force }
           $project = Join-Path $destination "Prlngzz-Editor"
