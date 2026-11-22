@@ -137,7 +137,13 @@ jobs:
           Expand-Archive -LiteralPath $sourceArchive -DestinationPath $project -Force
           if (!(Test-Path (Join-Path $project "Cargo.toml"))) { throw "The recovered source snapshot did not contain Cargo.toml." }
 
-          $patchEncoded = [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.gz.b64")).Trim()
+          $patchEncoded = @(
+            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part1.b64")).Trim()
+            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part2.b64")).Trim()
+            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part3.b64")).Trim()
+            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part4.b64")).Trim()
+            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part5.b64")).Trim()
+          ) -join ""
           $patchBytes = [Convert]::FromBase64String($patchEncoded)
           $patchInput = [IO.MemoryStream]::new($patchBytes)
           $patchGzip = [IO.Compression.GZipStream]::new($patchInput, [IO.Compression.CompressionMode]::Decompress)
