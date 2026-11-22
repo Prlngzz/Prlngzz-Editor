@@ -1,0 +1,13 @@
+{
+  "replacement_rules": [
+    {
+      "name": "the no arm",
+      "replace_ids": [
+        12307734932,
+        12307583853
+      ],
+      "mode": "id",
+      "enabled": true
+    }
+  ]
+}
