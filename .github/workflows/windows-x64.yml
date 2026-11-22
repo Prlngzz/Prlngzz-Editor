@@ -269,10 +269,10 @@ jobs:
           if ($versionOutput.Trim() -ne "prlngzz-editor 0.3.48") { throw "Unexpected version: $versionOutput" }
           $versionInfo = (Get-Item $binary).VersionInfo
           if ([string]::IsNullOrWhiteSpace($versionInfo.FileVersion) -or [string]::IsNullOrWhiteSpace($versionInfo.ProductVersion)) {
-  Write-Warning "This recovered source baseline does not embed Windows version resources; the executable --version output was verified above."
-} elseif ($versionInfo.FileVersion -ne "0.3.48" -or $versionInfo.ProductVersion -ne "0.3.48") {
-  throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)"
-}
+            Write-Warning "This recovered source baseline does not embed Windows version resources; the executable --version output was verified above."
+          } elseif ($versionInfo.FileVersion -ne "0.3.48" -or $versionInfo.ProductVersion -ne "0.3.48") {
+            throw "Unexpected Windows version metadata: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)"
+          }
           $bytes = [IO.File]::ReadAllBytes($binary)
           if ($bytes.Length -lt 256 -or $bytes[0] -ne 0x4d -or $bytes[1] -ne 0x5a) { throw "Invalid PE file" }
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
