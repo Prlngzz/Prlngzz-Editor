@@ -179,6 +179,25 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "The v0.3.50 feature patch does not match the restored source." }
           git apply $featurePatchFile
           if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.50 feature patch." }
+
+          $manualPatchEncoded = [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v051.patch.b64")).Trim()
+          $manualPatchBytes = [Convert]::FromBase64String($manualPatchEncoded)
+          $manualPatchInput = [IO.MemoryStream]::new($manualPatchBytes)
+          $manualPatchGzip = [IO.Compression.GZipStream]::new($manualPatchInput, [IO.Compression.CompressionMode]::Decompress)
+          $manualPatchOutput = [IO.MemoryStream]::new()
+          $manualPatchFile = Join-Path $env:RUNNER_TEMP "prlngzz-editor-v051.patch"
+          try {
+            $manualPatchGzip.CopyTo($manualPatchOutput)
+            [IO.File]::WriteAllBytes($manualPatchFile, $manualPatchOutput.ToArray())
+          } finally {
+            $manualPatchGzip.Dispose()
+            $manualPatchInput.Dispose()
+            $manualPatchOutput.Dispose()
+          }
+          git apply --check $manualPatchFile
+          if ($LASTEXITCODE -ne 0) { throw "The v0.3.51 manual-linking patch does not match the restored source." }
+          git apply $manualPatchFile
+          if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.51 manual-linking patch." }
           $themePath = Join-Path $project "src/theme.rs"
           $themeSource = [IO.File]::ReadAllText($themePath)
           $themeSource = $themeSource.Replace("Stroke::new(1.0,", "Stroke::new(1.0_f32,")
