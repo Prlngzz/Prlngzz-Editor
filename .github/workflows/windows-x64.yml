@@ -118,7 +118,7 @@ jobs:
         with:
           name: Prlngzz-Editor-source-snapshot
           path: ${{ runner.temp }}/known-good-source-artifact
-          run-id: 44904019103
+          run-id: 44970682776
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restore and patch last known-good source snapshot
@@ -138,17 +138,14 @@ jobs:
           if (!(Test-Path (Join-Path $project "Cargo.toml"))) { throw "The recovered source snapshot did not contain Cargo.toml." }
 
           $patchEncoded = @(
-            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part1.b64")).Trim()
-            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part2.b64")).Trim()
-            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part3.b64")).Trim()
-            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part4.b64")).Trim()
-            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048.patch.part5.b64")).Trim()
+            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v049.patch.part1.b64")).Trim()
+            [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE ".github/patches/v049.patch.part2.b64")).Trim()
           ) -join ""
           $patchBytes = [Convert]::FromBase64String($patchEncoded)
           $patchInput = [IO.MemoryStream]::new($patchBytes)
           $patchGzip = [IO.Compression.GZipStream]::new($patchInput, [IO.Compression.CompressionMode]::Decompress)
           $patchOutput = [IO.MemoryStream]::new()
-          $patchFile = Join-Path $env:RUNNER_TEMP "prlngzz-editor-v048.patch"
+          $patchFile = Join-Path $env:RUNNER_TEMP "prlngzz-editor-v049.patch"
           try {
             $patchGzip.CopyTo($patchOutput)
             [IO.File]::WriteAllBytes($patchFile, $patchOutput.ToArray())
@@ -160,9 +157,9 @@ jobs:
 
           Push-Location $project
           git apply --check $patchFile
-          if ($LASTEXITCODE -ne 0) { throw "The v0.3.48 patch does not match the last known-good source snapshot." }
+          if ($LASTEXITCODE -ne 0) { throw "The v0.3.49 patch does not match the last known-good source snapshot." }
           git apply $patchFile
-          if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.48 source patch." }
+          if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.49 source patch." }
           $themePath = Join-Path $project "src/theme.rs"
           $themeSource = [IO.File]::ReadAllText($themePath)
           $themeSource = $themeSource.Replace("Stroke::new(1.0,", "Stroke::new(1.0_f32,")
@@ -172,7 +169,7 @@ jobs:
           }
           [IO.File]::WriteAllText($themePath, $themeSource, [Text.UTF8Encoding]::new($false))
           cargo fmt --all
-          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after applying the v0.3.48 source patch." }
+          if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after applying the v0.3.49 source patch." }
           Pop-Location
 
           if (!(Test-Path (Join-Path $project "src/fflags.rs")) -or !(Test-Path (Join-Path $project "src/optimizer.rs"))) { throw "The new FFlags and performance modules are missing." }
@@ -280,14 +277,14 @@ jobs:
           $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
           if ($machine -ne 0x8664) { throw "Expected AMD64 PE; found 0x$('{0:X4}' -f $machine)" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.48-Windows-x64.exe" -Force
+          Copy-Item $binary "dist/Prlngzz-Editor-v0.3.49-Windows-x64.exe" -Force
 
 
       - name: Upload Windows x64 executable
         uses: actions/upload-artifact@v4
         with:
-          name: Prlngzz-Editor-v0.3.48-Windows-x64
-          path: dist/Prlngzz-Editor-v0.3.48-Windows-x64.exe
+          name: Prlngzz-Editor-v0.3.49-Windows-x64
+          path: dist/Prlngzz-Editor-v0.3.49-Windows-x64.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -295,9 +292,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/editor-v') || github.ref == 'refs/heads/codex/sky-library-gallery-functional-v031'
         uses: softprops/action-gh-release@v2
         with:
-          name: Prlngzz Editor v0.3.48
-          tag_name: editor-v0.3.48
+          name: Prlngzz Editor v0.3.49
+          tag_name: editor-v0.3.49
           target_commitish: ${{ github.sha }}
           make_latest: true
           generate_release_notes: true
-          files: dist/Prlngzz-Editor-v0.3.48-Windows-x64.exe
+          files: dist/Prlngzz-Editor-v0.3.49-Windows-x64.exe
