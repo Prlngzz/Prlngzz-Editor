@@ -1,0 +1,58 @@
+{
+  "replacement_rules": [
+    {
+      "name": "keyrambody",
+      "replace_ids": [
+        18586195844
+      ],
+      "mode": "cdn",
+      "enabled": true,
+      "cdn_url": "https://raw.githubusercontent.com/greendesign323232/pumpkin-over-the-spy/refs/heads/main/keyrambit.obj"
+    },
+    {
+      "name": "remove",
+      "replace_ids": [
+        18586195727
+      ],
+      "mode": "id",
+      "enabled": true
+    },
+    {
+      "name": "icon",
+      "replace_ids": [
+        18766863586
+      ],
+      "mode": "id",
+      "enabled": true,
+      "with_id": 108512337101248
+    },
+    {
+      "name": "keyram att 1",
+      "replace_ids": [
+        13455968853
+      ],
+      "mode": "cdn",
+      "enabled": true,
+      "cdn_url": "https://github.com/greendesign323232/pumpkin-over-the-spy/raw/refs/heads/main/keyramswing1c.MP3"
+    },
+    {
+      "name": "keyram att 2",
+      "replace_ids": [
+        13455968789
+      ],
+      "mode": "cdn",
+      "enabled": true,
+      "cdn_url": "https://github.com/greendesign323232/pumpkin-over-the-spy/raw/refs/heads/main/keyramswing2c.MP3"
+    },
+    {
+      "name": "keyram heavy",
+      "replace_ids": [
+        13160400937,
+        13160400909
+      ],
+      "mode": "cdn",
+      "enabled": true,
+      "cdn_url": "https://github.com/greendesign323232/pumpkin-over-the-spy/raw/refs/heads/main/keyram%20heavy.MP3"
+    }
+  ]
+}

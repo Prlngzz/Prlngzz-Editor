@@ -1,0 +1,34 @@
+{
+  "replacement_rules": [
+    {
+      "name": "full kill",
+      "replace_ids": [
+        16530229616,
+        16530229541,
+        16530229695
+      ],
+      "mode": "id",
+      "enabled": true,
+      "with_id": 135097031120155
+    },
+    {
+      "name": "Body shot",
+      "replace_ids": [
+        13110130082
+      ],
+      "mode": "id",
+      "enabled": true,
+      "with_id": 18805676593
+    },
+    {
+      "name": "Headshot",
+      "replace_ids": [
+        16537337310,
+        16537449730
+      ],
+      "mode": "id",
+      "enabled": true,
+      "with_id": 18805676593
+    }
+  ]
+}
