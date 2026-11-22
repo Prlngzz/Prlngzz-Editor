@@ -127,7 +127,7 @@ $loopReplacement = @'
                 && !matches!(entry.kind, "redirect" | "missing" | "empty")
                 && asset_id_from_cache_url(&entry.url) == Some(id)
         }) {
-            outcomes.insert(id, Outcome::Known);
+            drop(outcomes.insert(id, Outcome::Known));
             continue;
         }
         for fp in idmap
