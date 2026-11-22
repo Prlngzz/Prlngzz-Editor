@@ -163,11 +163,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "The v0.3.48 patch does not match the last known-good source snapshot." }
           git apply $patchFile
           if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.48 source patch." }
-          $followupPatch = Join-Path $env:GITHUB_WORKSPACE ".github/patches/v048-followup.patch"
-          git apply --check $followupPatch
-          if ($LASTEXITCODE -ne 0) { throw "The v0.3.48 compiler compatibility patch did not match." }
-          git apply $followupPatch
-          if ($LASTEXITCODE -ne 0) { throw "Could not apply the v0.3.48 compiler compatibility patch." }
+          $themePath = Join-Path $project "src/theme.rs"
+          $themeSource = [IO.File]::ReadAllText($themePath)
+          $themeSource = $themeSource.Replace("Stroke::new(1.0,", "Stroke::new(1.0_f32,")
+          foreach ($constant in @("BG", "PANEL", "CARD", "RAISED", "BORDER", "WARN", "OK")) {
+            $pattern = "(?m)^pub const ${constant}: Color32 = [^\r\n]*\r?\n"
+            $themeSource = [regex]::Replace($themeSource, $pattern, "")
+          }
+          [IO.File]::WriteAllText($themePath, $themeSource, [Text.UTF8Encoding]::new($false))
           cargo fmt --all
           if ($LASTEXITCODE -ne 0) { throw "cargo fmt failed after applying the v0.3.48 source patch." }
           Pop-Location
